@@ -1,0 +1,13 @@
+---
+:orientdb:
+ :server: localhost
+ :port: 2480
+ :database: hc_database
+ :admin:
+   :user: hctw
+   :pass: ++++
+ :auth:
+   :user: topo
+   :pass: ++++
+
+# hfx: 101
