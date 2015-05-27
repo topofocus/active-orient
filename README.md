@@ -1,5 +1,5 @@
 # orientdb-rest
-A simple ruiby wrapper for the REST-API of OrientDB
+A simple ruby wrapper for the REST-API of OrientDB
 
 
 OrientDB is still under heavy development. Any non-java binary-API-binding is therefor subject of constant changes.
