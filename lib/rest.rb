@@ -1,7 +1,7 @@
 module REST
 
 require 'rest-client'
-require 'active_support'
+require 'active_support/all'
 =begin
 OrientDB performs queries to a OrientDB-Database
 
@@ -115,7 +115,7 @@ returns
       response =   @res[database_uri].get
       if response.code == 200
        classes=  JSON.parse( response.body )['classes' ]
-       unless attributes.blank?
+       unless attributes.empty?
         classes.map{|y| y.select{| v,_| attributes.include?(v) } }
        else
 	 classes

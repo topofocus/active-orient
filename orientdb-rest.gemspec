@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
-require "orientdb_rest/version"
+#require "orientdb_rest/version"
 
 Gem::Specification.new do |s|
   s.name        = "orientdb_rest"
@@ -20,6 +20,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_dependency 'activesupport'
-  s.add_dependency 'rest-client', :git => 'git://github.com/rest-client/rest-client.git'
+#  s.add_dependency 'rest-client', :git => 'git://github.com/rest-client/rest-client.git'
 
 end

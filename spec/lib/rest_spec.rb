@@ -1,5 +1,6 @@
 
 require 'spec_helper'
+require 'active_support'
 
 describe REST::OrientDB do
   
@@ -29,7 +30,7 @@ describe REST::OrientDB do
 
     end
   end
-  context "establish a basic-auth ressource"  do
+  context "establish a basic-auth ressource"   do
     it "connect " do
       expect( @r.ressource ).to be_a RestClient::Resource
       expect( @r.connect ).to be_truthy
@@ -149,7 +150,7 @@ describe REST::OrientDB do
   end
 
 
-  context "execute batches" , focus: true do
+  context "execute batches" do
     it "a simple batch" do
       @r.delete_class 'Person'
       @r.delete_class 'Car'

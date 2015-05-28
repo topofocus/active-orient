@@ -3,6 +3,7 @@ require 'rspec'
 require 'rspec/its'
 require 'rspec/collection_matchers'
 require 'yaml'
+require 'active_support'
 project_root = File.expand_path('../..', __FILE__)
 require File.expand_path('../../lib/rest', __FILE__)
 #require 'my_spec_helper'
