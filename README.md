@@ -1,5 +1,5 @@
 # orientdb-rest
-A simple ruiby wrapper for the REST-API of OrientDB
+A simple ruby wrapper for the REST-API of OrientDB
 
 
 OrientDB is still under heavy development. Any non-java binary-API-binding is therefor subject of constant changes.
@@ -42,31 +42,31 @@ the database has to exist, otherwise
        details: { propertyType: 'LINK', linkedClass: 'Contracts' }
       }
 
-  @r.get_class_properties class_name: classname 
+  r.get_class_properties class_name: classname 
  ```
  
  Documents can easily created, updated, removed and queried
  ```ruby
-  r.create_document class_name: classname , attributes: {con_id: 345, symbol: 'EWQZ' }
+  r.create_document class_name: classname , attributes: { con_id: 345, symbol: 'EWQZ' }
 
  ```
   inserts a record in the classname-class 
 
  ```ruby
-  r.update_documents class_name: classname , set: {con_id: 346 },
+  r.update_documents class_name: classname , set: { con_id: 346 },
 		      where: { symbol: 'EWQZ' } 
 
  ```
  updates the database in a rdmb-fashon
 
  ```ruby
-  r.get_documents class_name: classname , where: {con_id: 345, symbol: 'EWQZ' }
+  r.get_documents class_name: classname , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
  queries the database accordantly and
 
  ```ruby
-  r.delete_documents class_name: classname , where: {con_id: 345, symbol: 'EWQZ' }
+  r.delete_documents class_name: classname , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
  completes the circle
