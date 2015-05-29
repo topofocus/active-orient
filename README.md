@@ -7,6 +7,7 @@ OrientDB is still under heavy development. Any non-java binary-API-binding is th
 OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust.
 
 This small wrapper is written to send date gathered by a Ruby-programm easily into an OrientDB-Database.
+The responded data are stored in ActiveModel-Objects.
 
 It's initialized by
 
@@ -33,40 +34,44 @@ the database has to exist, otherwise
  ```ruby
     r.create_class  classname
     r.delete_class  classname
+    
+    or
+    model =  r.creat_class classname
+    r.delete_class model
  ```
  if a schema is used, Properties can retrieved, and created
  ```ruby
-  r.create_properties( class_name: classname ) do
+  r.create_properties( o_class: model ) do
      {	symbol: { propertyType: 'STRING' },
 	con_id: { propertyType: 'INTEGER' },
        details: { propertyType: 'LINK', linkedClass: 'Contracts' }
       }
 
-  r.get_class_properties class_name: classname 
+  r.get_class_properties o_class: model 
  ```
  
  Documents can easily created, updated, removed and queried
  ```ruby
-  r.create_document class_name: classname , attributes: { con_id: 345, symbol: 'EWQZ' }
+  r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
 
  ```
   inserts a record in the classname-class 
 
  ```ruby
-  r.update_documents class_name: classname , set: { con_id: 346 },
+  r.update_documents o_class: model , set: { con_id: 346 },
 		      where: { symbol: 'EWQZ' } 
 
  ```
  updates the database in a rdmb-fashon
 
  ```ruby
-  r.get_documents class_name: classname , where: { con_id: 345, symbol: 'EWQZ' }
+  r.get_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
  queries the database accordantly and
 
  ```ruby
-  r.delete_documents class_name: classname , where: { con_id: 345, symbol: 'EWQZ' }
+  r.delete_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
  completes the circle
@@ -106,7 +111,27 @@ At least - sql-commands can be executed as batch
   returns the result of the last query. 
 
 
-  The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
+The REST::Query-Class provides a Query-Stack and an Records-Array which keeps the results.
+The REST::Query-Class acts as Parent-Class for the Records, which are REST::Model::Myquery Objects.
+
+```ruby
+    sample_query = REST::Query.new
+    sample_query.orientdb = r   
+    
+    sample_query.get_documents o_class: model, where: { con_id: 345 }
+    => 1
+```
+  queries the database as demonstrated above. In addition, the generated query itself is added to the »queries«-Stack and the result can be found in sample_query.records.
+
+The query can repeated simply by calling 
+```ruby
+   sample_query.execute_queries
+```
+The record-array is resetted befor the new query is fired.
+
+ 
+ 
+   The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
  
  
  
