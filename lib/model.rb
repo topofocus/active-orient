@@ -1,7 +1,7 @@
 module REST
 
-require 'base'
-require 'base_properties'
+#require 'base'
+#require 'base_properties'
 
 class Model < REST::Base
    include BaseProperties

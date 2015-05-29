@@ -1,4 +1,5 @@
-require 'bundler/setup'
+require './config/boot'
+#bundler/setup'
 require 'rspec'
 require 'rspec/its'
 require 'rspec/collection_matchers'

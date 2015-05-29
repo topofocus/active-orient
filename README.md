@@ -9,6 +9,10 @@ OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust
 This small wrapper is written to send date gathered by a Ruby-programm easily into an OrientDB-Database.
 The responded data are stored in ActiveModel-Objects.
 
+To start, modify »config/connect.yml«
+then in a rib-session
+»require './config/boot'
+
 It's initialized by
 
 ```ruby

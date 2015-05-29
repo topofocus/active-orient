@@ -2,7 +2,7 @@ module REST
 
 require 'rest-client'
 require 'active_support/core_ext/string'  # provides blank?, present?, presence etc
-require 'model'
+#require 'model'
 =begin
 OrientDB performs queries to a OrientDB-Database
 
