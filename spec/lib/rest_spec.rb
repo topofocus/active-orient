@@ -39,7 +39,7 @@ describe REST::OrientDB do
 
 
   context "perform database requests" do
-      let( :classname ) { "NeueKlasse10" }
+      let( :classname ) { "Neueklasse10" }
 
     it "get all Classes" do
       classes = @r.get_classes 'name', 'superClass'
@@ -53,23 +53,27 @@ describe REST::OrientDB do
       end
     end
 
-    it "create  and delete a Class  "  do
+    it "create  and delete a Class  " do
       re = @r.delete_class  classname
 #      expect( re ).to be_falsy
+      model = @r.create_class  classname
+      expect(model.new).to be_a REST::Model
       rr = @r.create_class  classname
-      expect(rr).to match /[0-9]{1,}/
-      rr = @r.create_class  classname
-      expect(rr).to be_nil
-      re = @r.delete_class classname
+      expect(model.to_s).to eq 'REST::Model::Neueklasse10'
+      re = @r.delete_class model
       expect( re ).to be_truthy
+      expect(  @r.get_classes( 'name' ) ).not_to include( { 'name' => classname } )
+      rr = @r.create_class  classname
+      # the class is created again
+      expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
     end
 
     it "creates a class and put a property into "  do
-      re = @r.delete_class classname
-      rr = @r.create_class classname
-      @r.create_class  "Contracts#"
+      @r.delete_class classname
+      model = @r.create_class classname
+      @r.create_class  "Contracts"
 
-      rp = @r.create_properties( class_name: classname ) do
+      rp = @r.create_properties( o_class: model ) do
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
 	  details: { propertyType: 'LINK', linkedClass: 'Contracts' }
@@ -78,8 +82,8 @@ describe REST::OrientDB do
       end
       expect( rp ).to eq 3
 
-      expect( @r.create_property class_name: classname, field:'name', type: 'date').to eq 4
-      expect( @r.delete_property class_name: classname, field:'name').to be_truthy
+      expect( @r.create_property o_class: model, field:'name', type: 'date').to eq 4
+      expect( @r.delete_property o_class: model, field:'name').to be_truthy
     end
     it "reads Properties form a class" do
 
@@ -93,55 +97,54 @@ describe REST::OrientDB do
 
     end
   end
-  context "document-handling" do
+  context "document-handling"  do
     before(:all) do
-      @classname = "DocumebntKlasse10" 
-      @r.delete_class @classname 
-      @r.create_class @classname 
-      @r.create_properties( class_name: @classname ) do
+      classname = "Documebntklasse10" 
+#      @r.delete_class @classname 
+      @rest_class = @r.create_class classname 
+      @r.create_properties( o_class: @rest_class ) do
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
 	  details: { propertyType: 'LINK', linkedClass: 'Contracts' }
 	}
       end
     end
-    after(:all){  @r.delete_class @classname }
+    after(:all){  @r.delete_class @rest_class }
 
 
-    it "create a single document" do
-      res=  @r.create_document class_name: @classname , attributes: {con_id: 345, symbol: 'EWQZ' }
-      expect( res['@type'] ).to eq 'd'
-      expect( res['@version'] ).to eq 1
-      expect( res['@class'] ).to eq @classname
-      expect( res['con_id'] ).to eq  345
-      expect( res['symbol'] ).to eq 'EWQZ'
-
+    it "create a single document"  do
+      res=  @r.create_document o_class: @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
+      expect( res).to be_a REST::Model
+      expect( res.con_id ).to eq 345
+      expect( res.symbol ).to eq 'EWQZ'
+      expect( res.version).to eq 1
     end
 
 
     it "read that document" do
-     r=  @r.create_document class_name: @classname, attributes: { con_id: 343, symbol: 'EWTZ' }
-     res = @r.get_documents class_name: @classname, where: { con_id: 343, symbol: 'EWTZ' }
+     r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
+     expect( r.class ).to eq @rest_class
+     res = @r.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
      expect(res.first ).to eq r
 
     end
 
      it "updates that document" do
-       r=  @r.create_document class_name: @classname, attributes: { con_id: 340, symbol: 'EWZ' }
-       rr =  @r.update_documents class_name: @classname,
+       r=  @r.create_document o_class: @rest_class, attributes: { con_id: 340, symbol: 'EWZ' }
+       rr =  @r.update_documents o_class: @rest_class,
 	 set: { :symbol => 'TWR' },
 	 where: { con_id: 340 }
 
-       res = @r.get_documents class_name: @classname, where:{ con_id: 340 }
+       res = @r.get_documents  o_class: @rest_class, where:{ con_id: 340 }
        expect( res.size ).to eq 1
        expect( res.first['symbol']).to eq 'TWR'
 
      end
      it "deletes that document" do
-     @r.create_document class_name: @classname , attributes: { con_id: 3410, symbol: 'EAZ' }
-     r=  @r.delete_documents class_name: @classname , where: { con_id: 3410 }
+     @r.create_document o_class: @rest_class , attributes: { con_id: 3410, symbol: 'EAZ' }
+     r=  @r.delete_documents o_class: @rest_class , where: { con_id: 3410 }
 
-     res = @r.get_documents class_name: @classname, where: { con_id: 3410 }
+     res = @r.get_documents o_class: @rest_class, where: { con_id: 3410 }
      expect(r.size).to eq 1
 
 
@@ -149,8 +152,48 @@ describe REST::OrientDB do
     end
   end
 
+  context "Use the Query-Class", focus: true do 
+    before(:all) do
+      classname = "Documebntklasse10" 
+#      @r.delete_class @classname 
+      @rest_class = @r.create_class classname 
+      @r.create_properties( o_class: @rest_class ) do
+	{ symbol: { propertyType: 'STRING' },
+	  con_id: { propertyType: 'INTEGER' }   
+	}
+      end
+      @query_class =  REST::Query.new
+      @query_class.orientdb =  @r
+    end
+    after(:all){  @r.delete_class @rest_class }
 
-  context "execute batches" do
+    it "the query class has the expected properties" do
+      expect(@query_class.records ).to be_a Array
+      expect(@query_class.records).to be_empty
+    end
+
+    it "get a document through the query-class" do
+     r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
+     expect( @query_class.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
+     expect( @query_class.records ).not_to be_empty
+     expect( @query_class.records.first).to eq r
+     expect( @query_class.queries).to have(1).record
+     expect( @query_class.queries.first).to eq "select from Documebntklasse10 where con_id = 343 and symbol = 'EWTZ'"
+
+    end
+    it "execute a query from stack" do
+      # get_documents saved the query
+      # we execute this once more
+       @query_class.reset_results
+       expect( @query_class.records ).to be_empty
+
+       expect{ @query_class.execute_queries }.to change { @query_class.records.size }.to 1
+
+    end
+
+  end
+
+  context "execute batches" , focus: true do
     it "a simple batch" do
       @r.delete_class 'Person'
       @r.delete_class 'Car'
@@ -179,11 +222,13 @@ describe REST::OrientDB do
 	  ]
       end
       # the expected result: 1 dataset, name should be Ferrari
+      expect( res).to be_a Array
       expect( res.size ).to eq 1 
-      expect( res.first['name']).to eq  'Lancia Musa'
-
+      expect( res.first.name).to eq  'Lancia Musa'
+      expect( res.first).to be_a REST::Model::Myquery
 
     end
+
   end
   # this must be the last test in file because the database itself is destroyed
   context "create and destroy a database" do

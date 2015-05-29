@@ -1,7 +1,8 @@
 module REST
 
 require 'rest-client'
-require 'active_support/all'
+require 'active_support/core_ext/string'  # provides blank?, present?, presence etc
+require 'model'
 =begin
 OrientDB performs queries to a OrientDB-Database
 
@@ -128,20 +129,45 @@ returns
 
     end
 =begin
-creates a class and returns the cluster
+creates a class and returns the a REST::Model:{Newclass}-Class- (Constant)
+which is designed to take any documents stored in this class
+
+Predefined attributes: version, cluster, record
+Other attributes are assigned dynamically upon reading documents
 =end
     def create_class   newclass
       logger.progname= 'OrientDB#CreateClass'
+      create_constant = ->(c){ "REST/Model/#{c}".camelize.constantize }
+      create_model = ->(c){  REST::Model.orientdb_class name: c }
       begin
-      response = @res[ class_uri{ newclass } ].post ''
-      if response.code == 201
-        response.body
-      else
-	0
-      end
+	response = @res[ class_uri{ newclass } ].post ''
+	if response.code == 201
+	  create_model[ newclass ]
+	  #        customized_class.new cluster: response.body.to_i  # return Model-based class
+	else
+	  create_constant[  newclass ]
+
+	end
       rescue RestClient::InternalServerError => e
-	logger.error { "Class #{newclass} was NOT created" }
-	nil
+	# expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
+	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
+	  logger.info { ou.split(':').last }
+	  if ( REST::Model.send( :const_get, newclass.to_sym ) rescue nil )
+	    logger.info { "#{newclass} already initialized, reusing " }
+	    create_constant[  newclass ]
+	  else
+	    logger.info{  "#{newclass} not initialized! --> creating " }
+	    create_model[ newclass ]
+
+	  end
+	else
+	  logger.error { "Class #{newclass} was NOT created" }
+	  nil
+	end
+      rescue NameError
+	#  uninitialized constant, raised in  camelize.constantise
+	create_model[ newclass ]
+
       end
     end
 =begin
@@ -149,19 +175,29 @@ deletes the database and returns true on success
 
 after the removal of the database, the working-database might be empty
 =end
-    def delete_class class_name
+    def delete_class o_class
+      class_name = if o_class.is_a? Class
+		     o_class.to_s.split('::').last
+		   else
+		      o_class
+		   end
           logger.progname = 'OrientDB#DeleteClass'
        begin
 	 response = @res[class_uri{ class_name} ].delete
-	 true if response.code == 204
+	 if response.code == 204
+	   REST::Model.send :remove_const, class_name.to_sym if o_class.is_a?(Class)
+	   true  # return_value
+	 end
        rescue RestClient::InternalServerError => e
 	 logger.info{ "Class #{class_name} NOT deleted" }
+	 logger.info{ e.inspect }
 	 false
        end
 
     end
 
-    def create_property class_name:, field:, type: 'string'
+    def create_property o_class:, field:, type: 'string'
+      class_name = o_class.to_s.split('::').last
       logger.progname= 'OrientDB#CreateProperty'
       begin
       response = @res[ property_uri(class_name){ field +'/'+type.upcase  } ].post ''
@@ -172,7 +208,7 @@ after the removal of the database, the working-database might be empty
       end
       rescue RestClient::InternalServerError => e
 	logger.error { "Property #{name} was NOT created" }
-	puts e.inspect
+	logger.error { e.response }
 	nil
       end
 
@@ -187,17 +223,20 @@ creates properties which are defined as json in the provided block as
 	        }
 
 =end
-    def create_properties class_name:
+    def create_properties o_class:
       logger.progname= 'OrientDB#CreateProperty'
+      class_name = o_class.to_s.split('::').last
 
       begin
-	attributes =  yield
-      response = @res[ property_uri(class_name) ].post attributes.to_json
-      if response.code == 201
-        response.body.to_i
-      else
-	0
-      end
+	all_properties_in_a_hash =  yield
+	if all_properties_in_a_hash.is_a? Hash
+	  response = @res[ property_uri(class_name) ].post all_properties_in_a_hash.to_json
+	  if response.code == 201
+	    response.body.to_i
+	  else
+	    0
+	  end
+	end
       rescue RestClient::InternalServerError => e
 	logger.error { "Properties in #{class_name} were NOT created" }
 	logger.error { e.response}
@@ -206,7 +245,8 @@ creates properties which are defined as json in the provided block as
 
     end
 
-    def delete_property class_name:, field:
+    def delete_property o_class:, field:
+      class_name = o_class.to_s.split('::').last
           logger.progname = 'OrientDB#DeleteProperty'
        begin
 	 response = @res[property_uri( class_name){ field } ].delete
@@ -245,20 +285,22 @@ and returns an Array with entries like
   }
 =end
 
-    def get_documents class_name:, where: {}
+    def get_documents o_class:, where: {}
+      class_name = o_class.to_s.split('::').last
+
         select_string =  'select from ' << class_name 
 	where_string =  if where.empty?
 			  ""
 			else 
 			 " where " <<  generate_sql_list(where)
 			end
+	yield( select_string + where_string ) if block_given?
 
-	  #puts "attributes: #{attributes.inspect}"
-	  #puts "query: #{select_string+where_string}"
 	url=  query_sql_uri << select_string << where_string 
 	response =  @res[URI.encode(url) ].get
-	#puts response.code
-	JSON.parse( response.body )['result']
+	r=JSON.parse( response.body )['result'].map do |document |
+	o_class.new(	document	)
+	end
 
     end
 
@@ -291,14 +333,15 @@ n
 
 =end
 
-    def create_document class_name:, attributes: {}
+    def create_document o_class:, attributes: {}
+      class_name = o_class.to_s.split('::').last
       if attributes.empty?
 	vars = get_class_properties( class_name: class_name)[:properties].keys
 	attributes = yield vars
       end
       post_argument = { '@class' => class_name }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
-      JSON.parse( response.body)
+      o_class.new JSON.parse( response.body)
     end
 
 =begin
@@ -306,8 +349,9 @@ Deletes  documents.
 They are defined by a query. All records which match the attributes are deleted.
 An Array with freed index-values is returned
 =end
-    def delete_documents class_name:, where: {}
-       get_documents( class_name: class_name, where: where).map do |doc|
+    def delete_documents o_class:, where: {}
+      class_name = o_class.to_s.split('::').last
+       get_documents( o_class: o_class, where: where).map do |doc|
 	 if doc['@type']=='d'  # document
 	   index = doc['@rid'][1,doc['@rid'].size] # omit the first character ('#')
 	   r=@res[ document_uri{ index  }].delete
@@ -329,7 +373,8 @@ Both set and where take multible attributes
 =end
 
 
-    def update_documents class_name:, set: , where: {}
+    def update_documents o_class:, set: , where: {}
+      class_name = o_class.to_s.split('::').last
       url = "update #{class_name}  set "<< generate_sql_list(set) << " where " << generate_sql_list(where)
       response = @res[ URI.encode( command_sql_uri << url) ].post '' #url.to_json 
     end
@@ -346,12 +391,19 @@ structure of the provided block:
  ]
 
 =end
-    def execute  transaction: true
+    def execute  transaction: true, class_name: 'Myquery'
       batch =  { transaction: transaction, operations: yield }
       response = @res[ batch_uri ].post batch.to_json
       if response.code == 200
 	if response.body['result'].present?
-	  JSON.parse(response.body)['result']
+	 result= JSON.parse(response.body)['result']
+	 o_class = if ( REST::Model.send( :const_get, class_name.to_sym  ) rescue nil )
+		     "REST/Model/#{class_name}".camelize.constantize 
+		    else
+		      REST::Model.orientdb_class name: class_name 
+		    end
+	 result.map{|x|  o_class.new x if x.is_a?( Hash ) }.compact # return_value
+
 	else
 	  response.body
 	end
