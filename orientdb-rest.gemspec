@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/topofocus/orientdb_rest'
   s.licenses    = ['MIT']
   s.summary     = %q{REST-HTTP client for OrientDB Server}
-  s.description = %q{This gem uses the OrientDB REST-HTTP-API to provide connectivity to an OrientDB Server}
+  s.description = %q{Using the OrientDB REST-HTTP-API to provide connectivity to an OrientDB Server}
 
 #  s.rubyforge_project = "orientdb_client"
 
@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.test_files    = `git ls-files -- {spec,features}/*`.split("\n")
 #  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
+  s.rubygems_version =  "2.1.9"
 
   s.add_dependency 'activesupport'
 #  s.add_dependency 'rest-client', :git => 'git://github.com/rest-client/rest-client.git'
