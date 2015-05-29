@@ -2,7 +2,7 @@
 A simple ruby wrapper for the REST-API of OrientDB
 
 
-OrientDB is still under heavy development. Any non-java binary-API-binding is therefor subject of constant changes.
+OrientDB is still under heavy development. Any non-java binary-API-binding is therefore subject of constant changes.
 
 OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust.
 
@@ -127,12 +127,12 @@ The query can repeated simply by calling
 ```ruby
    sample_query.execute_queries
 ```
-The record-array is resetted befor the new query is fired.
+The record-array is resetted before the new query is fired.
 
  
  
-   The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
- 
+ The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
+ And the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
  
  
  
