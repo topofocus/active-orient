@@ -6,8 +6,8 @@ OrientDB is still under heavy development. Any non-java binary-API-binding is th
 
 OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust.
 
-This small wrapper is written to send date gathered by a Ruby-programm easily into an OrientDB-Database.
-The responded data are stored in ActiveModel-Objects.
+This small wrapper is written to easily send data gathered by a Ruby-program into an OrientDB-Database,
+to query the Database in a rubish (aka activeRecord) manner and then to deal with ActiveModel-Objects.
 
 To start, modify »config/connect.yml«
 then in a irb-session
@@ -131,7 +131,7 @@ The contract-documents can easily be fetched with
   --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS 
      primary_exchange: IBIS subcategory: #14:1 symbol: BAS>
 ```
-Note that the fetched Object is of type »Stocks«.
+Note that the fetched Object is of type »Stocks« (REST::Model::Stocks).
 
 The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
 and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
