@@ -360,6 +360,17 @@ n
       end
     end
 
+    def get_document rid
+      create_constant = ->(c){ "REST/Model/#{c}".camelize.constantize }
+      create_model = ->(c){  REST::Model.orientdb_class name: c }
+      response = @res[ document_uri { rid } ].get 
+
+      raw_data = JSON.parse( response.body)
+      puts raw_data.inspect
+      REST::Model.orientdb_class( name: raw_data['@class']).new raw_data
+      
+
+    end
     def patch_document rid
       @res[ document_uri { rid } ].patch yield.to_json
     end
