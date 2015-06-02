@@ -119,7 +119,7 @@ This feature can be used as a substiture for simple functions
 ```ruby
  roq = REST::Query.new
  roq.queries =["select name, categories.subcategories.contracts from Industries  where name containstext     …'ial'"]
- ror_query.execute_queries.each{|x|  puts x.name, x.categories.inspect }
+ roq.execute_queries.each{|x|  puts x.name, x.categories.inspect }
  --> Basic Materials 	[["#21:1"]]
  --> Financial  	[["#21:2"]]
  --> Industrial 	[["#23:0", "#23:1"]]
