@@ -10,7 +10,7 @@ This small wrapper is written to send date gathered by a Ruby-programm easily in
 The responded data are stored in ActiveModel-Objects.
 
 To start, modify »config/connect.yml«
-then in a rib-session
+then in a irb-session
 »require './config/boot'
 
 It's initialized by
@@ -26,15 +26,24 @@ the database has to exist, otherwise
  r.connect
 ```
 
- The given datasetname is the working-database for all further operations.
+Then the database can be assigned to any REST::Model-Object:
+```ruby
+REST::Model.orientdb = r
+REST::Query.orientdb = r
+```
+Then the database will be used by »yourModel«.update  to transfer changes
+
+
+The given dataset-name is the working-database for all further operations.
  
- You can fetch a list of Classes  and some Properites by
+You can fetch a list of Classes  and some Properites by
  ``` ruby
     r.get_classes 'name', 'superClass' (, further attributes )
+    --> { 'name' => class_name , 'superClass => superClass_name  }
  ```
  
  
- Creation and removal of Classes is straightforward
+Creation and removal of Classes is straightforward
  ```ruby
     r.create_class  classname
     r.delete_class  classname
@@ -43,7 +52,7 @@ the database has to exist, otherwise
     model =  r.creat_class classname
     r.delete_class model
  ```
- if a schema is used, Properties can retrieved, and created
+if a schema is used, Properties can retrieved, and created
  ```ruby
   r.create_properties( o_class: model ) do
      {	symbol: { propertyType: 'STRING' },
@@ -54,7 +63,7 @@ the database has to exist, otherwise
   r.get_class_properties o_class: model 
  ```
  
- Documents can easily created, updated, removed and queried
+Documents can easily created, updated, removed and queried
  ```ruby
   r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
 
@@ -66,10 +75,13 @@ the database has to exist, otherwise
 		      where: { symbol: 'EWQZ' } 
 
  ```
- updates the database in a rdmb-fashon
+ updates the database based on a query, 
+ »model.update« saves a dirty record to the database.
+ 
 
  ```ruby
   r.get_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
+  r.get_document rid 
 
  ```
  queries the database accordantly and
@@ -84,59 +96,45 @@ the database has to exist, otherwise
 
 At least - sql-commands can be executed as batch
 
- ```ruby
-
-    r.execute  transaction: false do
-         ## perform operations from the tutorial
-	 sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command } }
-
-	[ sql_cmd[ "create class Person extends V" ] ,
-	  sql_cmd[ "create class Car extends V" ],
-	  sql_cmd[ "create class Owns extends E"],
-
-	  sql_cmd[ "create property Owns.out LINK Person "],
-	  sql_cmd[ "create property Owns.in LINK Car "],
-	  sql_cmd[ "alter property Owns.out MANDATORY=true "],
-	  sql_cmd[ "alter property Owns.in MANDATORY=true "],
-	  sql_cmd[ "create index UniqueOwns on Owns(out,in) unique"],
-
-	  { type: 'c', record: { '@class' => 'Person' , name: 'Lucas' } },
-	  sql_cmd[ "create vertex Person set name = 'Luca'" ],
-	  sql_cmd[ "create vertex Car set name = 'Ferrari Modena'"],
-	  { type: 'c', record: { '@class' => 'Car' , name: 'Lancia Musa' } },
-
-
-	  sql_cmd[ "create edge Owns from (select from Person where name='Luca') to (select from Car where name = 'Lancia Musa')" ],
-	  sql_cmd[ "select name from ( select expand( out('Owns') ) from Person where name = 'Luca' )" ]
-	 ]
-       end
-
- ```
-  returns the result of the last query. 
-
-
 The REST::Query-Class provides a Query-Stack and an Records-Array which keeps the results.
 The REST::Query-Class acts as Parent-Class for the Records, which are REST::Model::Myquery Objects.
 
 ```ruby
-    sample_query = REST::Query.new
-    sample_query.orientdb = r   
+    ach = REST::Query.new
     
-    sample_query.get_documents o_class: model, where: { con_id: 345 }
-    => 1
+   ach.queries << 'create class Contracts ABSTRACT'
+   ach.queries << 'create property Contracts.subcategory link'
+   ach.queries << 'create property Contracts.details link'
+   ach.queries << 'create class Stocks extends Contracts'
+   ach.queries << 'create class Futures extends Contracts'
+   result = ach.execute_queries transaction: false
+   
+   
+
 ```
   queries the database as demonstrated above. In addition, the generated query itself is added to the »queries«-Stack and the result can be found in sample_query.records.
+  
+This feature can be used as a substiture for simple functions
 
-The query can repeated simply by calling 
 ```ruby
-   sample_query.execute_queries
+ roq = REST::Query.new
+ roq.queries =["select name, categories.subcategories.contracts from Industries  where name containstext     …'ial'"]
+ ror_query.execute_queries.each{|x|  puts x.name, x.categories.inspect }
+ --> Basic Materials 	[["#21:1"]]
+ --> Financial  	[["#21:2"]]
+ --> Industrial 	[["#23:0", "#23:1"]]
 ```
-The record-array is resetted before the new query is fired.
 
- 
- 
- The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
- And the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
+The contract-documents can easily be fetched with 
+```ruby
+  r.get_document '#21:1'
+  --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS 
+     primary_exchange: IBIS subcategory: #14:1 symbol: BAS>
+```
+Note that the fetched Object is of type »Stocks«.
+
+The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
+and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
  
  
  
