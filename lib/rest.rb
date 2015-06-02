@@ -141,13 +141,15 @@ Other attributes are assigned dynamically upon reading documents
       create_model = ->(c){  REST::Model.orientdb_class name: c }
       begin
 	response = @res[ class_uri{ newclass } ].post ''
-	if response.code == 201
-	  create_model[ newclass ]
-	  #        customized_class.new cluster: response.body.to_i  # return Model-based class
-	else
-	  create_constant[  newclass ]
+	o_class = if response.code == 201
+		    create_model[ newclass ]
+		    #        customized_class.new cluster: response.body.to_i  # return Model-based class
+		  else
+		    create_constant[  newclass ]
 
-	end
+		  end
+	o_class.orientdb = self
+	o_class #return_value
       rescue RestClient::InternalServerError => e
 	# expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
 	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
@@ -285,8 +287,9 @@ and returns an Array with entries like
   }
 =end
 
-    def get_documents o_class:, where: {}
+    def get_documents o_class:, where: {} , raw: false
       class_name = o_class.to_s.split('::').last
+
 
         select_string =  'select from ' << class_name 
 	where_string =  if where.empty?
@@ -299,7 +302,7 @@ and returns an Array with entries like
 	url=  query_sql_uri << select_string << where_string 
 	response =  @res[URI.encode(url) ].get
 	r=JSON.parse( response.body )['result'].map do |document |
-	o_class.new(	document	)
+	  if raw then document else  o_class.new(	document	) end
 	end
 
     end
@@ -333,14 +336,50 @@ n
 
 =end
 
+    def update_or_create_document o_class:, set: {}, where: {} 
+      logger.progname =  'Rest#CreateOrUpdateDocument'
+      if where.blank?
+	create_document o_class: o_class, attributes: set
+      else
+	set.extract!( where.keys ) # removes any keys from where in set
+	possible_documents = get_documents( o_class: o_class, where: where)
+	if possible_documents.empty?
+	  yield if block_given?  # do Preparations prior to the creation of the dataset
+	  create_document( o_class: o_class) do
+	    set.merge(where) 
+	  end
+	elsif possible_documents.size == 1
+	        response = possible_documents.first.update( set: set )
+		possible_documents.first #@res[ document_uri ].put post_argument.to_json
+	else
+	  logger.error{ "multible (#{possible_documents.size})records found for #{where.inspect}" }
+	  puts "possible documents"
+	  puts possible_documents.inspect
+
+	end
+      end
+    end
+
+    def patch_document rid
+      @res[ document_uri { rid } ].patch yield.to_json
+    end
+
+    def call_function    *args
+puts "uri:#{function_uri { args.join('/') } }"
+      @res[ function_uri { args.join('/') } ].get
+    end
+
     def create_document o_class:, attributes: {}
       class_name = o_class.to_s.split('::').last
       if attributes.empty?
-	vars = get_class_properties( class_name: class_name)[:properties].keys
-	attributes = yield vars
+#	vars = get_class_properties( class_name: class_name)[:properties].keys
+	attributes = yield 
       end
       post_argument = { '@class' => class_name }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
+      #puts "RESPONSE: #{ response.body } "
+      #puts JSON.parse( response.body).inspect
+
       o_class.new JSON.parse( response.body)
     end
 
@@ -397,12 +436,23 @@ structure of the provided block:
       if response.code == 200
 	if response.body['result'].present?
 	 result= JSON.parse(response.body)['result']
+  
 	 o_class = if ( REST::Model.send( :const_get, class_name.to_sym  ) rescue nil )
 		     "REST/Model/#{class_name}".camelize.constantize 
 		    else
 		      REST::Model.orientdb_class name: class_name 
 		    end
-	 result.map{|x|  o_class.new x if x.is_a?( Hash ) }.compact # return_value
+	 result.map do |x| 
+	   if x.is_a? Hash 
+	     if x.has_key?('@rid')
+	       o_class.new x
+	     elsif x.has_key?( 'value' )
+	       x['value']
+	     else
+	       x
+	     end
+	   end
+	 end.compact # return_value
 
 	else
 	  response.body
@@ -461,7 +511,7 @@ def self.sql_uri *names
     end
 end
 
-    simple_uri :database, :document, :class, :batch
+    simple_uri :database, :document, :class, :batch, :function
     sql_uri :command , :query
 
 

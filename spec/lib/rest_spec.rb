@@ -114,10 +114,18 @@ describe REST::OrientDB do
 
     it "create a single document"  do
       res=  @r.create_document o_class: @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
+      puts res.inspect
       expect( res).to be_a REST::Model
       expect( res.con_id ).to eq 345
       expect( res.symbol ).to eq 'EWQZ'
       expect( res.version).to eq 1
+    end
+
+    it "create through create_or_update"   do
+      res=  @r.update_or_create_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
+      expect( res ).to be_a @rest_class
+      res=  @r.update_or_create_document o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 }
+      puts res.inspect
     end
 
 
@@ -152,7 +160,7 @@ describe REST::OrientDB do
     end
   end
 
-  context "Use the Query-Class", focus: true do 
+  context "Use the Query-Class" do 
     before(:all) do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
@@ -193,7 +201,7 @@ describe REST::OrientDB do
 
   end
 
-  context "execute batches" , focus: true do
+  context "execute batches"  do
     it "a simple batch" do
       @r.delete_class 'Person'
       @r.delete_class 'Car'

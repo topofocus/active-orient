@@ -14,25 +14,36 @@ module REST
     # If a opts hash is given, keys are taken as attribute names, values as data.
     # The model instance fields are then set automatically from the opts Hash.
     def initialize attributes={}, opts={}
+      possible_link_array_candidates = Hash.new
+      @metadata = HashWithIndifferentAccess.new
       attributes.keys.each do | att |
 	unless att[0] == "@"	  
 	  att =  att.to_sym if att.is_a?(String)    
 	  unless self.class.instance_methods.detect{|x| x == att.to_sym }
 	    self.class.define_property att, nil 
-	    puts "property #{att.to_s} assigned to #{self.class.to_s}"
+	    #puts "property #{att.to_s} assigned to #{self.class.to_s}"
 	  end
 	end
       end
+
       if attributes['@type'] == 'd'  # document 
-	  attributes.delete '@type'
-          attributes.delete '@class' 
-          version = attributes.delete '@version' 
+	  possible_link_array_candidates = attributes.find_all{|_,v| v.is_a?(Hash) }.to_h
+	  attributes.delete_if {|_,v| v.is_a?(Hash) }
+	  @metadata[ :type    ] = attributes.delete '@type'
+          @metadata[ :class   ] = attributes.delete '@class' 
+          @metadata[ :version] = attributes.delete '@version' 
+          @metadata[ :fieldTypes] = attributes.delete '@fieldTypes' 
           rid = attributes.delete '@rid' 
           cluster, record = rid[1,rid.size].split(':') 
-	  attributes[ 'version' ] = version 
-	  attributes[ 'cluster' ] =  cluster
-	  attributes[ 'record' ] = record
+	  @metadata[ :cluster ] =  cluster
+	  @metadata[ :record ] = record
       end
+      
+      if possible_link_array_candidates.present?
+	puts "possible link-array: #{possible_link_array_candidates.inspect}"
+      end
+
+    #  puts "initialize: \m #{attributes.inspect} "
       #          49 #       version = response_hash.delete '@version' 
       #
       run_callbacks :initialize do
