@@ -9,6 +9,7 @@ describe REST::OrientDB do
   before( :all ) do
 
     # working-database: hc_database
+    REST::Model.logger = Logger.new('/dev/stdout')
     @r= REST::OrientDB.new database: 'hc_database' , :connect => false
     databases =  @r.get_databases
     unless databases.include? 'hc_database'
@@ -121,11 +122,10 @@ describe REST::OrientDB do
       expect( res.version).to eq 1
     end
 
-    it "create through create_or_update"   do
+    it "create through create_or_update"  , focus:true do
       res=  @r.update_or_create_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
-      res=  @r.update_or_create_document o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 }
-      puts res.inspect
+      expect{  @r.update_or_create_document( o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) }.to change{ expect(res.a_new_property) }
     end
 
 

@@ -141,27 +141,30 @@ Other attributes are assigned dynamically upon reading documents
       create_model = ->(c){  REST::Model.orientdb_class name: c }
       begin
 	response = @res[ class_uri{ newclass } ].post ''
-	o_class = if response.code == 201
-		    create_model[ newclass ]
-		    #        customized_class.new cluster: response.body.to_i  # return Model-based class
-		  else
-		    create_constant[  newclass ]
+	REST::Model.orientdb_class( name: newclass)
+	#o_class = if response.code == 201
+	#	    create_model[ newclass ]
+	#	    #        customized_class.new cluster: response.body.to_i  # return Model-based class
+	#	  else
+	#	    create_constant[  newclass ]
 
-		  end
-	o_class.orientdb = self
-	o_class #return_value
+	#	  end
+	#o_class.orientdb = self
+	#o_class #return_value
       rescue RestClient::InternalServerError => e
 	# expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
 	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
 	  logger.info { ou.split(':').last }
-	  if ( REST::Model.send( :const_get, newclass.to_sym ) rescue nil )
-	    logger.info { "#{newclass} already initialized, reusing " }
-	    create_constant[  newclass ]
-	  else
-	    logger.info{  "#{newclass} not initialized! --> creating " }
-	    create_model[ newclass ]
+	  REST::Model.orientdb_class( name: newclass)
 
-	  end
+#	  if ( REST::Model.send( :const_get, newclass.to_sym ) rescue nil )
+#	    logger.info { "#{newclass} already initialized, reusing " }
+#	    create_constant[  newclass ]
+#	  else
+#	    logger.info{  "#{newclass} not initialized! --> creating " }
+#	    create_model[ newclass ]
+#
+#	  end
 	else
 	  logger.error { "Class #{newclass} was NOT created" }
 	  nil
@@ -359,18 +362,19 @@ n
 	end
       end
     end
+=begin
+Retrieves a Document from the Database as REST::Model::{class} 
 
+=end
     def get_document rid
-      create_constant = ->(c){ "REST/Model/#{c}".camelize.constantize }
-      create_model = ->(c){  REST::Model.orientdb_class name: c }
       response = @res[ document_uri { rid } ].get 
 
       raw_data = JSON.parse( response.body)
-      puts raw_data.inspect
       REST::Model.orientdb_class( name: raw_data['@class']).new raw_data
-      
-
     end
+=begin
+Lazy Updating of the given Document.
+=end
     def patch_document rid
       @res[ document_uri { rid } ].patch yield.to_json
     end
@@ -448,19 +452,20 @@ structure of the provided block:
 	if response.body['result'].present?
 	 result= JSON.parse(response.body)['result']
   
-	 o_class = if ( REST::Model.send( :const_get, class_name.to_sym  ) rescue nil )
-		     "REST/Model/#{class_name}".camelize.constantize 
-		    else
-		      REST::Model.orientdb_class name: class_name 
-		    end
+#	 o_class = if ( REST::Model.send( :const_get, class_name.to_sym  ) rescue nil )
+#		     "REST/Model/#{class_name}".camelize.constantize 
+#		    else
+#		      REST::Model.orientdb_class name: class_name 
+#		    end
 	 result.map do |x| 
 	   if x.is_a? Hash 
-	     if x.has_key?('@rid')
-	       o_class.new x
+	     if x.has_key?('@class')
+		REST::Model.orientdb_class( name: x['@class']).new x
 	     elsif x.has_key?( 'value' )
 	       x['value']
 	     else
-	       x
+		REST::Model.orientdb_class( name: class_name).new x
+	       
 	     end
 	   end
 	 end.compact # return_value

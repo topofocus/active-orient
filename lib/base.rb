@@ -11,9 +11,11 @@ module REST
 
     define_model_callbacks :initialize
 
+    mattr_accessor :logger
     # If a opts hash is given, keys are taken as attribute names, values as data.
     # The model instance fields are then set automatically from the opts Hash.
     def initialize attributes={}, opts={}
+      logger.progname= "REST::Base#initialize"
       possible_link_array_candidates = Hash.new
       @metadata = HashWithIndifferentAccess.new
       attributes.keys.each do | att |
@@ -21,7 +23,7 @@ module REST
 	  att =  att.to_sym if att.is_a?(String)    
 	  unless self.class.instance_methods.detect{|x| x == att.to_sym }
 	    self.class.define_property att, nil 
-	    #puts "property #{att.to_s} assigned to #{self.class.to_s}"
+	    logger.debug { "property #{att.to_s} assigned to #{self.class.to_s}" }
 	  end
 	end
       end
@@ -33,14 +35,16 @@ module REST
           @metadata[ :class   ] = attributes.delete '@class' 
           @metadata[ :version] = attributes.delete '@version' 
           @metadata[ :fieldTypes] = attributes.delete '@fieldTypes' 
-          rid = attributes.delete '@rid' 
-          cluster, record = rid[1,rid.size].split(':') 
-	  @metadata[ :cluster ] =  cluster
-	  @metadata[ :record ] = record
+	  if attributes.has_key?( '@rid' )
+	    rid = attributes.delete '@rid' 
+	    cluster, record = rid[1,rid.size].split(':') 
+	    @metadata[ :cluster ] =  cluster
+	    @metadata[ :record ] = record
+	  end
       end
       
       if possible_link_array_candidates.present?
-	puts "possible link-array: #{possible_link_array_candidates.inspect}"
+	logger.debug "possible link-array: #{possible_link_array_candidates.inspect}"
       end
 
     #  puts "initialize: \m #{attributes.inspect} "

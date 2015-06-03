@@ -6,11 +6,11 @@ module REST
 class Model < REST::Base
    include BaseProperties
    def self.orientdb_class name: 
-        
+       #logger.progname =  "REST::Model#orientdb_class" 
      klass = Class.new( self )
      name =  name.camelize
      if self.send :const_defined?, name 
-       puts "Class already defined ... skipping"
+      # logger.debug { "Class  #{name} already defined ... skipping" }
        retrieved_class =  self.send :const_get, name
      else
      
@@ -19,6 +19,7 @@ class Model < REST::Base
 #	new_class.define_property :version, nil
 #	new_class.define_property :record, nil
 #	new_class.define_property :fieldTypes, nil
+	new_class.orientdb =  orientdb
 	new_class # return_value
      end
    end
@@ -31,6 +32,7 @@ Returns just the name of the Class
    end
 
      mattr_accessor :orientdb
+     mattr_accessor :logger
 
    # hard-coded orientdb-columns
 #     prop :cluster, :version, :record, :fieldtypes
@@ -44,7 +46,11 @@ Returns just the name of the Class
 rid is used in the where-part of sql-queries
 =end
    def rid
-     "#{@metadata[ :cluster ]}:#{@metadata[ :record ]}"
+     if @metadata.has_key?( 'cluster')
+       "#{@metadata[ :cluster ]}:#{@metadata[ :record ]}"
+     else
+       "0:0"
+     end
    end
 =begin
 link is used in any sql-commands 
