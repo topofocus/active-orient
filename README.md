@@ -1,12 +1,12 @@
 # orientdb-rest
-A simple ruby wrapper for the REST-API of OrientDB
+A simple ruby wrapper for the REST-API of OrientDB, based on ActiveModels
 
 
 OrientDB is still under heavy development. Any non-java binary-API-binding is therefore subject of constant changes.
 
 OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust.
 
-This small wrapper is written to easily send data gathered by a Ruby-program into an OrientDB-Database,
+This small wrapper is written to easily send data, gathered by a Ruby-program into an OrientDB-Database,
 to query the Database in a rubish (aka activeRecord) manner and then to deal with ActiveModel-Objects.
 
 To start, modify »config/connect.yml«
@@ -34,10 +34,9 @@ REST::Query.orientdb = r
 ```
 Then the database will be used by »yourModel«.update  to transfer changes
 
-
 The given dataset-name is the working-database for all further operations.
  
-You can fetch a list of Classes  and some Properites by
+You can fetch a list of Classes  and some Properties by
  ``` ruby
     r.get_classes 'name', 'superClass' (, further attributes )
     --> { 'name' => class_name , 'superClass => superClass_name  }
@@ -53,11 +52,12 @@ Creation and removal of Classes is straightforward
     model =  r.creat_class classname
     r.delete_class model
  ```
-»model« is the Class itself, a Constant pointing to the class-definition
+»model« is the REST::Model-Class itself, a Constant pointing to the class-definition.
+A model-class has several Instances, refering to the records in the database.
 It is used as argument to several methods, providing the class-name to operate on
 and as reference to instantiate the correct REST::Model-Object.
 
-If a schema is used, Properties can retrieved, and created
+If a schema is used, Properties can be created and retrieved as well
  ```ruby
   r.create_properties( o_class: model ) do
      {	symbol: { propertyType: 'STRING' },
@@ -68,7 +68,7 @@ If a schema is used, Properties can retrieved, and created
   r.get_class_properties o_class: model 
  ```
  
-Documents are easily created, updated, removed and queried either on a query-base or on a activeRecord-style
+Documents are easily created, updated, removed and queried either on a SQL-query-base or on a activeRecord-style
  ```ruby
   r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
   --> REST::Model::{model}-object
@@ -102,7 +102,7 @@ Documents are easily created, updated, removed and queried either on a query-bas
 At least - sql-commands can be executed as batch
 
 The REST::Query-Class provides a Query-Stack and an Records-Array which keeps the results.
-The REST::Query-Class acts as Parent-Class for the Records, which are REST::Model::Myquery Objects.
+The REST::Query-Class acts as Parent-Class for aggregated Records (without a @rid), which are REST::Model::Myquery Objects. If a Query returns a database-record, the correct REST::Model-Class is instantiated.
 
 ```ruby
     ach = REST::Query.new
