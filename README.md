@@ -16,6 +16,7 @@ then in a irb-session
 It's initialized by
 
 ```ruby
+ REST::OrientDB.logger = REST::Model.logger = Logger.new('/dev/stdout') # or your customized-logger
  r = REST::OrientDB.new database: 'hc_database'
 ```
 the database has to exist, otherwise
@@ -52,7 +53,11 @@ Creation and removal of Classes is straightforward
     model =  r.creat_class classname
     r.delete_class model
  ```
-if a schema is used, Properties can retrieved, and created
+»model« is the Class itself, a Constant pointing to the class-definition
+It is used as argument to several methods, providing the class-name to operate on
+and as reference to instantiate the correct REST::Model-Object.
+
+If a schema is used, Properties can retrieved, and created
  ```ruby
   r.create_properties( o_class: model ) do
      {	symbol: { propertyType: 'STRING' },
@@ -63,12 +68,12 @@ if a schema is used, Properties can retrieved, and created
   r.get_class_properties o_class: model 
  ```
  
-Documents can easily created, updated, removed and queried
+Documents are easily created, updated, removed and queried either on a query-base or on a activeRecord-style
  ```ruby
   r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
-
+  --> REST::Model::{model}-object
  ```
-  inserts a record in the classname-class 
+  creates a record in the classname-class 
 
  ```ruby
   r.update_documents o_class: model , set: { con_id: 346 },
@@ -131,6 +136,25 @@ The contract-documents can easily be fetched with
   --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS 
      primary_exchange: IBIS subcategory: #14:1 symbol: BAS>
 ```
+or
+```ruby
+    ror_query = REST::Query.new
+    ['Contracts', 'Industries', 'Categories', 'Subcategories'].each do |table|
+        ror_query.queries = [ "select count(*) from #{table}"]
+ 
+        count = ror_query.execute_queries
+        # count=> [#<REST::Model::Myquery:0x00000003b317c8 
+        #		@metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"count=l"},
+        #		@attributes={"count"=>4 } ] --> a Array with one Element, therefor count.pop 
+        puts "Table #{table} \t #{count.pop.count} Datasets "
+    end
+    -->Table Contracts 	 	56 Datasets 
+    -->Table Industries 	 8 Datasets 
+    -->Table Categories 	22 Datasets 
+    -->Table Subcategories 	35 Datasets 
+
+```
+
 Note that the fetched Object is of type »Stocks« (REST::Model::Stocks).
 
 The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
