@@ -21,7 +21,7 @@ The OrientDB-Server is specified in connect.yml,
 =end
 class OrientDB
   mattr_accessor :logger  ## borrowed from active_support
-      def initialize database: nil, logger: Logger.new(STDOUT), connect: true
+      def initialize database: nil,  connect: true
 	@res = get_ressource
 	@database = database|| YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
 	self.logger = logger	
@@ -128,6 +128,18 @@ returns
       end
 
     end
+
+=begin
+returns an array with all names of the classes of the database
+
+parameter: include_system_classes: false|true
+=end
+    def database_classes include_system_classes: false
+      system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "V", "_studio","E"]
+      all_classes = get_classes( 'name' ).map( &:values).flatten
+      include_system_classes ? all_classes : all_classes - system_classes 
+    end
+    
 =begin
 creates a class and returns the a REST::Model:{Newclass}-Class- (Constant)
 which is designed to take any documents stored in this class
@@ -141,16 +153,9 @@ Other attributes are assigned dynamically upon reading documents
       create_model = ->(c){  REST::Model.orientdb_class name: c }
       begin
 	response = @res[ class_uri{ newclass } ].post ''
-	REST::Model.orientdb_class( name: newclass)
-	#o_class = if response.code == 201
-	#	    create_model[ newclass ]
-	#	    #        customized_class.new cluster: response.body.to_i  # return Model-based class
-	#	  else
-	#	    create_constant[  newclass ]
-
-	#	  end
-	#o_class.orientdb = self
-	#o_class #return_value
+	ror_class= REST::Model.orientdb_class( name: newclass)
+	yield ror_class if block_given?   #  perform actions only if the class was sucessfully created
+	ror_class # return_value
       rescue RestClient::InternalServerError => e
 	# expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
 	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
@@ -381,7 +386,9 @@ Lazy Updating of the given Document.
 
     def call_function    *args
 puts "uri:#{function_uri { args.join('/') } }"
-      @res[ function_uri { args.join('/') } ].get
+      @res[ function_uri { args.join('/') } ].post ''
+    rescue RestClient::InternalServerError => e
+	puts  JSON.parse(e.http_body)
     end
 
     def create_document o_class:, attributes: {}
