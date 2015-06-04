@@ -86,7 +86,7 @@ Documents are easily created, updated, removed and queried either on a SQL-query
 
  ```ruby
   records = r.get_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
-  record  = r.get_document rid 
+  record  = r.get_document rid                       # rid can be either #x:y or x:y 
 
  ```
  queries the database accordantly and
@@ -132,7 +132,7 @@ This feature can be used as a substiture for simple functions
 
 The contract-documents can easily be fetched with 
 ```ruby
-  r.get_document '#21:1'
+  r.get_document '21:1'
   --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS 
      primary_exchange: IBIS subcategory: #14:1 symbol: BAS>
 ```
