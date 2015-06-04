@@ -158,18 +158,11 @@ Other attributes are assigned dynamically upon reading documents
 	ror_class # return_value
       rescue RestClient::InternalServerError => e
 	# expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
-	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
-	  logger.info { ou.split(':').last }
+	if e.http_body.split(':').last =~ /already exists/
+#	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
+#	  logger.info { ou.split(':').last }
 	  REST::Model.orientdb_class( name: newclass)
 
-#	  if ( REST::Model.send( :const_get, newclass.to_sym ) rescue nil )
-#	    logger.info { "#{newclass} already initialized, reusing " }
-#	    create_constant[  newclass ]
-#	  else
-#	    logger.info{  "#{newclass} not initialized! --> creating " }
-#	    create_model[ newclass ]
-#
-#	  end
 	else
 	  logger.error { "Class #{newclass} was NOT created" }
 	  nil
@@ -369,13 +362,25 @@ n
     end
 =begin
 Retrieves a Document from the Database as REST::Model::{class} 
-
+The argument can either be a rid (#[x}:{y}) or a link({x}:{y}) 
+If no Document  is found, nil is returned
 =end
     def get_document rid
+
+      rid = rid[1 .. rid.length] if rid[0]=='#'
+
       response = @res[ document_uri { rid } ].get 
 
       raw_data = JSON.parse( response.body)
       REST::Model.orientdb_class( name: raw_data['@class']).new raw_data
+      
+    rescue RestClient::InternalServerError => e
+	if e.http_body.split(':').last =~ /was not found|does not exist in database/
+	  nil
+	else
+	  puts e.http_body.inspect
+	  raise
+	end
     end
 =begin
 Lazy Updating of the given Document.
