@@ -6,25 +6,22 @@ OrientDB is still under heavy development. Any non-java binary-API-binding is th
 
 OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust.
 
-This small wrapper is written to easily send data, gathered by a Ruby-program into an OrientDB-Database,
-to query the Database in a rubish (aka activeRecord) manner and then to deal with ActiveModel-Objects.
+Orientdb-rest is written to store data, gathered by a Ruby-program, to an OrientDB-Database,
+to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
 
-To start, modify »config/connect.yml«
-then in a irb-session
+To start you need a ruby 2.x Installation, 
+clone the project and run bundle install and bundle update,
+then modify »config/connect.yml« 
+
+In a irb-session you need to
 »require './config/boot'
+
 
 It's initialized by
 
 ```ruby
  REST::OrientDB.logger = REST::Model.logger = Logger.new('/dev/stdout') # or your customized-logger
- r = REST::OrientDB.new database: 'hc_database'
-```
-the database has to exist, otherwise
-
-```ruby
- r = REST::OrientDB.new database: 'h_database', connect: false
- r.create_database name: 'hc_database'
- r.connect
+ r = REST::OrientDB.new 
 ```
 
 Then the database can be assigned to any REST::Model-Object:
@@ -32,14 +29,11 @@ Then the database can be assigned to any REST::Model-Object:
 REST::Model.orientdb = r
 REST::Query.orientdb = r
 ```
-Then the database will be used by »yourModel«.update  to transfer changes
 
-The given dataset-name is the working-database for all further operations.
- 
 You can fetch a list of classes  and some properties by
  ``` ruby
     r.get_classes 'name', 'superClass' (, further attributes )
-    --> { 'name' => class_name , 'superClass => superClass_name  }
+    --> [ { 'name' => class_name , 'superClass' => superClass_name  }, { .. } ]
  ```
  
  or simply 
@@ -54,10 +48,11 @@ Creation and removal of Classes is straightforward
     r.delete_class  classname
     
     or
-    model =  r.creat_class classname
+    model =  r.create_class classname
+    (...)
     r.delete_class model
  ```
-»model« is the REST::Model-Class itself, a Constant pointing to the class-definition.
+»model« is the REST::Model-Class itself, a constant pointing to the class-definition.
 A model-class has several Instances, refering to the records in the database.
 It is used as argument to several methods, providing the class-name to operate on
 and as reference to instantiate the correct REST::Model-Object.
@@ -75,23 +70,23 @@ If a schema is used, Properties can be created and retrieved as well
  
 Documents are easily created, updated, removed and queried either on a SQL-query-base or on a activeRecord-style
  ```ruby
-  r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
+  record = r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
   --> REST::Model::{model}-object
  ```
   creates a record in the classname-class 
 
  ```ruby
-  r.update_documents o_class: model , set: { con_id: 346 },
+  record = r.update_documents o_class: model , set: { con_id: 346 },
 		      where: { symbol: 'EWQZ' } 
 
  ```
  updates the database based on a query, 
- »model.update« saves a dirty record to the database.
+ »record.update« saves a dirty record to the database.
  
 
  ```ruby
-  r.get_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
-  r.get_document rid 
+  records = r.get_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
+  record  = r.get_document rid 
 
  ```
  queries the database accordantly and
