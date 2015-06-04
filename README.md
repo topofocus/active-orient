@@ -36,12 +36,17 @@ Then the database will be used by »yourModel«.update  to transfer changes
 
 The given dataset-name is the working-database for all further operations.
  
-You can fetch a list of Classes  and some Properties by
+You can fetch a list of classes  and some properties by
  ``` ruby
     r.get_classes 'name', 'superClass' (, further attributes )
     --> { 'name' => class_name , 'superClass => superClass_name  }
  ```
  
+ or simply 
+```ruby
+     r.database_classes include_system_classes:true
+    --> ["Car", (..), "E", "OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "Owns", "V", "_studio"]
+```
  
 Creation and removal of Classes is straightforward
  ```ruby
