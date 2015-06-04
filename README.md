@@ -14,7 +14,7 @@ clone the project and run bundle install and bundle update,
 then modify »config/connect.yml« 
 
 In a irb-session you need to
-»require './config/boot'
+»require './config/boot'«
 
 
 It's initialized by
@@ -24,11 +24,11 @@ It's initialized by
  r = REST::OrientDB.new 
 ```
 
-Then the database can be assigned to any REST::Model-Object:
+Then the database has to be assigned to any REST::Model-Object:
 ```ruby
 REST::Model.orientdb = r
-REST::Query.orientdb = r
 ```
+Note: If the working database is changed (by r.change_database newname) there is no need to reassign the database to Model-Objects.
 
 You can fetch a list of classes  and some properties by
  ``` ruby
