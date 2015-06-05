@@ -77,10 +77,14 @@ eg .  update #link set  ...
 
 =begin
 Convient update of the dataset by calling sql-patch
+The attributes are saved to the database.
+The optional :set argument 
 =end
    def update  set: {}
+      attributes.merge set
+
      orientdb.patch_document(rid) do
-       set.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
+       attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
    end
 
@@ -91,6 +95,7 @@ its called via
 =end
    def update_linkset q_class, item, link_class
      q_class.queries = [ "update #{link} add #{item} = #{link_class.link}" ]
+     puts q_class.queries.inspect
      q_class.execute_queries
 
    rescue RestClient::InternalServerError => e

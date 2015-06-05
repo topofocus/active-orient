@@ -21,20 +21,44 @@ The OrientDB-Server is specified in connect.yml,
 =end
 class OrientDB
   mattr_accessor :logger  ## borrowed from active_support
-      def initialize database: nil,  connect: true
-	@res = get_ressource
-	@database = database|| YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
-	self.logger = logger	
-	connect() if connect
-      end
 
-      def ressource
-	@res
-      end
-    def connect 
-      r= @res["/connect/#{ @database }" ].get
-      r.code == 204 ? true : nil 
-    end
+=begin
+Contructor: OrientDB is conventionally initialized. 
+Thus several instances pointing to the same or different databases can coexist 
+
+A simple 
+ xyz =  REST::OrientDB.new
+uses the database specified in the yaml-file »config/connect.yml« 
+and connects 
+
+=end
+
+  def initialize database: nil,  connect: true
+    @res = get_ressource
+    @database = database|| YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
+    connect() if connect
+  end
+
+##  use for development , should be removed in production release  
+  def ressource
+    @res
+  end
+## 
+
+  def connect 
+    r= @res["/connect/#{ @database }" ].get
+    r.code == 204 ? true : nil 
+  end
+
+## -----------------------------------------------------------------------------------------
+## 
+## Database stuff
+## 
+##  get_databases
+##  create_database
+##  change_database
+##  delete_database
+## -----------------------------------------------------------------------------------------
 
 =begin
 returns an Array with Database-Names as Elements
@@ -100,6 +124,17 @@ after the removal of the database, the working-database might be empty
       !response.nil?  && response.code == 204 ?  true : false
 
     end
+
+## -----------------------------------------------------------------------------------------
+##          
+##  Inspect, Create and Delete Classes
+##  
+##  inspect_classes
+##  create_class
+##  delete_class
+##
+## -----------------------------------------------------------------------------------------
+    
 =begin
 returns an Array with Class-attribute-hash-Elements
 eg
@@ -139,6 +174,8 @@ parameter: include_system_classes: false|true
       all_classes = get_classes( 'name' ).map( &:values).flatten
       include_system_classes ? all_classes : all_classes - system_classes 
     end
+
+    alias inspect_classes database_classes 
     
 =begin
 creates a class and returns the a REST::Model:{Newclass}-Class- (Constant)
@@ -216,6 +253,15 @@ after the removal of the database, the working-database might be empty
       end
 
     end
+## -----------------------------------------------------------------------------------------
+##          
+##  Properties
+##  
+##  create_properties
+##  get_class_properties
+##  delete_properties
+##
+## -----------------------------------------------------------------------------------------
 =begin
 
 creates properties which are defined as json in the provided block as
@@ -264,7 +310,34 @@ creates properties which are defined as json in the provided block as
     def get_class_properties class_name:
       response = JSON.parse( @res[ class_uri{ class_name } ].get )
     end
+    #
+## -----------------------------------------------------------------------------------------
+##          
+##  Documents
+##  
+##  create_document                      get_document
+##  update_or_create_document            patch_document
+##
+##
+##  get_documents
+##  update_documents
+##  delete_documents 
+##
+## -----------------------------------------------------------------------------------------
 
+    def create_document o_class:, attributes: {}
+      class_name = o_class.to_s.split('::').last
+      if attributes.empty?
+#	vars = get_class_properties( class_name: class_name)[:properties].keys
+	attributes = yield 
+      end
+      post_argument = { '@class' => class_name }.merge attributes
+      response = @res[ document_uri ].post post_argument.to_json
+      #puts "RESPONSE: #{ response.body } "
+      #puts JSON.parse( response.body).inspect
+
+      o_class.new JSON.parse( response.body)
+    end
     def delete_document record_id
           logger.progname = 'OrientDB#DeleteDocument'
        begin
@@ -277,8 +350,9 @@ creates properties which are defined as json in the provided block as
 
     end
 =begin
-retrieves documents from the database
-and returns an Array with entries like
+retrieves documents from a query
+
+If raw is specified, the JSON-Array is returned, eg
   { "@type"=>"d", 
     "@rid"=>"#15:1", 
     "@version"=>1, 
@@ -286,6 +360,7 @@ and returns an Array with entries like
     "con_id"=>343, 
     "symbol"=>"EWTZ"
   }
+otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
     def get_documents o_class:, where: {} , raw: false
@@ -361,6 +436,23 @@ n
       end
     end
 =begin
+Deletes  documents.
+They are defined by a query. All records which match the attributes are deleted.
+An Array with freed index-values is returned
+=end
+    def delete_documents o_class:, where: {}
+      class_name = o_class.to_s.split('::').last
+       get_documents( o_class: o_class, where: where).map do |doc|
+	 if doc['@type']=='d'  # document
+	   index = doc['@rid'][1,doc['@rid'].size] # omit the first character ('#')
+	   r=@res[ document_uri{ index  }].delete
+	 index if  r.code==204 && r.body.empty? # return_value
+	 end
+
+       end
+      
+    end
+=begin
 Retrieves a Document from the Database as REST::Model::{class} 
 The argument can either be a rid (#[x}:{y}) or a link({x}:{y}) 
 If no Document  is found, nil is returned
@@ -389,44 +481,7 @@ Lazy Updating of the given Document.
       @res[ document_uri { rid } ].patch yield.to_json
     end
 
-    def call_function    *args
-puts "uri:#{function_uri { args.join('/') } }"
-      @res[ function_uri { args.join('/') } ].post ''
-    rescue RestClient::InternalServerError => e
-	puts  JSON.parse(e.http_body)
-    end
 
-    def create_document o_class:, attributes: {}
-      class_name = o_class.to_s.split('::').last
-      if attributes.empty?
-#	vars = get_class_properties( class_name: class_name)[:properties].keys
-	attributes = yield 
-      end
-      post_argument = { '@class' => class_name }.merge attributes
-      response = @res[ document_uri ].post post_argument.to_json
-      #puts "RESPONSE: #{ response.body } "
-      #puts JSON.parse( response.body).inspect
-
-      o_class.new JSON.parse( response.body)
-    end
-
-=begin
-Deletes  documents.
-They are defined by a query. All records which match the attributes are deleted.
-An Array with freed index-values is returned
-=end
-    def delete_documents o_class:, where: {}
-      class_name = o_class.to_s.split('::').last
-       get_documents( o_class: o_class, where: where).map do |doc|
-	 if doc['@type']=='d'  # document
-	   index = doc['@rid'][1,doc['@rid'].size] # omit the first character ('#')
-	   r=@res[ document_uri{ index  }].delete
-	 index if  r.code==204 && r.body.empty? # return_value
-	 end
-
-       end
-      
-    end
 =begin
 Updates the database in a oldschool-manner
 
@@ -436,6 +491,8 @@ Updates the database in a oldschool-manner
    
 replaces the symbol to TWS in each record where the con_id is 340 
 Both set and where take multible attributes
+returns the JSON-Response.
+
 =end
 
 
@@ -445,6 +502,22 @@ Both set and where take multible attributes
       response = @res[ URI.encode( command_sql_uri << url) ].post '' #url.to_json 
     end
 
+## -----------------------------------------------------------------------------------------
+##          
+##  Functions and Batch
+##  
+##
+## -----------------------------------------------------------------------------------------
+
+=begin
+Execute a predefined Function
+=end
+    def call_function    *args
+puts "uri:#{function_uri { args.join('/') } }"
+      @res[ function_uri { args.join('/') } ].post ''
+    rescue RestClient::InternalServerError => e
+	puts  JSON.parse(e.http_body)
+    end
 =begin
 Executes a list of commands and returns the result-array (if present)
 
@@ -455,6 +528,8 @@ structure of the provided block:
    }, 
    (...)
  ]
+
+ It's used by REST::Query.execute_queries
 
 =end
     def execute  transaction: true, class_name: 'Myquery'
