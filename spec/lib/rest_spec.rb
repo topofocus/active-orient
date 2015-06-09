@@ -9,8 +9,9 @@ describe REST::OrientDB do
   before( :all ) do
 
     # working-database: hc_database
-    REST::Model.logger = Logger.new('/dev/stdout')
+#    REST::Model.logger = Logger.new('/dev/stdout')
     @r= REST::OrientDB.new database: 'hc_database' , :connect => false
+    REST::Model.orientdb = @r
     databases =  @r.get_databases
     unless databases.include? 'hc_database'
       @r.create_database name: 'hc_database'
@@ -69,6 +70,19 @@ describe REST::OrientDB do
       expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
     end
 
+    it "create and delete an Edge-Class", focus:true do
+    
+    classname = 'Myedge'
+    @r.delete_class classname
+    expect( @r.database_classes( requery:true )).not_to include classname
+    myedge = @r.create_edge_class name: classname
+    expect(@r.database_classes( :requery => true )).to include classname
+    expect( myedge ).to be_a Class
+    expect( myedge.new).to be_a REST::Model
+    classes = @r.get_classes 'name', 'superClass'
+    expect(  classes.detect{|x| x['name']== classname}['superClass'] ).to eq 'E'
+  end
+
     it "creates a class and put a property into "  do
       @r.delete_class classname
       model = @r.create_class classname
@@ -122,10 +136,14 @@ describe REST::OrientDB do
       expect( res.version).to eq 1
     end
 
-    it "create through create_or_update"  , focus:true do
+    it "create through create_or_update" , focus:true   do
       res=  @r.update_or_create_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
-      expect{  @r.update_or_create_document( o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) }.to change{ expect(res.a_new_property) }
+      expect(res.a_new_property).to eq 34
+      res2= @r.update_or_create_document( o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
+      expect( res2 ).to have(1).element
+      expect( res2.first.a_new_property).to eq 35
+      expect( res2.first.version).to eq res.version+1
     end
 
 
@@ -133,8 +151,14 @@ describe REST::OrientDB do
      r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( r.class ).to eq @rest_class
      res = @r.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
-     expect(res.first ).to eq r
+     expect(res.first.attributes ).to eq r.attributes
+     expect(res.first.version).to eq r.version +1
 
+    end
+
+    it "count datasets in class" do
+      r =  @r.count_documents o_class: @rest_class
+      expect( r ).to eq  2
     end
 
      it "updates that document" do
@@ -142,8 +166,9 @@ describe REST::OrientDB do
        rr =  @r.update_documents o_class: @rest_class,
 	 set: { :symbol => 'TWR' },
 	 where: { con_id: 340 }
-
+	
        res = @r.get_documents  o_class: @rest_class, where:{ con_id: 340 }
+       puts res.inspect
        expect( res.size ).to eq 1
        expect( res.first['symbol']).to eq 'TWR'
 

@@ -1,5 +1,5 @@
 module REST
-
+require 'cgi'
 require 'rest-client'
 require 'active_support/core_ext/string'  # provides blank?, present?, presence etc
 #require 'model'
@@ -37,6 +37,8 @@ and connects
     @res = get_ressource
     @database = database|| YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
     connect() if connect
+    # save existing classes 
+    @classes = []
   end
 
 ##  use for development , should be removed in production release  
@@ -76,6 +78,7 @@ returns the name of the working-database
     def create_database type: 'plocal' , name: @database
           logger.progname = 'OrientDB#CreateDatabase'
 	  old_d = @database
+	  @classes = []
 	  @database = name
 	  begin
           response = @res[database_uri{ type }].post  ""
@@ -96,6 +99,7 @@ returns the name of the working-database
 changes the working-database to {name}
 =end
     def change_database name 
+      @classes = []
       @database =  name
 
     end
@@ -105,7 +109,8 @@ deletes the database and returns true on success
 after the removal of the database, the working-database might be empty
 =end
     def delete_database name:
-          logger.progname = 'OrientDB#DropDatabase'
+      @classes = []
+      logger.progname = 'OrientDB#DropDatabase'
        old_ds =  @database
        change_database name
        begin
@@ -166,13 +171,18 @@ returns
 
 =begin
 returns an array with all names of the classes of the database
+caches the result.
 
-parameter: include_system_classes: false|true
+parameter: include_system_classes: false|true, requery: false|true
 =end
-    def database_classes include_system_classes: false
+    def database_classes include_system_classes: false, requery: false
+      requery =  true if @classes.empty?
+      if requery
       system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "V", "_studio","E"]
       all_classes = get_classes( 'name' ).map( &:values).flatten
-      include_system_classes ? all_classes : all_classes - system_classes 
+      @classes = include_system_classes ? all_classes : all_classes - system_classes 
+      end
+      @classes 
     end
 
     alias inspect_classes database_classes 
@@ -186,29 +196,71 @@ Other attributes are assigned dynamically upon reading documents
 =end
     def create_class   newclass
       logger.progname= 'OrientDB#CreateClass'
-      create_constant = ->(c){ "REST/Model/#{c}".camelize.constantize }
-      create_model = ->(c){  REST::Model.orientdb_class name: c }
-      begin
-	response = @res[ class_uri{ newclass } ].post ''
-	ror_class= REST::Model.orientdb_class( name: newclass)
-	yield ror_class if block_given?   #  perform actions only if the class was sucessfully created
-	ror_class # return_value
-      rescue RestClient::InternalServerError => e
-	# expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
-	if e.http_body.split(':').last =~ /already exists/
-#	if  (ou=JSON.parse(e.http_body)['errors'].first['content']) =~ /already exists/
-#	  logger.info { ou.split(':').last }
-	  REST::Model.orientdb_class( name: newclass)
+      if database_classes.include? newclass
+	# reuse predefined class
+	REST::Model.orientdb_class( name: newclass)
+      else
+	begin
+	  response = @res[ class_uri{ newclass } ].post ''
+	  ror_class= REST::Model.orientdb_class( name: newclass)
+	  yield ror_class if block_given?   #  perform actions only if the class was sucessfully created
+	  ror_class # return_value
+	rescue RestClient::InternalServerError => e
+	  # expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
+	  if e.http_body.split(':').last =~ /already exists/
+	    REST::Model.orientdb_class( name: newclass)
+	  else
+	    logger.error { "Class #{newclass} was NOT created" }
+	    nil
+	  end
+	end # exeception
+      end 
+    end
 
-	else
-	  logger.error { "Class #{newclass} was NOT created" }
-	  nil
-	end
-      rescue NameError
-	#  uninitialized constant, raised in  camelize.constantise
-	create_model[ newclass ]
-
+    def create_edge_class name: , superclass: 'E'
+      unless database_classes( requery: true).include? name
+       sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
+       execute class_name: name, transaction: false do 
+        [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
+       end
       end
+      REST::Model.orientdb_class( name: name)
+    end
+
+=begin
+nexus_edge connects two documents/vertexes 
+=end
+
+    def nexus_edge o_class: , attributes: {}, from:,  to:
+
+      translate_to_rid = ->(obj){ if obj.is_a?( REST::Model ) then obj.link else obj end }
+      class_name = o_class.to_s.split('::').last
+      response=  execute class_name: class_name, transaction: false do 
+      [ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name} from #{translate_to_rid[from]} to #{translate_to_rid[to]}; ")} ]
+       end
+       if response.is_a?(Array) && response.size == 1
+	 response.pop # RETURN_VALUE
+       else
+	 response
+       end
+    end
+
+=begin
+Deletes a single edge  when providing a single rid-link (#00:00)
+Deletes multible edges when providing a list of rid-links
+Todo: implement delete_edges after querying the database in one statement
+
+=end
+    def delete_edge *rid
+
+      response=  execute transaction: false do 
+      [ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("delete edge #{rid.join(',') }")} ]
+       end
+       if response.is_a?(Array) && response.size == 1
+	 response.pop # RETURN_VALUE
+       else
+	 response
+       end
     end
 =begin
 deletes the database and returns true on success
@@ -315,7 +367,7 @@ creates properties which are defined as json in the provided block as
 ##          
 ##  Documents
 ##  
-##  create_document                      get_document
+##  create_document                      get_document		delete_document
 ##  update_or_create_document            patch_document
 ##
 ##
@@ -328,16 +380,15 @@ creates properties which are defined as json in the provided block as
     def create_document o_class:, attributes: {}
       class_name = o_class.to_s.split('::').last
       if attributes.empty?
-#	vars = get_class_properties( class_name: class_name)[:properties].keys
 	attributes = yield 
       end
       post_argument = { '@class' => class_name }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
-      #puts "RESPONSE: #{ response.body } "
-      #puts JSON.parse( response.body).inspect
 
       o_class.new JSON.parse( response.body)
     end
+
+
     def delete_document record_id
           logger.progname = 'OrientDB#DeleteDocument'
        begin
@@ -363,23 +414,29 @@ If raw is specified, the JSON-Array is returned, eg
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
-    def get_documents o_class:, where: {} , raw: false
+    def get_documents o_class:, where: {} , raw: false, limit: -1
       class_name = o_class.to_s.split('::').last
 
 
         select_string =  'select from ' << class_name 
-	where_string =  if where.empty?
-			  ""
-			else 
-			 " where " <<  generate_sql_list(where)
-			end
-	yield( select_string + where_string ) if block_given?
-
-	url=  query_sql_uri << select_string << where_string 
+	where_string =  compose_where( where )
+	#yield( select_string + where_string ) if block_given?
+	url=  query_sql_uri << select_string << where_string  << "/#{limit}" 
 	response =  @res[URI.encode(url) ].get
-	r=JSON.parse( response.body )['result'].map do |document |
+      r=JSON.parse( response.body )['result'].map do |document |
 	  if raw then document else  o_class.new(	document	) end
 	end
+
+    end
+
+
+    def count_documents o_class: , where: {}
+      class_name = o_class.to_s.split('::').last
+
+	url=  query_sql_uri << "select COUNT(*) from #{class_name} " << compose_where( where ) 
+	puts "url: #{url}"
+	result =  JSON.parse( @res[URI.encode(url) ].get )['result']
+	result.first['COUNT']
 
     end
 
@@ -412,10 +469,17 @@ n
 
 =end
 
+=begin 
+UpdateOrCreateDocument
+
+Based on the query specified in :where records are updated according to :set
+
+Returns an Array of updated documents 
+=end
     def update_or_create_document o_class:, set: {}, where: {} 
       logger.progname =  'Rest#CreateOrUpdateDocument'
       if where.blank?
-	create_document o_class: o_class, attributes: set
+	[ create_document( o_class: o_class, attributes: set ) ]
       else
 	set.extract!( where.keys ) # removes any keys from where in set
 	possible_documents = get_documents( o_class: o_class, where: where)
@@ -424,14 +488,8 @@ n
 	  create_document( o_class: o_class) do
 	    set.merge(where) 
 	  end
-	elsif possible_documents.size == 1
-	        response = possible_documents.first.update( set: set )
-		possible_documents.first #@res[ document_uri ].put post_argument.to_json
-	else
-	  logger.error{ "multible (#{possible_documents.size})records found for #{where.inspect}" }
-	  puts "possible documents"
-	  puts possible_documents.inspect
-
+	else 
+	    possible_documents.map{| doc | doc.update( set: set ) }
 	end
       end
     end
@@ -498,7 +556,7 @@ returns the JSON-Response.
 
     def update_documents o_class:, set: , where: {}
       class_name = o_class.to_s.split('::').last
-      url = "update #{class_name}  set "<< generate_sql_list(set) << " where " << generate_sql_list(where)
+      url = "update #{class_name}  set "<< generate_sql_list(set) << compose_where(where)
       response = @res[ URI.encode( command_sql_uri << url) ].post '' #url.to_json 
     end
 
@@ -518,6 +576,8 @@ puts "uri:#{function_uri { args.join('/') } }"
     rescue RestClient::InternalServerError => e
 	puts  JSON.parse(e.http_body)
     end
+
+
 =begin
 Executes a list of commands and returns the result-array (if present)
 
@@ -538,12 +598,6 @@ structure of the provided block:
       if response.code == 200
 	if response.body['result'].present?
 	 result= JSON.parse(response.body)['result']
-  
-#	 o_class = if ( REST::Model.send( :const_get, class_name.to_sym  ) rescue nil )
-#		     "REST/Model/#{class_name}".camelize.constantize 
-#		    else
-#		      REST::Model.orientdb_class name: class_name 
-#		    end
 	 result.map do |x| 
 	   if x.is_a? Hash 
 	     if x.has_key?('@class')
@@ -564,7 +618,20 @@ structure of the provided block:
 	nil
       end
     end
-private 
+#private 
+    def compose_where arg
+      if arg.blank?
+	   ""
+	 elsif arg.is_a? String
+	   if arg =~ /[w|W]here/
+	     arg
+	   else
+	     "where "+arg
+	   end
+	 elsif arg.is_a? Hash
+	   " where " + generate_sql_list(arg)
+	 end
+    end
 
     def generate_sql_list attributes={}
       attributes.map do | key, value |

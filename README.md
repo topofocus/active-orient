@@ -42,18 +42,22 @@ You can fetch a list of classes  and some properties by
     --> ["Car", (..), "E", "OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "Owns", "V", "_studio"]
 ```
  
-Creation and removal of Classes is straightforward
+Creation and removal of Classes  and Edges is straightforward
  ```ruby
-    r.create_class  classname
-    r.delete_class  classname
+    r.create_class        classname  # creates a document-class, also used as vertex
+    r.create_edge_class   classname  # creates an edge-class, providing bidirectional links between documents
+
+    r.delete_class        classname  # universal removal-class
     
     or
     model =  r.create_class classname
     (...)
     r.delete_class model
  ```
+
 »model« is the REST::Model-Class itself, a constant pointing to the class-definition.
-A model-class has several Instances, refering to the records in the database.
+A model-class has several Instances, refering to the records (aka documents/edges) in the database.
+
 It is used as argument to several methods, providing the class-name to operate on
 and as reference to instantiate the correct REST::Model-Object.
 
@@ -96,9 +100,46 @@ Documents are easily created, updated, removed and queried either on a SQL-query
 
  ```
  completes the circle
+
+#### Active Model interface
  
+Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined dynamically by
+```ruby
+  vertex_class =  r.create_class        classname 
+  edge_class   =  r.create_edge_class   classname 
+  
+```
+and of TYPE REST::Model::{classname}
+
+If a document is created, an Instance to the Class is returned.
+If the database is queried, a list of Instances to the Class is returned.
+
+As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets form the database
+
+```ruby
+  class.all 
+```
+returns an Array with all Documents/Edges of the Class.
+```ruby
+  class.where attributes: { list of query-criteria } 
+```
+performs a query on the class and returns the result as Array
+
+```ruby
+  class.count attributes: { town: 'Berlin' }
+```
+gets the number of datasets fullfilling the search-criteria
+
+```ruby
+  edge_class.create_edge attributes: { :birthday => Date.today }, from: '#23:45' to '#12:21'
+```
+connects the documents specified by the rid's with the edge and assigns the attributes to the edge
 
 
+
+
+
+#### Execute SQL-Commands
 At least - sql-commands can be executed as batch
 
 The REST::Query-Class provides a Query-Stack and an Records-Array which keeps the results.

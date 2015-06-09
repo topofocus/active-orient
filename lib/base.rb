@@ -33,8 +33,8 @@ module REST
 	  attributes.delete_if {|_,v| v.is_a?(Hash) }
 	  @metadata[ :type    ] = attributes.delete '@type'
           @metadata[ :class   ] = attributes.delete '@class' 
-          @metadata[ :version] = attributes.delete '@version' 
-          @metadata[ :fieldTypes] = attributes.delete '@fieldTypes' 
+          @metadata[ :version ] = attributes.delete '@version' 
+          @metadata[ :fieldTypes ] = attributes.delete '@fieldTypes' 
 	  if attributes.has_key?( '@rid' )
 	    rid = attributes.delete '@rid' 
 	    cluster, record = rid[1,rid.size].split(':') 

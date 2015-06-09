@@ -5,6 +5,10 @@ module REST
 
 class Model < REST::Base
    include BaseProperties
+
+   mattr_accessor :orientdb
+   mattr_accessor :logger
+
    def self.orientdb_class name: 
        #logger.progname =  "REST::Model#orientdb_class" 
      klass = Class.new( self )
@@ -15,10 +19,6 @@ class Model < REST::Base
      else
      
 	new_class = self.send :const_set  , name.capitalize , klass
-#	new_class.define_property :cluster, nil
-#	new_class.define_property :version, nil
-#	new_class.define_property :record, nil
-#	new_class.define_property :fieldTypes, nil
 	new_class.orientdb =  orientdb
 	new_class # return_value
      end
@@ -31,8 +31,6 @@ Returns just the name of the Class
       self.class.to_s.split(':')[-1]
    end
 
-     mattr_accessor :orientdb
-     mattr_accessor :logger
 
    # hard-coded orientdb-columns
 #     prop :cluster, :version, :record, :fieldtypes
@@ -58,7 +56,6 @@ eg .  update #link set  ...
 =end
    def link
      "##{rid}"
-
    end
 
    def version
@@ -72,20 +69,55 @@ eg .  update #link set  ...
 	 self.class.define_property key
        end
      end
-
+   end
+=begin 
+Queries the database and fetches the count of datasets
+=end
+   def self.count_documents where: {}
+     orientdb.count_documents( o_class: self , where: where)
    end
 
+   def self.new_document attributes: {}
+     f= orientdb.update_or_create_document o_class: self, set: attributes
+     f.size == 1 ? f.first : f
+   end
+
+   def self.create_edge attributes:{}, from:, to:
+      orientdb.nexus_edge o_class: self, attributes: attributes, from: from, to: to
+   end
+
+   def self.where attributes: {}
+     orientdb.get_documents o_class: self,  where: attributes
+   end
+  
+   def delete
+     if is_edge?
+       # returns the count of deleted edges
+       orientdb.delete_edge link
+     else
+      r= orientdb.delete_document link
+     end
+   end
+
+   def is_edge?
+     attributes.keys.include?( 'in') && attributes.keys.include?('out')
+   end
+   def self.all
+     orientdb.get_documents o_class:  self
+   end
 =begin
 Convient update of the dataset by calling sql-patch
 The attributes are saved to the database.
 The optional :set argument 
 =end
    def update  set: {}
-      attributes.merge set
-
-     orientdb.patch_document(rid) do
+      attributes.merge! set
+     result= orientdb.patch_document(rid) do
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
+#     returns a new instance of REST::Model
+     REST::Model.orientdb_class(name: classname).new  JSON.parse( result )
+
    end
 
 =begin
@@ -102,66 +134,6 @@ its called via
      puts e.inspect
      puts "update_linkset : Duplicate found (#{link_class.link})"
    end
-
-end # class
-
-class Query < REST::Model
-
-#   include BasePropertiesa
-
-#   prop :query  # holds the query-sequence, either as string or as array
-
-   has_many :records
-   has_many :queries
-
-
-   def reset_records
-     self.records= []
-   end
-   alias reset_results reset_records
-
-   def reset_queries
-     self.queries = []
-   end
-=begin
-calls REST::Rest#GetDocuments
-stores the query in the query-stack and saves the result in the record-Array
-
-returns the count of assigned records
-=end
-
-   def get_documents o_class: , where:  
-
-       count= 0
-       orientdb.get_documents( o_class: o_class , where: where ){| q| self.queries << q }.each{|c| records << c; count+=1 }
-       count
-   end
-=begin
-All predefined query are send to the database.
-The result is stored in the records.
-The Records are of Tyoe REST::Model::Myquery
-=end
-   def execute_queries reset: true, transaction: true
-     reset_records if reset
-
-     orientdb.execute( transaction: transaction) do 
-     result = queries.map do |q|
-       # command: words are seperated by one space only, thus squeeze multible spaces
-       sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
-       case q
-       when String
-	 sql_cmd[ q ]
-       when Hash
-	 q
-	else
-	  nil
-       end # case
-     end.compact 
-     # save the result in records
-     result.compact.each{|y| records << y if true }
-
-     end # block
-   end # def  execute_queries
 
 end # class
 
