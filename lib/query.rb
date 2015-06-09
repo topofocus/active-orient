@@ -39,7 +39,7 @@ The Records are of Tyoe REST::Model::Myquery
    def execute_queries reset: true, transaction: true
      reset_records if reset
 
-     orientdb.execute( transaction: transaction) do 
+     orientdb.execute( transaction: transaction ) do 
      result = queries.map do |q|
        # command: words are seperated by one space only, thus squeeze multible spaces
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }

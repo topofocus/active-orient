@@ -281,9 +281,13 @@ after the removal of the database, the working-database might be empty
 	   true  # return_value
 	 end
        rescue RestClient::InternalServerError => e
-	 logger.info{ "Class #{class_name} NOT deleted" }
-	 logger.info{ e.inspect }
-	 false
+	 if database_classes( requery: true).include?( class_name)
+	   logger.error{ "Class #{class_name} still present" }
+	   logger.error{ e.inspect }
+	   false
+	 else
+	   true
+	 end
        end
 
     end
@@ -374,14 +378,12 @@ creates properties which are defined as json in the provided block as
 ##  get_documents
 ##  update_documents
 ##  delete_documents 
-##
+##  update_or_create_documents
 ## -----------------------------------------------------------------------------------------
 
     def create_document o_class:, attributes: {}
       class_name = o_class.to_s.split('::').last
-      if attributes.empty?
-	attributes = yield 
-      end
+      attributes = yield if attributes.empty? && block_given?
       post_argument = { '@class' => class_name }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
 
@@ -420,18 +422,24 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 
         select_string =  'select from ' << class_name 
 	where_string =  compose_where( where )
-	#yield( select_string + where_string ) if block_given?
+	#
+	# a block can be provided to extract the sql-statements prior to their execution
+	yield( select_string + where_string ) if block_given?
 	url=  query_sql_uri << select_string << where_string  << "/#{limit}" 
 	response =  @res[URI.encode(url) ].get
       r=JSON.parse( response.body )['result'].map do |document |
-	  if raw then document else  o_class.new(	document	) end
+	  if raw then document else  o_class.new( document ) end
 	end
 
     end
 
 
     def count_documents o_class: , where: {}
-      class_name = o_class.to_s.split('::').last
+      class_name = if o_class.is_a? Class
+		     o_class.to_s.split('::').last
+		   else
+		      o_class
+		   end
 
 	url=  query_sql_uri << "select COUNT(*) from #{class_name} " << compose_where( where ) 
 	puts "url: #{url}"
@@ -476,7 +484,15 @@ Based on the query specified in :where records are updated according to :set
 
 Returns an Array of updated documents 
 =end
-    def update_or_create_document o_class:, set: {}, where: {} 
+    def create_or_update_document o_class: , set: {}, where:{}, &b
+      logger.progname =  'Rest#CreateOrUpdateDocument'
+      r= update_or_create_documents o_class: o_class, set: set, where:  where, &b
+      if r.size > 1
+	logger.error { "multible documents updated by #{ generate_sql_list( where )}" }
+      end
+      r.first  # return_value
+    end
+    def update_or_create_documents o_class: , set: {}, where: {} , &b
       logger.progname =  'Rest#CreateOrUpdateDocument'
       if where.blank?
 	[ create_document( o_class: o_class, attributes: set ) ]

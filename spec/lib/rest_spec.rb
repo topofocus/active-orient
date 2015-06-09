@@ -70,14 +70,14 @@ describe REST::OrientDB do
       expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
     end
 
-    it "create and delete an Edge-Class", focus:true do
+    it "create and delete an Edge-Class" do
     
     classname = 'Myedge'
     @r.delete_class classname
     expect( @r.database_classes( requery:true )).not_to include classname
     myedge = @r.create_edge_class name: classname
     expect(@r.database_classes( :requery => true )).to include classname
-    expect( myedge ).to be_a Class
+    expect( myedge ).to be_a  Class
     expect( myedge.new).to be_a REST::Model
     classes = @r.get_classes 'name', 'superClass'
     expect(  classes.detect{|x| x['name']== classname}['superClass'] ).to eq 'E'
@@ -85,6 +85,7 @@ describe REST::OrientDB do
 
     it "creates a class and put a property into "  do
       @r.delete_class classname
+      @r.database_classes( requery:true )
       model = @r.create_class classname
       @r.create_class  "Contracts"
 
@@ -136,14 +137,13 @@ describe REST::OrientDB do
       expect( res.version).to eq 1
     end
 
-    it "create through create_or_update" , focus:true   do
-      res=  @r.update_or_create_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
+    it "create through create_or_update"   do
+      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
       expect(res.a_new_property).to eq 34
-      res2= @r.update_or_create_document( o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
-      expect( res2 ).to have(1).element
-      expect( res2.first.a_new_property).to eq 35
-      expect( res2.first.version).to eq res.version+1
+      res2= @r.create_or_update_document( o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
+      expect( res2.a_new_property).to eq 35
+      expect( res2.version).to eq res.version+1
     end
 
 
@@ -151,8 +151,8 @@ describe REST::OrientDB do
      r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( r.class ).to eq @rest_class
      res = @r.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
-     expect(res.first.attributes ).to eq r.attributes
-     expect(res.first.version).to eq r.version +1
+     expect(res.first.symbol).to eq r.symbol
+     expect(res.first.version).to eq  r.version
 
     end
 
@@ -196,7 +196,7 @@ describe REST::OrientDB do
 	}
       end
       @query_class =  REST::Query.new
-      @query_class.orientdb =  @r
+#      @query_class.orientdb =  @r
     end
     after(:all){  @r.delete_class @rest_class }
 
@@ -209,9 +209,9 @@ describe REST::OrientDB do
      r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( @query_class.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
      expect( @query_class.records ).not_to be_empty
-     expect( @query_class.records.first).to eq r
-     expect( @query_class.queries).to have(1).record
-     expect( @query_class.queries.first).to eq "select from Documebntklasse10 where con_id = 343 and symbol = 'EWTZ'"
+     expect( @query_class.records.first ).to eq r
+     expect( @query_class.queries ).to have(1).record
+     expect( @query_class.queries.first ).to eq "select from Documebntklasse10 where con_id = 343 and symbol = 'EWTZ'"
 
     end
     it "execute a query from stack" do
