@@ -1,7 +1,7 @@
 # orientdb-rest
 Access OrientDB from Ruby without accessing third-party-libraries.
 
-Orietdb-Rest is based on ActiveModels and the REST-HTTP-Api of OrientDB. This high level API ist most likely robust.
+Orientdb-Rest is based on ActiveModels and the REST-HTTP-Api of OrientDB. This high level API ist most likely robust.
 The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
 
 Orientdb-rest is written to store data, gathered by a Ruby-program ( ib-ruby in particular), into an OrientDB-Database,to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
