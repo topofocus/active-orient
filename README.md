@@ -1,13 +1,8 @@
 # orientdb-rest
-A simple ruby wrapper for the REST-API of OrientDB, based on ActiveModels
+Access OrientDB from Ruby without accessing third-party-libraries, based on ActiveModels and the REST-HTTP-Api of OrientDB. This high level API ist most likely robust.
+The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
 
-
-OrientDB is still under heavy development. Any non-java binary-API-binding is therefore subject of constant changes.
-
-OrientDB provides a high-level REST-HTTP-API as well. This is most likely robust.
-
-Orientdb-rest is written to store data, gathered by a Ruby-program, to an OrientDB-Database,
-to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
+Orientdb-rest is written to store data, gathered by a Ruby-program ( ib-ruby in particular), into an OrientDB-Database,to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
 
 To start you need a ruby 2.x Installation, 
 clone the project and run bundle install and bundle update,
