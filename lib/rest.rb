@@ -501,9 +501,9 @@ Returns an Array of updated documents
 	possible_documents = get_documents( o_class: o_class, where: where)
 	if possible_documents.empty?
 	  yield if block_given?  # do Preparations prior to the creation of the dataset
-	  create_document( o_class: o_class) do
+	  [ create_document( o_class: o_class) do
 	    set.merge(where) 
-	  end
+	  end ]
 	else 
 	    possible_documents.map{| doc | doc.update( set: set ) }
 	end

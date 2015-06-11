@@ -143,7 +143,7 @@ The REST::Query-Class provides a Query-Stack and an Records-Array which keeps th
 The REST::Query-Class acts as Parent-Class for aggregated Records (without a @rid), which are REST::Model::Myquery Objects. If a Query returns a database-record, the correct REST::Model-Class is instantiated.
 
 ```ruby
-    ach = REST::Query.new
+   ach = REST::Query.new
     
    ach.queries << 'create class Contracts ABSTRACT'
    ach.queries << 'create property Contracts.subcategory link'
@@ -157,7 +157,7 @@ The REST::Query-Class acts as Parent-Class for aggregated Records (without a @ri
 ```
   queries the database as demonstrated above. In addition, the generated query itself is added to the »queries«-Stack and the result can be found in sample_query.records.
   
-This feature can be used as a substiture for simple functions
+This feature can be used as a substitute for simple functions
 
 ```ruby
  roq = REST::Query.new
@@ -166,6 +166,19 @@ This feature can be used as a substiture for simple functions
  --> Basic Materials 	[["#21:1"]]
  --> Financial  	[["#21:2"]]
  --> Industrial 	[["#23:0", "#23:1"]]
+```
+
+OrientDB supports the execution of SQL-Batch-Commands. 
+( http://orientdb.com/docs/2.0/orientdb.wiki/SQL-batch.html )
+This is supported simply by using a Array as Argument for REST::Query.queries
+
+Therefor complex queries can be simplified using database-variables 
+```ruby
+   ach = REST::Query.new
+   ach.queries << [ "select expand( contracts )  from Openinterest"
+	            "let con = select expand( contracts )  from Openinterest; ",
+		    "...", ... ]
+   result = ach.execute_queries 
 ```
 
 The contract-documents can easily be fetched with 
