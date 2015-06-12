@@ -113,6 +113,17 @@ describe REST::OrientDB do
 
     end
   end
+
+  context "query-details" do
+    it "generates a valid where query-string" do
+      attributes = { uwe: 34 }
+      expect( @r.compose_where( attributes ) ).to eq " where uwe = 34" 
+      attributes = { uwe: 34 , hans: :trz }
+      expect( @r.compose_where( attributes ) ).to eq " where uwe = 34 and hans = 'trz'" 
+      attributes = { uwe: 34 , hans: 'trzit'}
+      expect( @r.compose_where( attributes ) ).to eq " where uwe = 34 and hans = 'trzit'" 
+    end
+  end
   context "document-handling"  do
     before(:all) do
       classname = "Documebntklasse10" 
@@ -137,6 +148,7 @@ describe REST::OrientDB do
       expect( res.version).to eq 1
     end
 
+
     it "create through create_or_update"   do
       res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
@@ -146,6 +158,15 @@ describe REST::OrientDB do
       expect( res2.version).to eq res.version+1
     end
 
+    it   "uses create_or_update and a block" , focus:true do
+      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
+	{ another_wired_property: "No time for tango" }
+      end
+
+      expect( res.attributes.keys ).to include 'another_wired_property' 
+
+
+    end
 
     it "read that document" do
      r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
@@ -214,15 +235,16 @@ describe REST::OrientDB do
      expect( @query_class.queries.first ).to eq "select from Documebntklasse10 where con_id = 343 and symbol = 'EWTZ'"
 
     end
-    it "execute a query from stack" do
-      # get_documents saved the query
-      # we execute this once more
-       @query_class.reset_results
-       expect( @query_class.records ).to be_empty
 
-       expect{ @query_class.execute_queries }.to change { @query_class.records.size }.to 1
-
-    end
+#    it "execute a query from stack" , do
+#     # get_documents saved the query
+#      # we execute this once more
+#       @query_class.reset_results
+#       expect( @query_class.records ).to be_empty
+#
+#       expect{ @query_class.execute_queries }.to change { @query_class.records.size }.to 1
+#
+#    end
 
   end
 

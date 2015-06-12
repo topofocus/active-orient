@@ -416,7 +416,7 @@ If raw is specified, the JSON-Array is returned, eg
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
-    def get_documents o_class:, where: {} , raw: false, limit: -1
+    def get_documents o_class:, where: {} , raw: false, limit: -1, ignore_block: false
       class_name = o_class.to_s.split('::').last
 
 
@@ -424,8 +424,10 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 	where_string =  compose_where( where )
 	#
 	# a block can be provided to extract the sql-statements prior to their execution
-	yield( select_string + where_string ) if block_given?
+	yield( select_string + where_string ) if block_given? #&& !ignore_block
 	url=  query_sql_uri << select_string << where_string  << "/#{limit}" 
+	puts "URL"
+	puts url
 	response =  @res[URI.encode(url) ].get
       r=JSON.parse( response.body )['result'].map do |document |
 	  if raw then document else  o_class.new( document ) end
@@ -498,9 +500,13 @@ Returns an Array of updated documents
 	[ create_document( o_class: o_class, attributes: set ) ]
       else
 	set.extract!( where.keys ) # removes any keys from where in set
-	possible_documents = get_documents( o_class: o_class, where: where)
+	possible_documents = get_documents( o_class: o_class, where: where, ignore_block: true)
 	if possible_documents.empty?
-	  yield if block_given?  # do Preparations prior to the creation of the dataset
+	  if block_given?
+	    more_where =   yield   # do Preparations prior to the creation of the dataset
+    			      # if the block returns a Hash , it is merged into the insert_query.
+	    where.merge! more_where if more_where.is_a?(Hash)
+	  end
 	  [ create_document( o_class: o_class) do
 	    set.merge(where) 
 	  end ]
@@ -654,8 +660,10 @@ structure of the provided block:
 	case value
 	when Numeric
 	  key.to_s << " = " << value.to_s 
-	when String, Symbol
+	else #  String, Symbol
 	  key.to_s << ' = ' << "\'#{ value }\'"
+#	else 
+#	  puts "ERROR, value-> #{value}, class -> #{value.class}"
 	end
       end.join( ' and ' )
 
