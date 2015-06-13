@@ -1,6 +1,11 @@
 module REST
   require 'active_model'
   # Base class for tableless IB data Models, extends ActiveModel API
+  class String
+    def rid? 
+      self =~  /[0-9]{1,}:[0-9]{1,}/
+    end
+  end
   class Base
     extend ActiveModel::Naming
     extend ActiveModel::Callbacks
@@ -8,6 +13,27 @@ module REST
     include ActiveModel::Serialization
     include ActiveModel::Serializers::Xml
     include ActiveModel::Serializers::JSON
+    
+
+    ##Every Rest::Base-Object is stored in the @@rid_store
+    ## The Objects are just references to the @@rid_store.
+    ## any Change of the Object is thus synchonized to any allocated variable
+    #
+    @@rid_store =  Hash.new
+    def self.store_riid obj
+      if obj.rid.present? && obj.riid.all?{|x| x.present? && x>=0} # only positive values are stored
+	  ## return the presence of a stored object as true by the block
+	  ## the block is only executed if the presence is confirmed
+	  ##  Nothing is returned from the class-method
+	if @@rid_store[obj.riid].present? 
+	  yield  if block_given?  	    
+	end
+	 @@rid_store[obj.riid] = obj
+	 @@rid_store[obj.riid]  # return_value
+      else
+	obj # no rid-value: just return the obj
+      end
+    end
 
     define_model_callbacks :initialize
 
@@ -18,6 +44,7 @@ module REST
       logger.progname= "REST::Base#initialize"
       possible_link_array_candidates = Hash.new
       @metadata = HashWithIndifferentAccess.new
+      run_callbacks :initialize do
       attributes.keys.each do | att |
 	unless att[0] == "@"	  
 	  att =  att.to_sym if att.is_a?(String)    
@@ -31,6 +58,7 @@ module REST
       if attributes['@type'] == 'd'  # document 
 	  possible_link_array_candidates = attributes.find_all{|_,v| v.is_a?(Hash) }.to_h
 	  attributes.delete_if {|_,v| v.is_a?(Hash) }
+	  link_candidates = attributes.find_all{|_,v| v.is_a?(String) && v.rid?}
 	  @metadata[ :type    ] = attributes.delete '@type'
           @metadata[ :class   ] = attributes.delete '@class' 
           @metadata[ :version ] = attributes.delete '@version' 
@@ -38,8 +66,8 @@ module REST
 	  if attributes.has_key?( '@rid' )
 	    rid = attributes.delete '@rid' 
 	    cluster, record = rid[1,rid.size].split(':') 
-	    @metadata[ :cluster ] =  cluster
-	    @metadata[ :record ] = record
+	    @metadata[ :cluster ] =  cluster.to_i
+	    @metadata[ :record ] = record.to_i
 	  end
       end
       
@@ -47,14 +75,13 @@ module REST
 	logger.debug "possible link-array: #{possible_link_array_candidates.inspect}"
       end
 
-    #  puts "initialize: \m #{attributes.inspect} "
-      #          49 #       version = response_hash.delete '@version' 
+
       #
-      run_callbacks :initialize do
        # raise RuntimeError "Argument must be a Hash", :args unless attributes.is_a?(Hash)
 
         self.attributes = attributes # set_attribute_defaults is now after_init callback
       end
+      REST::Base.store_riid self
     end
 
     # ActiveModel API (for serialization)

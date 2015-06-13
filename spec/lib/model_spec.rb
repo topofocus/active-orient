@@ -34,6 +34,11 @@ describe REST::Model do
     end
   end
 
+  context  "Basics" , focus:true do
+    context "recognizes Links" do
+      
+    end
+  end
 
   context "Add a document to the class" do
     it "create a document" do

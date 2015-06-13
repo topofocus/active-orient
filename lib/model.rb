@@ -43,6 +43,9 @@ Returns just the name of the Class
 =begin
 rid is used in the where-part of sql-queries
 =end
+   def riid
+       [ @metadata[ :cluster ] , @metadata[ :record ] ]
+   end
    def rid
      if @metadata.has_key?( 'cluster')
        "#{@metadata[ :cluster ]}:#{@metadata[ :record ]}"
@@ -78,8 +81,7 @@ Queries the database and fetches the count of datasets
    end
 
    def self.new_document attributes: {}
-     f= orientdb.update_or_create_document o_class: self, set: attributes
-     f.size == 1 ? f.first : f
+      orientdb.create_or_update_document o_class: self, set: attributes
    end
 
    def self.create_edge attributes:{}, from:, to:
@@ -102,8 +104,13 @@ Queries the database and fetches the count of datasets
    def is_edge?
      attributes.keys.include?( 'in') && attributes.keys.include?('out')
    end
+   # get enables loading of datasets if a link is followed
+   #  model_class.all.first.link.get
+   def self.get rid
+     orientdb.get_document rid
+   end
    def self.all
-     orientdb.get_documents o_class:  self
+     orientdb.get_documents( o_class: self)
    end
 =begin
 Convient update of the dataset by calling sql-patch

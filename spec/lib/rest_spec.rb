@@ -158,13 +158,22 @@ describe REST::OrientDB do
       expect( res2.version).to eq res.version+1
     end
 
-    it   "uses create_or_update and a block" , focus:true do
+    it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!
       res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
 	{ another_wired_property: "No time for tango" }
       end
 
-      expect( res.attributes.keys ).to include 'another_wired_property' 
+      expect( res.a_new_property).to eq 36
+      expect( res.attributes.keys ).not_to include 'another_wired_property'  ## block is not executed, because its not a new document
 
+    end
+    it   "uses create_or_update and a block on a new document"  do  
+      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
+	{ another_wired_property: "No time for tango" }
+      end
+
+      expect( res.a_new_property).to eq 36
+      expect( res.attributes.keys ).to include 'another_wired_property'  ## block is executed, because its a new document
 
     end
 
@@ -179,7 +188,7 @@ describe REST::OrientDB do
 
     it "count datasets in class" do
       r =  @r.count_documents o_class: @rest_class
-      expect( r ).to eq  2
+      expect( r ).to eq  3
     end
 
      it "updates that document" do

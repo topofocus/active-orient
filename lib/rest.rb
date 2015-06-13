@@ -426,8 +426,6 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 	# a block can be provided to extract the sql-statements prior to their execution
 	yield( select_string + where_string ) if block_given? #&& !ignore_block
 	url=  query_sql_uri << select_string << where_string  << "/#{limit}" 
-	puts "URL"
-	puts url
 	response =  @res[URI.encode(url) ].get
       r=JSON.parse( response.body )['result'].map do |document |
 	  if raw then document else  o_class.new( document ) end
@@ -495,7 +493,7 @@ Returns an Array of updated documents
       r.first  # return_value
     end
     def update_or_create_documents o_class: , set: {}, where: {} , &b
-      logger.progname =  'Rest#CreateOrUpdateDocument'
+      logger.progname =  'Rest#UpdateOrCreateDocuments'
       if where.blank?
 	[ create_document( o_class: o_class, attributes: set ) ]
       else
@@ -507,9 +505,7 @@ Returns an Array of updated documents
     			      # if the block returns a Hash , it is merged into the insert_query.
 	    where.merge! more_where if more_where.is_a?(Hash)
 	  end
-	  [ create_document( o_class: o_class) do
-	    set.merge(where) 
-	  end ]
+	  [ create_document( o_class: o_class, attributes: set.merge(where) )  ]
 	else 
 	    possible_documents.map{| doc | doc.update( set: set ) }
 	end
