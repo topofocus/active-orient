@@ -84,6 +84,10 @@ Queries the database and fetches the count of datasets
       orientdb.create_or_update_document o_class: self, set: attributes
    end
 
+   def self.create_property field:, type: 'string', other_class: nil
+     orientdb.create_property o_class: self, field: field, type: type, other_class: other_class 
+   end
+
    def self.create_edge attributes:{}, from:, to:
       orientdb.nexus_edge o_class: self, attributes: attributes, from: from, to: to
    end

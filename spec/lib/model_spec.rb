@@ -42,11 +42,6 @@ describe REST::Model do
     end
   end
 
-  context  "Basics"  do
-    context "recognizes Links" do
-      
-    end
-  end
 
   context "Add a document to the class" do
     it "the database is empty before we start" do
@@ -91,6 +86,26 @@ describe REST::Model do
       expect( @testmodel.all).to be_empty
     end
   end
+  context  "Links are followed"  do
+    before(:all) do 
+      @link_class = @r.create_class 'Testlinkclass'
+      @base_class = @r.create_class 'Testbaseclass'
+      @base_class.create_property field: 'to_link_class', type: 'link', other_class: @link_class
+    end
+
+    it "create a link" do
+     link_document =  @link_class.new_document attributes: { att: 'one attribute' } 
+#     puts "rid:  #{link_document.rid}"
+#     puts "riid: #{link_document.riid}"
+     puts REST::Base.get_riid[ link_document.riid].inspect
+     base_document =  @base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link } 
+
+     expect(base_document.to_link_class).to eq link_document
+    end
+
+
+      
+  end
 
   context "ActiveRecord mimics"  do
     it "fetch all documents into an Array" do
@@ -115,9 +130,10 @@ describe REST::Model do
 
     end
 
-    it "creates an edge between two documents" do
+    it "creates an edge between two documents" , focus:true do
       out_e =  @testmodel.where( :attributes => { test: 23 }, create_if_missing: true ).first 
       in_e  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
+      in_e2  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
       puts "in+out"
       puts in_e.inspect
       puts out_e.inspect
@@ -126,8 +142,14 @@ describe REST::Model do
 			  from: out_e,
 			  to:   in_e  )
       expect( the_edge).to be_a REST::Model
-      expect( the_edge.out ).to eq out_e.link
-      expect( the_edge.in ).to eq in_e.link
+      the_edge2= @myedge.create_edge( 
+			  attributes: { halbwertzeit: 46 }, 
+			  from: in_e,
+			  to:   in_e2  )
+      expect( the_edge.out ).to eq out_e
+      expect( the_edge.in ).to eq in_e
+      expect( the_edge2.out ).to eq in_e
+      expect( the_edge2.in ).to eq in_e2
       out_e =  @testmodel.where( :attributes => { test: 23 } ).first 
       expect( out_e.attributes).to include 'out_Myedge'
       in_e = @testmodel.where( :attributes => { test: 15 } ).first 

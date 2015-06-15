@@ -296,17 +296,22 @@ todo: remove all instances of the class
 
     end
 
-    def create_property o_class:, field:, type: 'string'
+    def create_property o_class:, field:, type: 'string', other_class: nil
       logger.progname= 'OrientDB#CreateProperty'
       begin
-      response = @res[ property_uri(class_name(o_class)){ field +'/'+type.upcase  } ].post ''
+	last_argument = if other_class.present?
+			  "/#{class_name(other_class)}"
+			else 
+			  ""
+			end
+      response = @res[ property_uri(class_name(o_class)){ field +'/'+type.upcase + last_argument } ].post ''
       if response.code == 201
         response.body.to_i
       else
 	0
       end
       rescue RestClient::InternalServerError => e
-	logger.error { "Property #{name} was NOT created" }
+	logger.error { "Property #{field} was NOT created" }
 	logger.error { e.response }
 	nil
       end
@@ -386,7 +391,6 @@ creates properties which are defined as json in the provided block as
       attributes = yield if attributes.empty? && block_given?
       post_argument = { '@class' => class_name(o_class) }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
-
       o_class.new JSON.parse( response.body)
     end
 
@@ -525,13 +529,13 @@ Retrieves a Document from the Database as REST::Model::{class}
 The argument can either be a rid (#[x}:{y}) or a link({x}:{y}) 
 If no Document  is found, nil is returned
 =end
-    def get_document rid
+    def get_document rid, without_links: false
 
       rid = rid[1 .. rid.length] if rid[0]=='#'
 
       response = @res[ document_uri { rid } ].get 
 
-      raw_data = JSON.parse( response.body)
+      raw_data = JSON.parse( response.body).merge( "#no_links" => "#no_links" )
       REST::Model.orientdb_class( name: raw_data['@class']).new raw_data
       
     rescue RestClient::InternalServerError => e

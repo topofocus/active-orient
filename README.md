@@ -140,7 +140,36 @@ The instantiated REST::Model-Objects can be treated as expected:
   new_document.update set: { town: "Paris" }
   new_document.delete
 ```
+#### Links
 
+Links are followed and autoloaded within a dept of one.  This includes edges
+```ruby
+  link_class = r.create_class 'Testlinkclass'
+  base_class = r.create_class 'Testbaseclass'
+  base_class.create_property field: 'to_link_class', type: 'link', other_class: link_class
+
+  link_document =  link_class.new_document attributes: { att: 'one attribute' }
+  base_document =  base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link }
+
+  base_document.to_link_class => REST::Model::Testlinkclass ....
+```
+
+
+Edges are easily inserted between documents (vertexes)
+and deleted
+```ruby
+  document_class = r.create_class 'd1'
+  edge_class = r.create_edge_class 'e1'
+
+  start =  document_class.new_document attributes: { something: 'nice' }
+  end =  document_class.new_document attributes:   { something: 'not_nice' }
+  the_edge = egde_class.create_edge(  attributes:  { transform_to: 'very bad' },
+				      from: start,
+				      to: end	)
+
+  (...)
+  the_edge.delete
+```
 #### Execute SQL-Commands
 At least - sql-commands can be executed as batch
 

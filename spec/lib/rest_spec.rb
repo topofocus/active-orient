@@ -149,7 +149,7 @@ describe REST::OrientDB do
     end
 
 
-    it "create through create_or_update"   do
+    it "create through create_or_update"  do
       res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
       expect(res.a_new_property).to eq 34

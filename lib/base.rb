@@ -1,11 +1,12 @@
-module REST
-  require 'active_model'
-  # Base class for tableless IB data Models, extends ActiveModel API
   class String
     def rid? 
       self =~  /[0-9]{1,}:[0-9]{1,}/
     end
   end
+module REST
+  require 'active_model'
+  #
+  # Base class for tableless IB data Models, extends ActiveModel API
   class Base
     extend ActiveModel::Naming
     extend ActiveModel::Callbacks
@@ -61,7 +62,6 @@ module REST
 	if attributes['@type'] == 'd'  # document 
 	  possible_link_array_candidates = attributes.find_all{|_,v| v.is_a?(Hash) }.to_h
 	  attributes.delete_if {|_,v| v.is_a?(Hash) }
-	  link_candidates = attributes.find_all{|_,v| v.is_a?(String) && v.rid?}
 	  @metadata[ :type    ] = attributes.delete '@type'
 	  @metadata[ :class   ] = attributes.delete '@class' 
 	  @metadata[ :version ] = attributes.delete '@version' 
@@ -73,11 +73,24 @@ module REST
 	    @metadata[ :record ] = record.to_i
 	  end
 	end
-	if link_candidates.present?
-	  link_candidates.each do |key, value|
+	unless attributes[ '#no_links' ].present? && attributes[ '#no_links' ] == '#no_links'
+	    link_candidates = attributes.find_all{|_,v| v.is_a?(String) && v.rid?}
+	  #  puts "link_candidates: #{link_candidates.inspect}"
+	  #  puts "attributes: #{attributes.inspect}"
+	end
 
-	    link_cluster, link_record = value[1,value.size].split(':') 
-	    attributes[key] =  @@riid_store[link_cluster, link_record].presence || orientdb.get_document( value) 
+	## links are represented by fieldTypes= {property_name}=x ,  this includes in and out 
+	## we follow edges with a dept of one. (through get_document/without_links)
+	if link_candidates.present?  ### 
+	  link_candidates.each do | v |   # v is of type [["@rid", "#33:15"], [] ..]
+	    key, value = v
+	    if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key )
+	      puts "prior to linking: #{@metadata[:fieldTypes].inspect}"
+	    link_cluster, link_record = value[1,value.size].split(':').map &:to_i
+	    attributes[key] =   @@rid_store[[link_cluster, link_record]].presence || orientdb.get_document( value, without_links: true ) 
+	    else
+	     attributes[key] = value
+	    end
 	  end
 	end
 
