@@ -255,7 +255,18 @@ Todo: implement delete_edges after querying the database in one statement
 
 =end
     def delete_edge *rid
-
+      #puts "rid: #{rid.inspect}"
+      rid =  rid.map do |mm|
+	if mm.is_a?(String)
+	  if mm.rid?
+	    mm
+	  elsif mm.is_a?(Rest::Model)
+	    mm.rid
+	  else
+	    nil
+	  end
+	end
+      end.compact
       response=  execute transaction: false do 
       [ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("delete edge #{rid.join(',') }")} ]
        end
@@ -529,13 +540,13 @@ Retrieves a Document from the Database as REST::Model::{class}
 The argument can either be a rid (#[x}:{y}) or a link({x}:{y}) 
 If no Document  is found, nil is returned
 =end
-    def get_document rid, without_links: false
+    def get_document rid
 
       rid = rid[1 .. rid.length] if rid[0]=='#'
 
       response = @res[ document_uri { rid } ].get 
 
-      raw_data = JSON.parse( response.body).merge( "#no_links" => "#no_links" )
+      raw_data = JSON.parse( response.body) #.merge( "#no_links" => "#no_links" )
       REST::Model.orientdb_class( name: raw_data['@class']).new raw_data
       
     rescue RestClient::InternalServerError => e
@@ -550,7 +561,12 @@ If no Document  is found, nil is returned
 Lazy Updating of the given Document.
 =end
     def patch_document rid
-      @res[ document_uri { rid } ].patch yield.to_json
+      content = yield
+      content.each do | c |
+	key,value = c
+	content[key]= value.link if value.is_a? REST::Model
+      end
+      @res[ document_uri { rid } ].patch content.to_json
     end
 
 
@@ -561,7 +577,7 @@ Updates the database in a oldschool-manner
           set: { :symbol => 'TWR' },
           where: { con_id: 340 }
    
-replaces the symbol to TWS in each record where the con_id is 340 
+replaces the symbol to TWR in each record where the con_id is 340 
 Both set and where take multible attributes
 returns the JSON-Response.
 

@@ -46,7 +46,7 @@ module REST
     # The model instance fields are then set automatically from the opts Hash.
     def initialize attributes={}, opts={}
       logger.progname= "REST::Base#initialize"
-      possible_link_array_candidates = link_candidates = Hash.new
+      #possible_link_array_candidates = link_candidates = Hash.new
       @metadata = HashWithIndifferentAccess.new
       run_callbacks :initialize do
 	attributes.keys.each do | att |
@@ -60,8 +60,6 @@ module REST
 	end
 
 	if attributes['@type'] == 'd'  # document 
-	  possible_link_array_candidates = attributes.find_all{|_,v| v.is_a?(Hash) }.to_h
-	  attributes.delete_if {|_,v| v.is_a?(Hash) }
 	  @metadata[ :type    ] = attributes.delete '@type'
 	  @metadata[ :class   ] = attributes.delete '@class' 
 	  @metadata[ :version ] = attributes.delete '@version' 
@@ -73,35 +71,8 @@ module REST
 	    @metadata[ :record ] = record.to_i
 	  end
 	end
-	unless attributes[ '#no_links' ].present? && attributes[ '#no_links' ] == '#no_links'
-	    link_candidates = attributes.find_all{|_,v| v.is_a?(String) && v.rid?}
-	  #  puts "link_candidates: #{link_candidates.inspect}"
-	  #  puts "attributes: #{attributes.inspect}"
-	end
-
-	## links are represented by fieldTypes= {property_name}=x ,  this includes in and out 
-	## we follow edges with a dept of one. (through get_document/without_links)
-	if link_candidates.present?  ### 
-	  link_candidates.each do | v |   # v is of type [["@rid", "#33:15"], [] ..]
-	    key, value = v
-	    if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key )
-	      puts "prior to linking: #{@metadata[:fieldTypes].inspect}"
-	    link_cluster, link_record = value[1,value.size].split(':').map &:to_i
-	    attributes[key] =   @@rid_store[[link_cluster, link_record]].presence || orientdb.get_document( value, without_links: true ) 
-	    else
-	     attributes[key] = value
-	    end
-	  end
-	end
 
 
-	if possible_link_array_candidates.present?
-	  logger.debug "possible link-array: #{possible_link_array_candidates.inspect}"
-	end
-
-
-	  #
-	  # raise RuntimeError "Argument must be a Hash", :args unless attributes.is_a?(Hash)
 
 	  self.attributes = attributes # set_attribute_defaults is now after_init callback
 	end
@@ -110,6 +81,10 @@ module REST
 
     # ActiveModel API (for serialization)
 
+    def autoload_object  key, link
+	    link_cluster_and_record = link[1,link.size].split(':').map &:to_i
+	    @@rid_store[link_cluster_and_record].presence || orientdb.get_document( link ) 
+    end
     def attributes
       @attributes ||= HashWithIndifferentAccess.new
     end
@@ -119,8 +94,16 @@ module REST
     end
 
     # ActiveModel-style read/write_attribute accessors
+    # Here we define the autoload mechanism
     def [] key
-      attributes[key.to_sym]
+      iv= attributes[key.to_sym]
+      if  iv.is_a?(String) && iv.rid? && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
+	autoload_object key, iv
+      elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
+	iv.map{|y| autoload_object key, y }
+      else
+	iv
+      end
     end
 
     def update_attribute key, value

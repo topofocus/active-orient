@@ -86,14 +86,16 @@ describe REST::Model do
       expect( @testmodel.all).to be_empty
     end
   end
-  context  "Links are followed"  do
+  context  "Links and Linksets are followed"  do
     before(:all) do 
       @link_class = @r.create_class 'Testlinkclass'
       @base_class = @r.create_class 'Testbaseclass'
       @base_class.create_property field: 'to_link_class', type: 'link', other_class: @link_class
+      @base_class.create_property field: 'a_link_set', type: 'link', other_class: @link_class
+    
     end
 
-    it "create a link" do
+    it "create a link"  do
      link_document =  @link_class.new_document attributes: { att: 'one attribute' } 
 #     puts "rid:  #{link_document.rid}"
 #     puts "riid: #{link_document.riid}"
@@ -103,8 +105,18 @@ describe REST::Model do
      expect(base_document.to_link_class).to eq link_document
     end
 
+   # it "create a linkset" do
+   #  link_document =  @link_class.new_document attributes: { att: 'one attribute' } 
+#  #   puts "rid:  #{link_document.rid}"
+#  #   puts "riid: #{link_document.riid}"
+   #  puts REST::Base.get_riid[ link_document.riid].inspect
+   #  base_document =  @base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link } 
 
+   #  expect(base_document.to_link_class).to eq link_document
+
+   # end
       
+
   end
 
   context "ActiveRecord mimics"  do
@@ -130,7 +142,7 @@ describe REST::Model do
 
     end
 
-    it "creates an edge between two documents" , focus:true do
+    it "creates an edge between two documents"  do
       out_e =  @testmodel.where( :attributes => { test: 23 }, create_if_missing: true ).first 
       in_e  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
       in_e2  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
