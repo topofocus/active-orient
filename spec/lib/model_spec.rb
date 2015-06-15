@@ -2,6 +2,14 @@
 require 'spec_helper'
 require 'active_support'
 
+module REST
+  class Base
+    def self.get_riid
+      @@rid_store
+    end
+  end
+end
+
 describe REST::Model do
   before( :all ) do
 
@@ -10,7 +18,7 @@ describe REST::Model do
 
     @r= REST::OrientDB.new database: 'hc_database' , :connect => false
     REST::Model.orientdb  =  @r
-     @r.delete_class 'modeltest'
+    @r.delete_class 'modeltest'
     @testmodel = @r.create_class "modeltest" 
     @myedge = @r.create_edge_class name: 'Myedge'
   end
@@ -28,19 +36,24 @@ describe REST::Model do
       expect( object.orientdb ).to be_a REST::OrientDB
     end
 
-    it "repeatedly instantiated Mode-Objects are allocated once" do
+    it "repeatedly instantiated Model-Objects are allocated once" do
       second =  REST::Model.orientdb_class name: 'Test' 
       expect( second).to eq subject
     end
   end
 
-  context  "Basics" , focus:true do
+  context  "Basics"  do
     context "recognizes Links" do
       
     end
   end
 
   context "Add a document to the class" do
+    it "the database is empty before we start" do
+      @r.get_documents o_class: @testmodel
+      expect( @testmodel.count_documents ).to be_zero
+    end
+
     it "create a document" do
       before   =  @testmodel.count_documents 
       new_document= @testmodel.new_document attributes: { test: 45} 
@@ -49,29 +62,50 @@ describe REST::Model do
 
       expect(new_document).to be_a REST::Model::Modeltest
       expect(new_document.test).to eq 45
+  
+      expect( REST::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end  
 
-    it "the document can be retrieved by all" do
+
+    it "the document can be retrieved by all"  do
       all = @testmodel.all
       expect(all).to be_a Array
       expect(all.size).to eq 1
       expect(all.first).to  be_a REST::Model::Modeltest
       expect(all.first.test).to eq 45
     end
+
+    it "the document can be updated" do
+      obj =  @testmodel.all.first
+      riid = REST::Base.get_riid
+      obj.update set: { test: 76, new_entry: "This is a new Entry" }
+      expect( obj.test ).to eq 76
+      expect( obj.new_entry).to be_a String
+      expect(REST::Base.get_riid).to eq riid  # the riid-store is updated as well!
+
+    end
+
+    it "the document can be deleted"  do
+      obj =  @testmodel.all.first
+      obj.delete
+      expect( @testmodel.all).to be_empty
+    end
   end
-  context "ActiveRecord mimics" do
+
+  context "ActiveRecord mimics"  do
     it "fetch all documents into an Array" do
+      @testmodel.new_document attributes: { test: 45} 
       all_documents = @testmodel.all
       expect( all_documents ).to be_a Array #HashWithIndifferentAccess
       expect( all_documents ).to have_at_least(1).element
       all_documents.each{|x| expect(x).to be_a REST::Model }
     end
 
-    it "get a set of documents queried by where" do
+    it "get a set of documents queried by where"  do
       (1..45).each{|x| @testmodel.new_document :attributes => { test: x } }
       expect( @testmodel.count_documents ).to eq 46
       all_documents = @testmodel.all  ## all fetches only 20 records
-      puts all_documents.map( &:test).join(' .. ')
+#      puts all_documents.map( &:test).join(' .. ')
       nr_23=  @testmodel.where :attributes => { test: 23 }
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23
@@ -81,12 +115,16 @@ describe REST::Model do
 
     end
 
-    it "creates an edge between two documents"  do
-      out_e =  @testmodel.where( :attributes => { test: 23 } ).first 
-      in_e = @testmodel.where( :attributes => { test: 15 } ).first 
-      the_edge= @myedge.create_edge(attributes: { halbwertzeit: 45 }, 
+    it "creates an edge between two documents" do
+      out_e =  @testmodel.where( :attributes => { test: 23 }, create_if_missing: true ).first 
+      in_e  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
+      puts "in+out"
+      puts in_e.inspect
+      puts out_e.inspect
+      the_edge= @myedge.create_edge( 
+			  attributes: { halbwertzeit: 45 }, 
 			  from: out_e,
-			  to:   in_e )
+			  to:   in_e  )
       expect( the_edge).to be_a REST::Model
       expect( the_edge.out ).to eq out_e.link
       expect( the_edge.in ).to eq in_e.link
@@ -96,7 +134,7 @@ describe REST::Model do
       expect( in_e.attributes).to include 'in_Myedge'
     end
 
-    it "deletes an edge" do
+    it "deletes an edge"  do
       the_edges =  @myedge.all
       expect(the_edges.size).to  be >=1 
 

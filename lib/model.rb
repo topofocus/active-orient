@@ -87,18 +87,34 @@ Queries the database and fetches the count of datasets
    def self.create_edge attributes:{}, from:, to:
       orientdb.nexus_edge o_class: self, attributes: attributes, from: from, to: to
    end
+=begin
+Where  (Class-method)
 
-   def self.where attributes: {}
-     orientdb.get_documents o_class: self,  where: attributes
+Performs a query on the Class and returns an Array of REST:Model-Records.
+
+=end
+
+   def self.where attributes: {}, create_if_missing: false
+     orientdb.get_documents( o_class: self,  where: attributes).presence || ( [ new_document( attributes: attributes )]  if create_if_missing  ) 
    end
   
+=begin
+Delete (Instance Method)
+
+removes the Model-Instance from the database
+
+returns true (successfully deleted) or false  ( obj not deleted)
+=end
    def delete
-     if is_edge?
+     
+     r= if is_edge?
        # returns the count of deleted edges
-       orientdb.delete_edge link
+       orientdb.delete_edge rid
      else
-      r= orientdb.delete_document link
+      orientdb.delete_document  rid
      end
+     REST::Base.remove_riid self if r # removes the obj from the rid_store
+     r # true or false 
    end
 
    def is_edge?

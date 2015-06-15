@@ -220,7 +220,7 @@ Other attributes are assigned dynamically upon reading documents
     def create_edge_class name: , superclass: 'E'
       unless database_classes( requery: true).include? name
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
-       execute class_name: name, transaction: false do 
+       execute o_class: name, transaction: false do 
         [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
        end
       end
@@ -229,14 +229,17 @@ Other attributes are assigned dynamically upon reading documents
 
 =begin
 nexus_edge connects two documents/vertexes 
+The parameter o_class can be either a class or a string
 =end
 
     def nexus_edge o_class: , attributes: {}, from:,  to:
 
       translate_to_rid = ->(obj){ if obj.is_a?( REST::Model ) then obj.link else obj end }
-      class_name = o_class.to_s.split('::').last
-      response=  execute class_name: class_name, transaction: false do 
-      [ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name} from #{translate_to_rid[from]} to #{translate_to_rid[to]}; ")} ]
+      puts   "create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} "
+      response=  execute( o_class: o_class, transaction: false) do 
+      #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]}; ")} ]
+      [ { type: "cmd", language: 'sql', 
+	  command:  "create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} "} ]
        end
        if response.is_a?(Array) && response.size == 1
 	 response.pop # RETURN_VALUE
@@ -256,7 +259,7 @@ Todo: implement delete_edges after querying the database in one statement
       response=  execute transaction: false do 
       [ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("delete edge #{rid.join(',') }")} ]
        end
-       if response.is_a?(Array) && response.size == 1
+       if response.is_a?( Array ) && response.size == 1
 	 response.pop # RETURN_VALUE
        else
 	 response
@@ -266,37 +269,37 @@ Todo: implement delete_edges after querying the database in one statement
 deletes the database and returns true on success
 
 after the removal of the database, the working-database might be empty
+
+todo: remove all instances of the class 
 =end
     def delete_class o_class
-      class_name = if o_class.is_a? Class
-		     o_class.to_s.split('::').last
-		   else
-		      o_class
-		   end
-          logger.progname = 'OrientDB#DeleteClass'
-       begin
-	 response = @res[class_uri{ class_name} ].delete
-	 if response.code == 204
-	   REST::Model.send :remove_const, class_name.to_sym if o_class.is_a?(Class)
-	   true  # return_value
-	 end
-       rescue RestClient::InternalServerError => e
-	 if database_classes( requery: true).include?( class_name)
-	   logger.error{ "Class #{class_name} still present" }
-	   logger.error{ e.inspect }
-	   false
-	 else
-	   true
-	 end
-       end
+      cl= class_name(o_class)
+      logger.progname = 'OrientDB#DeleteClass'
+      
+      begin
+	response = @res[class_uri{ cl } ].delete
+	if response.code == 204
+	  # return_value: sussess of the removal
+	  !database_classes( requery: true).include?(cl)
+	  # don't delete the ruby-class
+	  #	   REST::Model.send :remove_const, cl.to_sym if o_class.is_a?(Class)
+	end
+      rescue RestClient::InternalServerError => e
+	if database_classes( requery: true).include?( cl )
+	  logger.error{ "Class #{cl} still present" }
+	  logger.error{ e.inspect }
+	  false
+	else
+	  true
+	end
+      end
 
     end
 
     def create_property o_class:, field:, type: 'string'
-      class_name = o_class.to_s.split('::').last
       logger.progname= 'OrientDB#CreateProperty'
       begin
-      response = @res[ property_uri(class_name){ field +'/'+type.upcase  } ].post ''
+      response = @res[ property_uri(class_name(o_class)){ field +'/'+type.upcase  } ].post ''
       if response.code == 201
         response.body.to_i
       else
@@ -330,12 +333,11 @@ creates properties which are defined as json in the provided block as
 =end
     def create_properties o_class:
       logger.progname= 'OrientDB#CreateProperty'
-      class_name = o_class.to_s.split('::').last
 
       begin
 	all_properties_in_a_hash =  yield
 	if all_properties_in_a_hash.is_a? Hash
-	  response = @res[ property_uri(class_name) ].post all_properties_in_a_hash.to_json
+	  response = @res[ property_uri(class_name(o_class)) ].post all_properties_in_a_hash.to_json
 	  if response.code == 201
 	    response.body.to_i
 	  else
@@ -343,7 +345,7 @@ creates properties which are defined as json in the provided block as
 	  end
 	end
       rescue RestClient::InternalServerError => e
-	logger.error { "Properties in #{class_name} were NOT created" }
+	logger.error { "Properties in #{class_name(o_class)} were NOT created" }
 	logger.error { e.response}
 	nil
       end
@@ -351,20 +353,19 @@ creates properties which are defined as json in the provided block as
     end
 
     def delete_property o_class:, field:
-      class_name = o_class.to_s.split('::').last
           logger.progname = 'OrientDB#DeleteProperty'
        begin
-	 response = @res[property_uri( class_name){ field } ].delete
+	 response = @res[property_uri( class_name(o_class)){ field } ].delete
 	 true if response.code == 204
        rescue RestClient::InternalServerError => e
-	 logger.error{ "Property #{ field } in  class #{ class_name } NOT deleted" }
+	 logger.error{ "Property #{ field } in  class #{ class_name(o_class) } NOT deleted" }
 	 false
        end
 
     end
 
-    def get_class_properties class_name:
-      response = JSON.parse( @res[ class_uri{ class_name } ].get )
+    def get_class_properties o_class:
+      response = JSON.parse( @res[ class_uri{ class_name(o_class) } ].get )
     end
     #
 ## -----------------------------------------------------------------------------------------
@@ -382,9 +383,8 @@ creates properties which are defined as json in the provided block as
 ## -----------------------------------------------------------------------------------------
 
     def create_document o_class:, attributes: {}
-      class_name = o_class.to_s.split('::').last
       attributes = yield if attributes.empty? && block_given?
-      post_argument = { '@class' => class_name }.merge attributes
+      post_argument = { '@class' => class_name(o_class) }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
 
       o_class.new JSON.parse( response.body)
@@ -417,10 +417,8 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
     def get_documents o_class:, where: {} , raw: false, limit: -1, ignore_block: false
-      class_name = o_class.to_s.split('::').last
 
-
-        select_string =  'select from ' << class_name 
+        select_string =  'select from ' << class_name(o_class) 
 	where_string =  compose_where( where )
 	#
 	# a block can be provided to extract the sql-statements prior to their execution
@@ -435,13 +433,8 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 
 
     def count_documents o_class: , where: {}
-      class_name = if o_class.is_a? Class
-		     o_class.to_s.split('::').last
-		   else
-		      o_class
-		   end
 
-	url=  query_sql_uri << "select COUNT(*) from #{class_name} " << compose_where( where ) 
+	url=  query_sql_uri << "select COUNT(*) from #{class_name(o_class)} " << compose_where( where ) 
 	puts "url: #{url}"
 	result =  JSON.parse( @res[URI.encode(url) ].get )['result']
 	result.first['COUNT']
@@ -517,7 +510,6 @@ They are defined by a query. All records which match the attributes are deleted.
 An Array with freed index-values is returned
 =end
     def delete_documents o_class:, where: {}
-      class_name = o_class.to_s.split('::').last
        get_documents( o_class: o_class, where: where).map do |doc|
 	 if doc['@type']=='d'  # document
 	   index = doc['@rid'][1,doc['@rid'].size] # omit the first character ('#')
@@ -573,8 +565,7 @@ returns the JSON-Response.
 
 
     def update_documents o_class:, set: , where: {}
-      class_name = o_class.to_s.split('::').last
-      url = "update #{class_name}  set "<< generate_sql_list(set) << compose_where(where)
+      url = "update #{class_name(o_class)}  set "<< generate_sql_list(set) << compose_where(where)
       response = @res[ URI.encode( command_sql_uri << url) ].post '' #url.to_json 
     end
 
@@ -610,7 +601,7 @@ structure of the provided block:
  It's used by REST::Query.execute_queries
 
 =end
-    def execute  transaction: true, class_name: 'Myquery'
+    def execute  transaction: true, o_class: 'Myquery'
       batch =  { transaction: transaction, operations: yield }
       response = @res[ batch_uri ].post batch.to_json
       if response.code == 200
@@ -623,7 +614,8 @@ structure of the provided block:
 	     elsif x.has_key?( 'value' )
 	       x['value']
 	     else
-		REST::Model.orientdb_class( name: class_name).new x
+	       puts "o_class: #{o_class.inspect}"
+		REST::Model.orientdb_class( name: class_name(o_class)).new x
 	       
 	     end
 	   end
@@ -637,6 +629,15 @@ structure of the provided block:
       end
     end
 #private 
+    def class_name  name_or_class
+      if name_or_class.is_a? Class
+	name_or_class.to_s.split('::').last
+      elsif name_or_class.is_a? REST::Model
+	name_or_class.classname
+      else
+	name_or_class
+      end
+    end
     def compose_where arg
       if arg.blank?
 	   ""
@@ -665,11 +666,11 @@ structure of the provided block:
 
     end
 
-      def property_uri(class_name)
+      def property_uri(this_class_name)
 	if block_given?
-	"property/#{ @database }/#{class_name}/" <<  yield
+	"property/#{ @database }/#{this_class_name}/" <<  yield
 	else
-	"property/#{ @database }/#{class_name}"
+	"property/#{ @database }/#{this_class_name}"
 	end
       end
 # called in the beginning or after a 404-Error
@@ -703,6 +704,7 @@ end
 
     simple_uri :database, :document, :class, :batch, :function
     sql_uri :command , :query
+
 
 
 end # class

@@ -103,7 +103,7 @@ describe REST::OrientDB do
     end
     it "reads Properties form a class" do
 
-      rp= @r.get_class_properties class_name: classname
+      rp= @r.get_class_properties o_class: classname
       # has "name"=>"neue_klasse10", "superClass"=>"", "superClasses"=>[], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[12], "defaultCluster"=>12, "clusterSelection"=>"round-robin", "records"=>0, "properties"=>[{"name"=>"con_id", "type"=>"INTEGER", "mandatory"=>false, "readonly"=>false, "notNull"=>false, "min"=>nil, "max"=>nil, "regexp"=>nil, "collate"=>"default"
       properties= rp['properties']
       [ :con_id, :symbol, :details].each do |f|

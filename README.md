@@ -132,9 +132,14 @@ gets the number of datasets fullfilling the search-criteria
 ```
 connects the documents specified by the rid's with the edge and assigns the attributes to the edge
 
-
-
-
+The instantiated REST::Model-Objects can be treated as expected:
+```ruby
+  new_document =  class.new_document attributes: { town: 'Berlin' }
+  # new_document builds the document in the database and returns the instantiated Model-Instance.
+  # We don't handle pure ruby REST:Model-Instances and thus don't have to deal with create and save. 
+  new_document.update set: { town: "Paris" }
+  new_document.delete
+```
 
 #### Execute SQL-Commands
 At least - sql-commands can be executed as batch

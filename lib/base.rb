@@ -20,6 +20,9 @@ module REST
     ## any Change of the Object is thus synchonized to any allocated variable
     #
     @@rid_store =  Hash.new
+    def self.remove_riid obj
+      @@rid_store[obj.riid]=nil 
+    end
     def self.store_riid obj
       if obj.rid.present? && obj.riid.all?{|x| x.present? && x>=0} # only positive values are stored
 	  ## return the presence of a stored object as true by the block
@@ -42,47 +45,55 @@ module REST
     # The model instance fields are then set automatically from the opts Hash.
     def initialize attributes={}, opts={}
       logger.progname= "REST::Base#initialize"
-      possible_link_array_candidates = Hash.new
+      possible_link_array_candidates = link_candidates = Hash.new
       @metadata = HashWithIndifferentAccess.new
       run_callbacks :initialize do
-      attributes.keys.each do | att |
-	unless att[0] == "@"	  
-	  att =  att.to_sym if att.is_a?(String)    
-	  unless self.class.instance_methods.detect{|x| x == att.to_sym }
-	    self.class.define_property att, nil 
-	    logger.debug { "property #{att.to_s} assigned to #{self.class.to_s}" }
+	attributes.keys.each do | att |
+	  unless att[0] == "@"	    # @ identifies Metadata-attributes
+	    att =  att.to_sym if att.is_a?(String)    
+	    unless self.class.instance_methods.detect{|x| x == att }
+	      self.class.define_property att, nil 
+	      logger.debug { "property #{att.to_s} assigned to #{self.class.to_s}" }
+	    end
 	  end
 	end
-      end
 
-      if attributes['@type'] == 'd'  # document 
+	if attributes['@type'] == 'd'  # document 
 	  possible_link_array_candidates = attributes.find_all{|_,v| v.is_a?(Hash) }.to_h
 	  attributes.delete_if {|_,v| v.is_a?(Hash) }
 	  link_candidates = attributes.find_all{|_,v| v.is_a?(String) && v.rid?}
 	  @metadata[ :type    ] = attributes.delete '@type'
-          @metadata[ :class   ] = attributes.delete '@class' 
-          @metadata[ :version ] = attributes.delete '@version' 
-          @metadata[ :fieldTypes ] = attributes.delete '@fieldTypes' 
+	  @metadata[ :class   ] = attributes.delete '@class' 
+	  @metadata[ :version ] = attributes.delete '@version' 
+	  @metadata[ :fieldTypes ] = attributes.delete '@fieldTypes' 
 	  if attributes.has_key?( '@rid' )
 	    rid = attributes.delete '@rid' 
 	    cluster, record = rid[1,rid.size].split(':') 
 	    @metadata[ :cluster ] =  cluster.to_i
 	    @metadata[ :record ] = record.to_i
 	  end
-      end
-      
-      if possible_link_array_candidates.present?
-	logger.debug "possible link-array: #{possible_link_array_candidates.inspect}"
-      end
+	end
+	if link_candidates.present?
+	  link_candidates.each do |key, value|
+
+	    link_cluster, link_record = value[1,value.size].split(':') 
+	    attributes[key] =  @@riid_store[link_cluster, link_record].presence || orientdb.get_document( value) 
+	  end
+	end
 
 
-      #
-       # raise RuntimeError "Argument must be a Hash", :args unless attributes.is_a?(Hash)
+	if possible_link_array_candidates.present?
+	  logger.debug "possible link-array: #{possible_link_array_candidates.inspect}"
+	end
 
-        self.attributes = attributes # set_attribute_defaults is now after_init callback
+
+	  #
+	  # raise RuntimeError "Argument must be a Hash", :args unless attributes.is_a?(Hash)
+
+	  self.attributes = attributes # set_attribute_defaults is now after_init callback
+	end
+	REST::Base.store_riid self
       end
-      REST::Base.store_riid self
-    end
 
     # ActiveModel API (for serialization)
 
