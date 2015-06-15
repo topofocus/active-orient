@@ -111,7 +111,11 @@ module REST
     end
 
     def []= key, val
-      # p key, val
+      val = val.rid if val.is_a? REST::Model
+      if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
+	val = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
+      end
+      val = HashWithIndifferentAccess.new(val) if val.is_a?( Hash )
       attributes[key.to_sym] = val
     end
 
