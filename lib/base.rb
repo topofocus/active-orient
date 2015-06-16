@@ -97,9 +97,11 @@ module REST
     # Here we define the autoload mechanism
     def [] key
       iv= attributes[key.to_sym]
+#      puts "ARRAY: #{iv.inspect}" if iv.is_a? Array
+#      puts @metadata[:fieldTypes] if iv.is_a? Array
       if  iv.is_a?(String) && iv.rid? && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
 	autoload_object key, iv
-      elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
+      elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmg]" )
 	iv.map{|y| autoload_object key, y }
       else
 	iv
@@ -113,7 +115,7 @@ module REST
     def []= key, val
       val = val.rid if val.is_a? REST::Model
       if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
-	val = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
+	val# = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
       end
       val = HashWithIndifferentAccess.new(val) if val.is_a?( Hash )
       attributes[key.to_sym] = val

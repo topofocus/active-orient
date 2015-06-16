@@ -177,6 +177,16 @@ describe REST::OrientDB do
 
     end
 
+    it "update strange text" do  # from the orientdb group
+      strange_text = { strange_text: "'@type':'d','a':'some \\ text'"}
+
+      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do 
+	  strange_text
+      end
+      expect( res.strange_text ).to eq strange_text[:strange_text]
+      document_from_db =  @r.get_document res.rid
+      expect( document_from_db.strange_text ).to eq strange_text[:strange_text]
+    end
     it "read that document" do
      r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( r.class ).to eq @rest_class
@@ -188,7 +198,7 @@ describe REST::OrientDB do
 
     it "count datasets in class" do
       r =  @r.count_documents o_class: @rest_class
-      expect( r ).to eq  3
+      expect( r ).to eq  4
     end
 
      it "updates that document" do

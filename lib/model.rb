@@ -150,12 +150,15 @@ The optional :set argument
 =begin
 Convient method for updating a linkset-property
 its called via
-  model.update_linkset(  REST::Query.new , :property, Object that provides the link )
+  model.update_linkset(  linkset-property, Object_to_be_linked_to )
 =end
-   def update_linkset q_class, item, link_class
-     q_class.queries = [ "update #{link} add #{item} = #{link_class.link}" ]
-     puts q_class.queries.inspect
-     q_class.execute_queries
+   def update_linkset  item, link_class
+     logger.progname = 'REST::Model#UpdateLinkset'
+     orientdb.execute do
+       [ {type: "cmd", language: "sql", command: "update #{link} add #{item} = #{link_class.link}"}]
+     end
+     self.attributes[item] = Array.new unless attributes[item].present?
+     self.attributes[item] << link_class
 
    rescue RestClient::InternalServerError => e
      puts e.inspect

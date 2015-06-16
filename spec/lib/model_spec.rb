@@ -88,33 +88,42 @@ describe REST::Model do
   end
   context  "Links and Linksets are followed"  do
     before(:all) do 
+      @r.delete_class  'Testlinkclass'
+      @r.delete_class  'Testbaseclass'
+
       @link_class = @r.create_class 'Testlinkclass'
       @base_class = @r.create_class 'Testbaseclass'
       @base_class.create_property field: 'to_link_class', type: 'link', other_class: @link_class
-      @base_class.create_property field: 'a_link_set', type: 'link', other_class: @link_class
+      @base_class.create_property field: 'a_link_set', type: 'linkset', other_class: @link_class
     
     end
 
-    it "create a link"  do
+    it "create a link" , focus:true  do
      link_document =  @link_class.new_document attributes: { att: 'one attribute' } 
 #     puts "rid:  #{link_document.rid}"
 #     puts "riid: #{link_document.riid}"
-     puts REST::Base.get_riid[ link_document.riid].inspect
+#     puts REST::Base.get_riid[ link_document.riid].inspect
      base_document =  @base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link } 
 
      expect(base_document.to_link_class).to eq link_document
     end
 
-   # it "create a linkset" do
-   #  link_document =  @link_class.new_document attributes: { att: 'one attribute' } 
-#  #   puts "rid:  #{link_document.rid}"
-#  #   puts "riid: #{link_document.riid}"
-   #  puts REST::Base.get_riid[ link_document.riid].inspect
-   #  base_document =  @base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link } 
+    it "create a linkset", focus: true do
 
+     base_document =  @base_class.new_document attributes: { base: 'my_base_with_linkset' } 
+    (1..10).each  do |x|
+      link_document =  @link_class.new_document attributes: { att: " #{x} attribute" } 
+      base_document.update_linkset( :a_link_set, link_document )
+    end
+  
+    # reload document
+     reloaded_document =  @r.get_document base_document.rid
+     expect( reloaded_document.a_link_set).to have(10).items
+      expect( reloaded_document[:a_link_set].first).to be_a REST::Model
+     reloaded_document[:a_link_set].each{|x| expect(x).to be_a REST::Model }
    #  expect(base_document.to_link_class).to eq link_document
 
-   # end
+    end
       
 
   end

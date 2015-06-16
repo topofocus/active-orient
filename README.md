@@ -142,17 +142,30 @@ The instantiated REST::Model-Objects can be treated as expected:
 ```
 #### Links
 
-Links are followed and autoloaded within a dept of one.  This includes edges
+Links are followed and autoloaded.  This includes edges.
 ```ruby
   link_class = r.create_class 'Testlinkclass'
   base_class = r.create_class 'Testbaseclass'
   base_class.create_property field: 'to_link_class', type: 'link', other_class: link_class
+  base_class.create_property field: 'to_link_set', type: 'linkset', other_class: link_class
 
   link_document =  link_class.new_document attributes: { att: 'one attribute' }
   base_document =  base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link }
 
   base_document.to_link_class => REST::Model::Testlinkclass ....
+
+  (0..20).each{|y| base_document.add_linkset( :to_link_set, 
+				  link_class.new_document( attributes: { nr: y } ) )
+
+  base_document.to_link_set[19] => REST::Model::Testlinkclass ...
+
 ```
+
+If you got an undirectional graph
+
+   a --> b ---> c --> d
+
+then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a.b[5].c[9].d )
 
 
 Edges are easily inserted between documents (vertexes)
