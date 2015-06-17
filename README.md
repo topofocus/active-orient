@@ -258,7 +258,34 @@ and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemo
  
  
  
- 
- 
+#### Ruby-Objects
+
+OrientDB-Classes are mapped to Ruby-Active-Model-Classes. These can further specified like 
+ActiveRecord-Models.
+
+Assume, you created the hierachie
+```
+    create class Contracts ABSTRACT
+    create class Stocks extends Contracts
+```
+Then you can intialize the ActiveModel-Classes either by
+```ruby
+   r.create_class 'Contracts'
+   r.create_class 'Stocks'
+``` 
+or
+```ruby
+  class REST::Model::Contracts < REST::Model
+      def a_method
+      ...
+      end
+   end
+   
+  class REST::Model::Stocks < REST::Model::Contracts
+      def a_method
+      ...
+      end
+  end
+```
 
 
