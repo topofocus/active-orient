@@ -44,7 +44,7 @@ Creation and removal of Classes  and Edges is straightforward
     r.create_class        classname  # creates a document-class, also used as vertex
     r.create_edge_class   classname  # creates an edge-class, providing bidirectional links between documents
 
-    r.delete_class        classname  # universal removal-class
+    r.delete_class        classname  # universal removal-class-method
     
     or
     model =  r.create_class classname
@@ -68,35 +68,32 @@ If a schema is used, Properties can be created and retrieved as well
 
   r.get_class_properties o_class: model 
  ```
- 
-Documents are easily created, updated, removed and queried either on a SQL-query-base or on a activeRecord-style
+ or
  ```ruby
-  record = r.create_document o_class: model , attributes: { con_id: 345, symbol: 'EWQZ' }
-  --> REST::Model::{model}-object
+ model.create_property field: 'symbol'
+ model.create_property field: 'con_id', type: 'integer'
+ model.create_property field: 'details', type: 'link', other_class: 'Contracts'
  ```
-  creates a record in the classname-class 
 
+
+Documents are easily created, updated, removed 
  ```ruby
-  record = r.update_documents o_class: model , set: { con_id: 346 },
-		      where: { symbol: 'EWQZ' } 
+  record = model.new_document  attributes: { con_id: 345, symbol: 'EWQZ' }
 
- ```
- updates the database based on a query, 
- »record.update« saves a dirty record to the database.
- 
+  record.con_id =  346
+  record.update
 
- ```ruby
-  records = r.get_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
-  record  = r.get_document rid                       # rid can be either #x:y or x:y 
+  record.delete
 
  ```
- queries the database accordantly and
+
+Multible Documents can updated and deleted query based 
 
  ```ruby
+  r.update_or_create_documents o_class: model, set: {con_id= 345} , where: {symbol: 'EWZ'} 
   r.delete_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
- completes the circle
 
 #### Active Model interface
  
@@ -111,7 +108,8 @@ and of TYPE REST::Model::{classname}
 If a document is created, an Instance to the Class is returned.
 If the database is queried, a list of Instances to the Class is returned.
 
-As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets form the database
+As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets 
+form the database. »class« is equivalent to »REST::Model::{classname}«
 
 ```ruby
   class.all 
@@ -146,8 +144,8 @@ Links are followed and autoloaded.  This includes edges.
 ```ruby
   link_class = r.create_class 'Testlinkclass'
   base_class = r.create_class 'Testbaseclass'
-  base_class.create_property field: 'to_link_class', type: 'link', other_class: link_class
-  base_class.create_property field: 'to_link_set', type: 'linkset', other_class: link_class
+  base_class.create_property field: 'to_link_class', type: 'link', linked_class: link_class
+  base_class.create_property field: 'to_link_set', type: 'linkset', linked_class: link_class
 
   link_document =  link_class.new_document attributes: { att: 'one attribute' }
   base_document =  base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link }

@@ -93,8 +93,8 @@ describe REST::Model do
 
       @link_class = @r.create_class 'Testlinkclass'
       @base_class = @r.create_class 'Testbaseclass'
-      @base_class.create_property field: 'to_link_class', type: 'link', other_class: @link_class
-      @base_class.create_property field: 'a_link_set', type: 'linkset', other_class: @link_class
+      @base_class.create_property field: 'to_link_class', type: 'link', linked_class: @link_class
+      @base_class.create_property field: 'a_link_set', type: 'linkset', linked_class: @link_class
     
     end
 

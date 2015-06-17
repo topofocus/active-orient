@@ -79,13 +79,18 @@ Queries the database and fetches the count of datasets
    def self.count_documents where: {}
      orientdb.count_documents( o_class: self , where: where)
    end
+=begin
+NewDocument (Class-method)
+Creates a new document with the applied attributes
+=end
 
    def self.new_document attributes: {}
       orientdb.create_or_update_document o_class: self, set: attributes
    end
+   
 
-   def self.create_property field:, type: 'string', other_class: nil
-     orientdb.create_property o_class: self, field: field, type: type, other_class: other_class 
+   def self.create_property field:, type: 'string', linked_class: nil
+     orientdb.create_property o_class: self, field: field, type: type, linked_class: linked_class 
    end
 
    def self.create_edge attributes:{}, from:, to:

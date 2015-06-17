@@ -307,11 +307,11 @@ todo: remove all instances of the class
 
     end
 
-    def create_property o_class:, field:, type: 'string', other_class: nil
+    def create_property o_class:, field:, type: 'string', linked_class: nil
       logger.progname= 'OrientDB#CreateProperty'
       begin
-	last_argument = if other_class.present?
-			  "/#{class_name(other_class)}"
+	last_argument = if linked_class.present?
+			  "/#{class_name(linked_class)}"
 			else 
 			  ""
 			end
@@ -539,6 +539,8 @@ An Array with freed index-values is returned
 Retrieves a Document from the Database as REST::Model::{class} 
 The argument can either be a rid (#[x}:{y}) or a link({x}:{y}) 
 If no Document  is found, nil is returned
+
+In the optional block, a subset of properties can be defined (as array of names)
 =end
     def get_document rid
 
