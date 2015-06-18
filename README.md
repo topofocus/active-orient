@@ -165,12 +165,13 @@ If you got an undirectional graph
 
 then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a.b[5].c[9].d )
 
+#### Edges
 
 Edges are easily inserted between documents (vertexes)
 and deleted
 ```ruby
-  document_class = r.create_class 'd1'
-  edge_class = r.create_edge_class 'e1'
+  document_class = r.create_class 'D1'
+  edge_class = r.create_edge_class 'E1'
 
   start =  document_class.new_document attributes: { something: 'nice' }
   end =  document_class.new_document attributes:   { something: 'not_nice' }
@@ -181,6 +182,27 @@ and deleted
   (...)
   the_edge.delete
 ```
+
+There is a basic support for traversals throught a graph.
+The Edges are accessed  by their names (downcase).
+
+thus
+
+```ruby
+  start.e1[0]
+  --> #<REST::Model::E1:0x000000041e4e30 
+	@metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", 
+		   "cluster"=>16, "record"=>43}, 
+        @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
+```
+The Attributes "in" and "out" can be used to traverse:
+```ruby
+   start.e1[0].out.something 
+   ---> "not_nice
+   start.e1[0].in.something 
+   ---> "nice
+```
+
 #### Execute SQL-Commands
 At least - sql-commands can be executed as batch
 

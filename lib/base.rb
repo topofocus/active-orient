@@ -48,6 +48,8 @@ module REST
       logger.progname= "REST::Base#initialize"
       #possible_link_array_candidates = link_candidates = Hash.new
       @metadata = HashWithIndifferentAccess.new
+#      @edges = HashWithIndifferentAccess.new
+    
       run_callbacks :initialize do
 	attributes.keys.each do | att |
 	  unless att[0] == "@"	    # @ identifies Metadata-attributes
@@ -69,6 +71,22 @@ module REST
 	    cluster, record = rid[1,rid.size].split(':') 
 	    @metadata[ :cluster ] =  cluster.to_i
 	    @metadata[ :record ] = record.to_i
+	  end
+
+	  #### edges -- remove in_ and out_ and de-capitalize the remaining edge
+	  if @metadata[ :fieldTypes ].present? && (@metadata[ :fieldTypes ] =~ /=g/)
+	    edges = @metadata['fieldTypes'].split(',').find_all{|x| x=~/=g/}.map{|x| x.split('=').first}
+	    edges.each do |edge|
+	      operator, *base_edge =  edge.split('_')
+	      base_edge = base_edge.join('_')
+	      unless self.class.instance_methods.detect{|x| x == base_edge }
+		## define two methods: out_{Edge}/{in_Edge} -> edge. 
+		self.class.define_property base_edge, nil 
+		self.class.send :alias_method, base_edge.downcase, edge  #  
+		logger.debug { "edge #{edge} assigned to #{self.class.to_s} and remaped to #{base_edge.downcase}" }  
+
+	      end
+	    end
 	  end
 	end
 
@@ -101,7 +119,7 @@ module REST
 #      puts @metadata[:fieldTypes] if iv.is_a? Array
       if  iv.is_a?(String) && iv.rid? && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
 	autoload_object key, iv
-      elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmg]" )
+      elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
 	iv.map{|y| autoload_object key, y }
       else
 	iv
@@ -115,6 +133,11 @@ module REST
     def []= key, val
       val = val.rid if val.is_a? REST::Model
       if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
+#	if @metadata[ :fieldTypes ] =~ /out=x,in=x/
+#	puts "VAL is a ARRAY"
+#	else
+#	  puts "METADATA: #{ @metadata[ :fieldTypes ]}  "
+#	end
 	val# = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
       end
       val = HashWithIndifferentAccess.new(val) if val.is_a?( Hash )

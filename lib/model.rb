@@ -106,6 +106,9 @@ removes the Model-Instance from the database
 
 returns true (successfully deleted) or false  ( obj not deleted)
 =end
+def self.where attributes: {}
+  orientdb.get_documents o_class: self, where: attributes
+end
    def delete
      
      r= if is_edge?
@@ -148,6 +151,8 @@ The optional :set argument
 Convient method for updating a embedded-type-property
 its called via
   model.update_embedded(  property, value )
+
+  to query embedded elements: select from {class} where {val{class} in({embedded_property}}.{embedded_property})
 =end
    def update_embedded item, value
      logger.progname = 'REST::Model#UpdateEmbedded'

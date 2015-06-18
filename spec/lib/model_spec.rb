@@ -164,7 +164,8 @@ describe REST::Model do
     end
   end
 
-  context "ActiveRecord mimics"  do
+
+  context "ActiveRecord mimics"  , focus:true  do
     it "fetch all documents into an Array" do
       @testmodel.new_document attributes: { test: 45} 
       all_documents = @testmodel.all
@@ -187,30 +188,36 @@ describe REST::Model do
 
     end
 
-    it "creates an edge between two documents"  do
-      out_e =  @testmodel.where( :attributes => { test: 23 }, create_if_missing: true ).first 
-      in_e  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
-      in_e2  =  @testmodel.where( :attributes => { test: 15 }, create_if_missing: true ).first 
-      puts "in+out"
-      puts in_e.inspect
-      puts out_e.inspect
+    it "creates an edge between two documents" do
+      out_e =  @r.update_or_create_documents( o_class: @testmodel, :where => { test: 23 } ).first 
+      in_e  =  @r.update_or_create_documents( o_class: @testmodel, :where => { test: 15 } ).first 
+      in_e2  = @r.update_or_create_documents( o_class: @testmodel, :where => { test: 16 } ).first 
       the_edge= @myedge.create_edge( 
 			  attributes: { halbwertzeit: 45 }, 
 			  from: out_e,
 			  to:   in_e  )
       expect( the_edge).to be_a REST::Model
-      the_edge2= @myedge.create_edge( 
-			  attributes: { halbwertzeit: 46 }, 
-			  from: in_e,
-			  to:   in_e2  )
+#      the_edge2= @myedge.create_edge( 
+#			  attributes: { halbwertzeit: 46 }, 
+#			  from: in_e,
+#			  to:   in_e2  )
       expect( the_edge.out ).to eq out_e
       expect( the_edge.in ).to eq in_e
-      expect( the_edge2.out ).to eq in_e
-      expect( the_edge2.in ).to eq in_e2
+#      expect( the_edge2.out ).to eq in_e
+#      expect( the_edge2.in ).to eq in_e2
       out_e =  @testmodel.where( :attributes => { test: 23 } ).first 
       expect( out_e.attributes).to include 'out_Myedge'
       in_e = @testmodel.where( :attributes => { test: 15 } ).first 
       expect( in_e.attributes).to include 'in_Myedge'
+#      puts "in+out"
+      puts in_e.inspect
+#      puts out_e.inspect
+#
+      expect( in_e.myedge[0] ).to be_a REST::Model::Myedge
+     puts in_e.myedge[0].inspect 
+     puts  in_e.myedge[0].out.inspect
+     expect( in_e.myedge[0].out.test).to eq 23
+     expect( in_e.in_Myedge[0].in.test).to eq  15
     end
 
     it "deletes an edge"  do
