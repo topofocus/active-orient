@@ -12,7 +12,7 @@ module REST
 
     # Default presentation
     def to_human
-      "<#{self.class.to_s.demodulize}: " + attributes.map do |attr, value|
+      "<#{self.class.to_s.demodulize}: " + content_attributes.map do |attr, value|
         "#{attr}: #{value}" unless value.nil?
       end.compact.sort.join(' ') + ">"
     end

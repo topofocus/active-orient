@@ -101,14 +101,6 @@ Where  (Class-method)
 
 Performs a query on the Class and returns an Array of REST:Model-Records.
 
-=end
-
-   def self.where attributes: {}, create_if_missing: false
-     orientdb.get_documents( o_class: self,  where: attributes).presence || ( [ new_document( attributes: attributes )]  if create_if_missing  ) 
-   end
-  
-=begin
-Delete (Instance Method)
 
 removes the Model-Instance from the database
 
@@ -153,6 +145,24 @@ The optional :set argument
    end
 
 =begin
+Convient method for updating a embedded-type-property
+its called via
+  model.update_embedded(  property, value )
+=end
+   def update_embedded item, value
+     logger.progname = 'REST::Model#UpdateEmbedded'
+     orientdb.execute do
+       [ {type: "cmd", language: "sql", command: "update #{link} add #{item} = #{value}"}]
+     end
+     self.attributes[item] = Array.new unless attributes[item].present?
+     self.attributes[item] << value
+
+   rescue RestClient::InternalServerError => e
+     logger.error  "update_embedded : something went wrong"
+     logger.error e.inspect
+   end
+
+=begin
 Convient method for updating a linkset-property
 its called via
   model.update_linkset(  linkset-property, Object_to_be_linked_to )
@@ -166,8 +176,8 @@ its called via
      self.attributes[item] << link_class
 
    rescue RestClient::InternalServerError => e
-     puts e.inspect
-     puts "update_linkset : Duplicate found (#{link_class.link})"
+     logger.error " Duplicate found (#{link_class.link})"
+     logger.error e.inspect
    end
 
 end # class

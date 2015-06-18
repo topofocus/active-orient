@@ -128,6 +128,42 @@ describe REST::Model do
 
   end
 
+  context "Operate with an embedded object" , focus: true do
+    before(:all) do 
+      @r.delete_class  'Testbaseclass'
+
+      @base_class = @r.create_class 'Testbaseclass'
+      @base_class.create_property field: 'to_data', type: 'embeddedlist', linked_class: 'FLOAT'
+#      @base_class.create_property field: 'a_link_set', type: 'linkset', linked_class: @link_class
+    
+    end
+    it "work with a schemaless approach" do
+  
+      emb = [1,2,"zu",1]
+      base_document = @base_class.new_document attributes: { embedded_item: emb }
+      expect(base_document.embedded_item).to eq emb
+
+      base_document.update_embedded :embedded_item, " 45"
+      expect(base_document.embedded_item).to eq emb << " 45"
+
+      reloaded_document =  @r.get_document base_document.rid
+      expect(reloaded_document.embedded_item).not_to eq emb
+  
+    end
+
+    it "work with embeddedlist" do
+      emb = [1,2,"zu",1]
+      nbase_document = @base_class.new_document attributes: { to_data: emb }
+      expect(nbase_document.to_data).to eq emb
+      nbase_document.update_embedded :to_data, " 45"
+      expect(nbase_document.to_data).to eq emb << " 45"
+
+      reloaded_document =  @r.get_document nbase_document.rid
+      expect(reloaded_document.to_data).not_to eq emb
+      expect(reloaded_document.to_data).to eq [1,2,"zu",1,45]  # Orientdb convertes " 45" to a numeric
+    end
+  end
+
   context "ActiveRecord mimics"  do
     it "fetch all documents into an Array" do
       @testmodel.new_document attributes: { test: 45} 

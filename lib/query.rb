@@ -47,9 +47,9 @@ q.queries << [
        "let sub = select from Subcategories where contracts in $con;",
        "let cat = select from Categories where subcategories in $sub;",
        "let ind = select from Industries where categories in $cat;",
-       "return $ind"
+       "SELECT expand(unionall) FROM (SELECT unionall( $con, $cat))"
               ]
-q.execute_queries.each{|x|  puts "X #{x.inspect}" }
+ q.execute_queries.each{|x|  puts "X #{x.inspect}" }
 
 =end
    def execute_queries reset: true, transaction: true
