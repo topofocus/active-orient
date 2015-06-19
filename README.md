@@ -1,39 +1,28 @@
 # orientdb-rest
-Access OrientDB from Ruby without accessing third-party-libraries.
+Access OrientDB from Ruby using the robust high-level REST-HTTP-API
 
-Orientdb-Rest is based on ActiveModels and the REST-HTTP-Api of OrientDB. This high level API ist most likely robust.
 The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
 
-Orientdb-rest is written to store data, gathered by a Ruby-program ( ib-ruby in particular), into an OrientDB-Database,to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
+It is written to store data, gathered by a Ruby-program ( ib-ruby in particular), into an OrientDB-Database,to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
 
-To start you need a ruby 2.x Installation, 
-clone the project and run bundle install and bundle update,
-then modify »config/connect.yml« 
+To start you need a ruby 2.x Installation.  
+Clone the project and run bundle install/ bundle update,
+then modify »config/connect.yml«. 
 
-In a irb-session you need to
-»require './config/boot'«
+For a quick start, go to the home directory of the package and start an irb-session
 
-
-It's initialized by
+then
 
 ```ruby
- REST::OrientDB.logger = REST::Model.logger = Logger.new('/dev/stdout') # or your customized-logger
- r = REST::OrientDB.new 
+  require './config/boot'«
+  r = REST::OrientDB.new 
+  REST::Model.orientdb = r
 ```
 
-Then the database has to be assigned to any REST::Model-Object:
-```ruby
-REST::Model.orientdb = r
-```
-Note: If the working database is changed (by r.change_database newname) there is no need to reassign the database to Model-Objects.
+Now any REST::Model-Object »knows« how to access the database.
+»r« is the Database-Instance itself.
 
-You can fetch a list of classes  and some properties by
- ``` ruby
-    r.get_classes 'name', 'superClass' (, further attributes )
-    --> [ { 'name' => class_name , 'superClass' => superClass_name  }, { .. } ]
- ```
- 
- or simply 
+You can fetch a list of classes  
 ```ruby
      r.database_classes include_system_classes:true
     --> ["Car", (..), "E", "OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "Owns", "V", "_studio"]
@@ -41,7 +30,8 @@ You can fetch a list of classes  and some properties by
  
 Creation and removal of Classes  and Edges is straightforward
  ```ruby
-    r.create_class        classname  # creates a document-class, also used as vertex
+    r.create_class        classname  # creates a basic document-class
+    r.create_vertex_class classname  # creates a vertex-class 
     r.create_edge_class   classname  # creates an edge-class, providing bidirectional links between documents
 
     r.delete_class        classname  # universal removal-class-method
@@ -53,7 +43,7 @@ Creation and removal of Classes  and Edges is straightforward
  ```
 
 »model« is the REST::Model-Class itself, a constant pointing to the class-definition.
-A model-class has several Instances, refering to the records (aka documents/edges) in the database.
+REST::Model-Instances represent  records (aka documents/vertices/edges) of the database.
 
 It is used as argument to several methods, providing the class-name to operate on
 and as reference to instantiate the correct REST::Model-Object.
@@ -76,9 +66,12 @@ If a schema is used, Properties can be created and retrieved as well
  ```
 
 
+
 Documents are easily created, updated, removed 
  ```ruby
   record = model.new_document  attributes: { con_id: 345, symbol: 'EWQZ' }
+  # (or)
+  record = REST::Model::Contracts.new_document :attributes => { :con_id => 345, :symbol => 'EWQZ' }
 
   record.con_id =  346
   record.update
@@ -99,7 +92,7 @@ Multible Documents can updated and deleted query based
  
 Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined dynamically by
 ```ruby
-  vertex_class =  r.create_class        classname 
+  vertex_class =  r.create_vertex_class classname 
   edge_class   =  r.create_edge_class   classname 
   
 ```
@@ -126,7 +119,10 @@ performs a query on the class and returns the result as Array
 gets the number of datasets fullfilling the search-criteria
 
 ```ruby
-  edge_class.create_edge attributes: { :birthday => Date.today }, from: '#23:45' to '#12:21'
+  edge_class.create_edge attributes: { :birthday => Date.today }, from: '#23:45', to: '#12:21'
+  # (or)
+  vertex1 = r.get_document '#23:45'
+  edge_class.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 connects the documents specified by the rid's with the edge and assigns the attributes to the edge
 
@@ -153,7 +149,7 @@ Links are followed and autoloaded.  This includes edges.
   base_document.to_link_class => REST::Model::Testlinkclass ....
 
   (0..20).each{|y| base_document.add_linkset( :to_link_set, 
-				  link_class.new_document( attributes: { nr: y } ) )
+				  link_class.new_document( attributes: { nr: y } ) )  }
 
   base_document.to_link_set[19] => REST::Model::Testlinkclass ...
 
@@ -168,14 +164,13 @@ then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a
 #### Edges
 
 Edges are easily inserted between documents (vertexes)
-and deleted
 ```ruby
-  document_class = r.create_class 'D1'
+  vertex_class = r.create_vertex_class 'D1'
   edge_class = r.create_edge_class 'E1'
 
-  start =  document_class.new_document attributes: { something: 'nice' }
-  end =  document_class.new_document attributes:   { something: 'not_nice' }
-  the_edge = egde_class.create_edge(  attributes:  { transform_to: 'very bad' },
+  start =  REST::Model:D1.new_document attributes:  { something: 'nice' }
+  end   =  REST::Model::D1.new_document attributes: { something: 'not_nice' }
+  the_edge = REST::Model::E1.create_edge(  attributes:  { transform_to: 'very bad' },
 				      from: start,
 				      to: end	)
 
@@ -186,8 +181,6 @@ and deleted
 There is a basic support for traversals throught a graph.
 The Edges are accessed  by their names (downcase).
 
-thus
-
 ```ruby
   start.e1[0]
   --> #<REST::Model::E1:0x000000041e4e30 
@@ -195,7 +188,7 @@ thus
 		   "cluster"=>16, "record"=>43}, 
         @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
 ```
-The Attributes "in" and "out" can be used to traverse:
+The Attributes "in" and "out" can be used to move across the graph
 ```ruby
    start.e1[0].out.something 
    ---> "not_nice
