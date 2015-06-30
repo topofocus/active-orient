@@ -86,7 +86,7 @@ Documents are easily created, updated, removed
 Multible Documents can updated and deleted query based 
 
  ```ruby
-  r.update_or_create_documents o_class: model, set: {con_id= 345} , where: {symbol: 'EWZ'} 
+  r.update_or_create_documents o_class: model, set: {con_id: 345} , where: {symbol: 'EWZ'} 
   r.delete_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
