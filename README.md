@@ -64,7 +64,10 @@ If a schema is used, Properties can be created and retrieved as well
  model.create_property field: 'con_id', type: 'integer'
  model.create_property field: 'details', type: 'link', other_class: 'Contracts'
  ```
-
+ or if the Model-Class is static
+ ```ruby
+ REST::Model::Contracts.create_property field: 'symbol'
+```
 
 
 Documents are easily created, updated, removed 
