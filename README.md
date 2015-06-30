@@ -14,7 +14,7 @@ For a quick start, go to the home directory of the package and start an irb-sess
 then
 
 ```ruby
-  require './config/boot'«
+  require './config/boot'
   r = REST::OrientDB.new 
   REST::Model.orientdb = r
 ```
