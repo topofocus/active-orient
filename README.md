@@ -1,4 +1,4 @@
-# orientdb-rest
+# ActiveOrient
 Access OrientDB from Ruby using the robust high-level REST-HTTP-API
 
 The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
