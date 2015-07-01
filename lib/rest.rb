@@ -217,6 +217,16 @@ Other attributes are assigned dynamically upon reading documents
       end 
     end
 
+    def create_vertex_class name: , superclass: 'V'
+      unless database_classes( requery: true).include? name
+       sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
+       execute o_class: name, transaction: false do 
+        [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
+       end
+      end
+      REST::Model.orientdb_class( name: name)
+    end
+
     def create_edge_class name: , superclass: 'E'
       unless database_classes( requery: true).include? name
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
@@ -232,14 +242,23 @@ nexus_edge connects two documents/vertexes
 The parameter o_class can be either a class or a string
 =end
 
-    def nexus_edge o_class: , attributes: {}, from:,  to:
-
+    def nexus_edge o_class: , attributes: {}, from:,  to:, unique: false
+      logger.progname = "REST::OrientDB#NexusEdge"
       translate_to_rid = ->(obj){ if obj.is_a?( REST::Model ) then obj.link else obj end }
-      puts   "create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} "
+      if unique
+	wwhere = { out: translate_to_rid[from],  in: translate_to_rid[to] }.merge(attributes) 
+	existing_edge = get_documents( o_class: o_class, where: wwhere )
+	if  existing_edge.first.is_a?( REST::Model )
+	  logger.debug { "reusing  edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
+	return existing_edge.first  
+	end
+      end
+      logger.debug { "creating edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
       response=  execute( o_class: o_class, transaction: false) do 
       #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]}; ")} ]
+      attr_string =  attributes.blank? ? "" : "set #{ generate_sql_list attributes }"
       [ { type: "cmd", language: 'sql', 
-	  command:  "create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} "} ]
+	  command:  "create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} #{attr_string}"} ]
        end
        if response.is_a?(Array) && response.size == 1
 	 response.pop # RETURN_VALUE

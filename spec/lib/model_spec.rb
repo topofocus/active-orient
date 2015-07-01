@@ -197,6 +197,13 @@ describe REST::Model do
 			  from: out_e,
 			  to:   in_e  )
       expect( the_edge).to be_a REST::Model
+
+      # creation of a second edge with the same properties leads to  reusing the existent edge
+      the_edge2= @myedge.create_edge( 
+			  attributes: { halbwertzeit: 45 }, 
+			  from: out_e,
+			  to:   in_e , unique: true )
+       expect( the_edge2).to eq the_edge
 #      the_edge2= @myedge.create_edge( 
 #			  attributes: { halbwertzeit: 46 }, 
 #			  from: in_e,
@@ -209,13 +216,7 @@ describe REST::Model do
       expect( out_e.attributes).to include 'out_Myedge'
       in_e = @testmodel.where( :attributes => { test: 15 } ).first 
       expect( in_e.attributes).to include 'in_Myedge'
-#      puts "in+out"
-      puts in_e.inspect
-#      puts out_e.inspect
-#
-      expect( in_e.myedge[0] ).to be_a REST::Model::Myedge
-     puts in_e.myedge[0].inspect 
-     puts  in_e.myedge[0].out.inspect
+     expect( in_e.myedge).to have(1).item
      expect( in_e.myedge[0].out.test).to eq 23
      expect( in_e.in_Myedge[0].in.test).to eq  15
     end

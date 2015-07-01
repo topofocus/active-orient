@@ -132,14 +132,24 @@ module REST
 
     def []= key, val
       val = val.rid if val.is_a? REST::Model
-      if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
+#      if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
 #	if @metadata[ :fieldTypes ] =~ /out=x,in=x/
 #	puts "VAL is a ARRAY"
 #	else
 #	  puts "METADATA: #{ @metadata[ :fieldTypes ]}  "
 #	end
-	val# = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
+#	val# = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
+#      end
+      if val.is_a?(Array) && val.first.is_a?(Hash)
+	val = val.map{|x|  if x.is_a?( Hash ) 
+	       HashWithIndifferentAccess.new(x)
+	else
+	  x 
+	end
+	}
+
       end
+#      puts "val = #{val.inspect}"
       val = HashWithIndifferentAccess.new(val) if val.is_a?( Hash )
       attributes[key.to_sym] = val
     end

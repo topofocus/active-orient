@@ -93,8 +93,8 @@ Creates a new document with the applied attributes
      orientdb.create_property o_class: self, field: field, type: type, linked_class: linked_class 
    end
 
-   def self.create_edge attributes:{}, from:, to:
-      orientdb.nexus_edge o_class: self, attributes: attributes, from: from, to: to
+   def self.create_edge attributes:{}, from:, to:, unique: false
+      orientdb.nexus_edge o_class: self, attributes: attributes, from: from, to: to, unique: unique
    end
 =begin
 Where  (Class-method)
