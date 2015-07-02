@@ -8,11 +8,13 @@ OrientDB performs queries to a OrientDB-Database
 
 The communication is based on the REST-API.
 
-The OrientDB-Server is specified in connect.yml, 
+The OrientDB-Server is specified in config/connect.yml
+
+A Sample:
  :orientdb:
-   :server: delta   #localhost
+   :server: localhost
      :port: 2480
-   :database: hc_database   # working-database
+   :database: working-database
    :admin:
      :user: admin-user 
      :pass: admin-password
@@ -28,9 +30,11 @@ Thus several instances pointing to the same or different databases can coexist
 
 A simple 
  xyz =  REST::OrientDB.new
-uses the database specified in the yaml-file »config/connect.yml« 
-and connects 
+uses the database specified in the yaml-file »config/connect.yml« and connects 
 
+*USECASE*
+ xyz =  REST::Model.orientdb = REST::OrientDB.new
+initialises the Database-Connection and publishes the Instance to any REST::Model-Object
 =end
 
   def initialize database: nil,  connect: true
@@ -142,14 +146,14 @@ after the removal of the database, the working-database might be empty
     
 =begin
 returns an Array with Class-attribute-hash-Elements
-eg
-get_classes 'name', 'superClass'
-returns
-[ {"name"=>"E", "superClass"=>""}, 
-  {"name"=>"OFunction", "superClass"=>""}, 
-  {"name"=>"ORole", "superClass"=>"OIdentity"}
-  (...)
-]
+
+  get_classes 'name', 'superClass'
+  returns
+    [ {"name"=>"E", "superClass"=>""}, 
+    {"name"=>"OFunction", "superClass"=>""}, 
+    {"name"=>"ORole", "superClass"=>"OIdentity"}
+    (...)
+  ]
 =end
 
     def get_classes *attributes
@@ -168,7 +172,27 @@ returns
       end
 
     end
+=begin
+returns the class_hierachie
 
+to fetch all Vertices
+ class_hiearchie( base_class: 'V').flatten
+to fetch all Edges
+ class_hierachie( base_class: 'E').flatten
+=end
+
+    def class_hierachie base_class: ''
+      all_classes =  get_classes( 'name', 'superClass')
+      def fv s 
+	 all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ] } 
+      end
+
+      def fx v 
+	fv(v).map{ |x| ar =  fx( x ) ; ar.empty? ? x :  [ x , ar  ] }
+      end
+  
+      fx base_class
+    end
 =begin
 returns an array with all names of the classes of the database
 caches the result.

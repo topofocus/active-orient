@@ -80,35 +80,44 @@ Queries the database and fetches the count of datasets
      orientdb.count_documents( o_class: self , where: where)
    end
 =begin
-NewDocument (Class-method)
 Creates a new document with the applied attributes
+and returns the freshly instantiated Object
 =end
 
    def self.new_document attributes: {}
       orientdb.create_or_update_document o_class: self, set: attributes
    end
-   
+=begin
+Create a Property in the Schema of the Class
+=end
 
    def self.create_property field:, type: 'string', linked_class: nil
      orientdb.create_property o_class: self, field: field, type: type, linked_class: linked_class 
    end
+=begin
+Only if the Class inherents from »E« 
+Instantiate a new Edge betwen to Vertices
 
-   def self.create_edge attributes:{}, from:, to:, unique: false
+Parameter: unique: (true)  In case of an existing Edge just update its Properties. 
+
+=end
+   def self.create_edge from: , to: , unique: false, attributes:{} 
+      
       orientdb.nexus_edge o_class: self, attributes: attributes, from: from, to: to, unique: unique
    end
 =begin
-Where  (Class-method)
-
 Performs a query on the Class and returns an Array of REST:Model-Records.
 
+=end
+def self.where attributes: {}
+  orientdb.get_documents o_class: self, where: attributes
+end
+=begin
 
 removes the Model-Instance from the database
 
 returns true (successfully deleted) or false  ( obj not deleted)
 =end
-def self.where attributes: {}
-  orientdb.get_documents o_class: self, where: attributes
-end
    def delete
      
      r= if is_edge?
@@ -135,7 +144,10 @@ end
 =begin
 Convient update of the dataset by calling sql-patch
 The attributes are saved to the database.
-The optional :set argument 
+With the optional :set argument ad-hoc attributes can be defined
+  obj = REST::Model::Contracts.first
+  obj.name =  'new_name'
+  obj.update set: { yesterdays_event: 35 }
 =end
    def update  set: {}
       attributes.merge! set
@@ -152,7 +164,8 @@ Convient method for updating a embedded-type-property
 its called via
   model.update_embedded(  property, value )
 
-  to query embedded elements: select from {class} where {val{class} in({embedded_property}}.{embedded_property})
+to query embedded elements: 
+  select from {class} where {val{class} in({embedded_property}}.{embedded_property})
 =end
    def update_embedded item, value
      logger.progname = 'REST::Model#UpdateEmbedded'
