@@ -45,7 +45,7 @@ initialises the Database-Connection and publishes the Instance to any REST::Mode
     @classes = []
   end
 
-##  use for development , should be removed in production release  
+##  included for development , should be removed in production release  
   def ressource
     @res
   end
@@ -67,7 +67,7 @@ initialises the Database-Connection and publishes the Instance to any REST::Mode
 ## -----------------------------------------------------------------------------------------
 
 =begin
-returns an Array with Database-Names as Elements
+returns an Array with available Database-Names as Elements
 =end
     def get_databases
        JSON.parse( @res["/listDatabases"].get.body)['databases']
@@ -182,13 +182,13 @@ to fetch all Edges
 =end
 
     def class_hierachie base_class: ''
-      all_classes =  get_classes( 'name', 'superClass')
-      def fv s 
-	 all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ] } 
+      @all_classes =  get_classes( 'name', 'superClass')
+      def fv s   # :nodoc:
+	 @all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ] } 
       end
 
-      def fx v 
-	fv(v).map{ |x| ar =  fx( x ) ; ar.empty? ? x :  [ x , ar  ] }
+      def fx v # :nodoc:
+fv(v).map{ |x| ar =  fx( x ) ; ar.empty? ? x :  [ x , ar  ] }
       end
   
       fx base_class
@@ -423,8 +423,8 @@ creates properties which are defined as json in the provided block as
 
     end
 
-    def get_class_properties o_class:
-      response = JSON.parse( @res[ class_uri{ class_name(o_class) } ].get )
+    def get_class_properties o_class:   #  :nodoc:
+      JSON.parse( @res[ class_uri{ class_name(o_class) } ].get )
     end
     #
 ## -----------------------------------------------------------------------------------------
@@ -474,7 +474,7 @@ If raw is specified, the JSON-Array is returned, eg
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
-    def get_documents o_class:, where: {} , raw: false, limit: -1, ignore_block: false
+    def get_documents o_class: , where: {} , raw: false, limit: -1, ignore_block: false
 
         select_string =  'select from ' << class_name(o_class) 
 	where_string =  compose_where( where )
@@ -693,7 +693,6 @@ structure of the provided block:
 	nil
       end
     end
-#private 
     def class_name  name_or_class
       if name_or_class.is_a? Class
 	name_or_class.to_s.split('::').last
@@ -716,35 +715,36 @@ structure of the provided block:
 	   " where " + generate_sql_list(arg)
 	 end
     end
+private 
 
-    def generate_sql_list attributes={}
-      attributes.map do | key, value |
-	case value
-	when Numeric
-	  key.to_s << " = " << value.to_s 
-	else #  String, Symbol
-	  key.to_s << ' = ' << "\'#{ value }\'"
-#	else 
-#	  puts "ERROR, value-> #{value}, class -> #{value.class}"
-	end
-      end.join( ' and ' )
-
+def generate_sql_list attributes={}
+  attributes.map do | key, value |
+    case value
+    when Numeric
+      key.to_s << " = " << value.to_s 
+    else #  String, Symbol
+      key.to_s << ' = ' << "\'#{ value }\'"
+      #	else 
+      #	  puts "ERROR, value-> #{value}, class -> #{value.class}"
     end
+  end.join( ' and ' )
 
-      def property_uri(this_class_name)
-	if block_given?
-	"property/#{ @database }/#{this_class_name}/" <<  yield
-	else
-	"property/#{ @database }/#{this_class_name}"
-	end
-      end
+end
+
+def property_uri(this_class_name)
+  if block_given?
+    "property/#{ @database }/#{this_class_name}/" <<  yield
+  else
+    "property/#{ @database }/#{this_class_name}"
+  end
+end
 # called in the beginning or after a 404-Error
-      def get_ressource
-	read_yml = ->( key ){ YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][key] }
-	login = read_yml[ :admin ].values 
-	server_adress = read_yml[ :server ] + ":" + read_yml[ :port ].to_s 
-	RestClient::Resource.new('http://' << server_adress, *login )
-      end
+def get_ressource
+  read_yml = ->( key ){ YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][key] }
+  login = read_yml[ :admin ].values 
+  server_adress = read_yml[ :server ] + ":" + read_yml[ :port ].to_s 
+  RestClient::Resource.new('http://' << server_adress, *login )
+end
 
 def  self.simple_uri *names
      names.each do | name |
