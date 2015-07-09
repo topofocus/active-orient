@@ -21,8 +21,15 @@ module REST
     ## any Change of the Object is thus synchonized to any allocated variable
     #
     @@rid_store =  Hash.new
+
+    def self.display_riid
+      @@rid_store
+    end
     def self.remove_riid obj
       @@rid_store[obj.riid]=nil 
+    end
+    def self.get_riid link
+
     end
     def self.store_riid obj
       if obj.rid.present? && obj.riid.all?{|x| x.present? && x>=0} # only positive values are stored
@@ -99,10 +106,6 @@ module REST
 
     # ActiveModel API (for serialization)
 
-    def autoload_object  key, link
-	    link_cluster_and_record = link[1,link.size].split(':').map &:to_i
-	    @@rid_store[link_cluster_and_record].presence || orientdb.get_document( link ) 
-    end
     def attributes
       @attributes ||= HashWithIndifferentAccess.new
     end
@@ -114,13 +117,14 @@ module REST
     # ActiveModel-style read/write_attribute accessors
     # Here we define the autoload mechanism
     def [] key
+     # puts "[]: #{key}"
       iv= attributes[key.to_sym]
-#      puts "ARRAY: #{iv.inspect}" if iv.is_a? Array
-#      puts @metadata[:fieldTypes] if iv.is_a? Array
       if  iv.is_a?(String) && iv.rid? && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
-	autoload_object key, iv
+     # puts "autoload: #{iv}"
+	REST::Model.autoload_object  iv
       elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
-	iv.map{|y| autoload_object key, y }
+     # puts "autoload: #{iv.inspect}"
+	iv.map{|y| REST::Model.autoload_object  y }
       else
 	iv
       end

@@ -188,7 +188,7 @@ to fetch all Edges
       end
 
       def fx v # :nodoc:
-fv(v).map{ |x| ar =  fx( x ) ; ar.empty? ? x :  [ x , ar  ] }
+	fv(v).map{ |x| ar =  fx( x ) ; ar.empty? ? x :  [ x , ar  ] }
       end
   
       fx base_class
@@ -220,6 +220,8 @@ Other attributes are assigned dynamically upon reading documents
 =end
     def create_class   newclass
       logger.progname= 'OrientDB#CreateClass'
+      # convert neclass to Xxxx
+      newclass = newclass.downcase.capitalize
       if database_classes.include? newclass
 	# reuse predefined class
 	REST::Model.orientdb_class( name: newclass)

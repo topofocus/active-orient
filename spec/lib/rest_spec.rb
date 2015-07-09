@@ -2,6 +2,10 @@
 require 'spec_helper'
 require 'active_support'
 
+
+shared_examples_for 'a valid Class' do
+
+end
 describe REST::OrientDB do
   
 #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
@@ -70,7 +74,7 @@ describe REST::OrientDB do
       expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
     end
 
-    it "create and delete an Edge-Class" do
+    it "create and delete an Edge-Class" , focus: true do
     
     classname = 'Myedge'
     @r.delete_class classname
@@ -79,11 +83,21 @@ describe REST::OrientDB do
     expect(@r.database_classes( :requery => true )).to include classname
     expect( myedge ).to be_a  Class
     expect( myedge.new).to be_a REST::Model
-    classes = @r.get_classes 'name', 'superClass'
-    expect(  classes.detect{|x| x['name']== classname}['superClass'] ).to eq 'E'
+    expect( @r.class_hierachie( base_class: 'E') ).to include classname
+  end
+    it "create and delete an Vertex-Class" , focus: true do
+    
+    classname = 'Myvertex'
+    @r.delete_class classname
+    expect( @r.database_classes( requery:true )).not_to include classname
+    myvertex = @r.create_vertex_class name: classname
+    expect(@r.database_classes( :requery => true )).to include classname
+    expect( myvertex ).to be_a  Class
+    expect( myvertex.new).to be_a REST::Model
+    expect( @r.class_hierachie( base_class: 'V') ).to include classname
   end
 
-    it "creates a class and put a property into "  do
+    it "creates a class and puts a property into "  do
       @r.delete_class classname
       @r.database_classes( requery:true )
       model = @r.create_class classname
@@ -115,7 +129,7 @@ describe REST::OrientDB do
   end
 
   context "query-details" do
-    it "generates a valid where query-string" do
+    it "generates a valid where nery-string" do
       attributes = { uwe: 34 }
       expect( @r.compose_where( attributes ) ).to eq " where uwe = 34" 
       attributes = { uwe: 34 , hans: :trz }
