@@ -13,7 +13,7 @@ topo@gamma:~/new_hctw$ irb
 #### Object Mapping
 Lets create a class, put some content in it and perform basic oo-steps.
 
-Attributes(Properties) do not have to be formaly declared. However it is nessessary to introduce them properly. This is done with the »attibutes«-Argument during the initialisation step or via
+Attributes(Properties) do not have to be formaly declared. However it is nessessary to introduce them properly. This is done with the »attributes«-Argument during the initialisation step or via
 »update«  
 
 ``` ruby
