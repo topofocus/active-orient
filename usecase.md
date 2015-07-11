@@ -14,7 +14,7 @@ topo@gamma:~/new_hctw$ irb
 Lets create a class, put some content in it and perform basic oo-steps.
 
 Attributes(Properties) do not have to be formaly declared. However it is nessessary to introduce them properly. This is done with the »attibutes«-Argument during the initialisation step or via
-»update set:«  
+»update«  
 
 ``` ruby
   A =  r.create_class 'my_a_class'
@@ -26,14 +26,16 @@ Attributes(Properties) do not have to be formaly declared. However it is nessess
   => <Myaclass: a_array: [1, 4, "r", :r] a_hash: {:a=>"b", :b=>2} test: 45>
 
 ```
-Later, the attibutes/properties can be handled as normal ruby objects ie.
+Then the attibutes/properties can be handled as normal ruby objects ie.
  
 ``` ruby
   a.a_array << "a new element"
   a.a_hash[ :a_new_element ] =  "value of the new element"
   a.test += 3
   a.test =  567
+  a.update
 ```
+Objects are synchronized with the database with »update«. To revert changes, a »reload!« method is available. 
 
 #### Contracts-Example
 Assume a Database, which is defined as
