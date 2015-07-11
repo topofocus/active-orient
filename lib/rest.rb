@@ -243,7 +243,7 @@ Other attributes are assigned dynamically upon reading documents
       end 
     end
 
-    def create_vertex_class name: , superclass: 'V'
+    def create_vertex_class name , superclass: 'V'
       unless database_classes( requery: true).include? name
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
        execute o_class: name, transaction: false do 
@@ -253,7 +253,7 @@ Other attributes are assigned dynamically upon reading documents
       REST::Model.orientdb_class( name: name)
     end
 
-    def create_edge_class name: , superclass: 'E'
+    def create_edge_class name , superclass: 'E'
       unless database_classes( requery: true).include? name
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
        execute o_class: name, transaction: false do 

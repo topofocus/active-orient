@@ -74,23 +74,23 @@ describe REST::OrientDB do
       expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
     end
 
-    it "create and delete an Edge-Class" , focus: true do
+    it "create and delete an Edge-Class" do
     
     classname = 'Myedge'
     @r.delete_class classname
     expect( @r.database_classes( requery:true )).not_to include classname
-    myedge = @r.create_edge_class name: classname
+    myedge = @r.create_edge_class  classname
     expect(@r.database_classes( :requery => true )).to include classname
     expect( myedge ).to be_a  Class
     expect( myedge.new).to be_a REST::Model
     expect( @r.class_hierachie( base_class: 'E') ).to include classname
   end
-    it "create and delete an Vertex-Class" , focus: true do
+    it "create and delete an Vertex-Class"   do
     
     classname = 'Myvertex'
     @r.delete_class classname
     expect( @r.database_classes( requery:true )).not_to include classname
-    myvertex = @r.create_vertex_class name: classname
+    myvertex = @r.create_vertex_class  classname
     expect(@r.database_classes( :requery => true )).to include classname
     expect( myvertex ).to be_a  Class
     expect( myvertex.new).to be_a REST::Model

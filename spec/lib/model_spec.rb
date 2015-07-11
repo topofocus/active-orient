@@ -20,8 +20,8 @@ describe REST::Model do
     REST::Model.orientdb  =  @r
     @r.delete_class 'modeltest'
     @testmodel = @r.create_class "modeltest" 
-    @myedge = @r.create_edge_class name: 'Myedge'
-    @mynode = @r.create_vertex_class name: 'Mynode'
+    @myedge = @r.create_edge_class  'Myedge'
+    @mynode = @r.create_vertex_class  'Mynode'
   end
 
   context "REST::Model classes got a logger and a database-reference" do
@@ -55,7 +55,7 @@ describe REST::Model do
     end
   end
 
-  context "Add a document to the class" , focus: true do
+  context "Add a document to the class"  do
     it "the database is empty before we start" do
       @r.get_documents o_class: @testmodel
       expect( @testmodel.count ).to be_zero
