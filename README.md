@@ -5,9 +5,14 @@ The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
 
 It is written to store data, gathered by a Ruby-program ( ib-ruby in particular), into an OrientDB-Database,to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
 
-To start you need a ruby 2.x Installation.  
+To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
 Clone the project and run bundle install/ bundle update,
 then modify »config/connect.yml«. 
+Its adviserable to generate the rdoc-documentation with executing
+```
+rdoc 
+```
+from the source directory of AcitiveOrient and then to load the doc-directory into any browser.
 
 For a quick start, go to the home directory of the package and start an irb-session
 
