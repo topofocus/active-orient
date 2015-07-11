@@ -55,8 +55,8 @@ If a schema is used, Properties can be created and retrieved as well
  ```ruby
   r.create_properties( o_class: M ) do
      {	symbol: { propertyType: 'STRING' },
-	con_id: { propertyType: 'INTEGER' },
-       details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+		con_id: { propertyType: 'INTEGER' },
+       		details: { propertyType: 'LINK', linkedClass: 'Contracts' }
       }
 
   r.get_class_properties o_class: M 
