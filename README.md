@@ -136,22 +136,22 @@ connects the documents specified by the rid's with the edge and assigns the attr
 
 Links are followed and autoloaded.  This includes edges.
 ```ruby
-  link_class = r.create_class 'Testlinkclass'
-  base_class = r.create_class 'Testbaseclass'
-  base_class.create_property field: 'to_link_class', type: 'link', linked_class: link_class
-  base_class.create_property field: 'to_link_set', type: 'linkset', linked_class: link_class
+  TestLinks = r.create_class 'Testlinkclass'
+  TestBase = r.create_class 'Testbaseclass'
+  TestBase.create_property field: 'to_link_class', type: 'link', linked_class: link_class
+  TestBase.create_property field: 'to_link_set', type: 'linkset', linked_class: link_class
 
-  link_document =  link_class.new_document attributes: { att: 'one attribute' }
-  base_document =  base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link }
+  link_document =  TestLinks.new_document attributes: { att: 'one attribute' }
+  base_document =  TestBase.new_document attributes: { base: 'my_base', to_link_class: link_document.link }
 
   base_document.to_link_class => REST::Model::Testlinkclass ....
 
   base_document.add_items_to_property( :to_link_set ) do
-				(0 .. 20).map{|y|  link_class.new_document( attributes: { nr: y } )   }
+	( 0 .. 20 ).map{|y|  TestLinks.new_document( attributes: { nr: y } )   }
   end
 
   # add link manually
-  base_document.to_link_set << link_class.new_document( attributes { another_nr: 'r' } )
+  base_document.to_link_set << TestLinks.new_document( attributes { another_nr: 'r' } )
   # synchonize ruby with db
   base_document.update     
   base_document.to_link_set.size => 22
