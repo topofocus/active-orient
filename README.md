@@ -168,7 +168,7 @@ then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a
 
 #### Edges
 
-Edges are easily inserted between documents (vertexes)
+Edges are easily handled
 ```ruby
   Vertex = r.create_vertex_class 'd1'
   Eedge = r.create_edge_class   'e1'
@@ -288,7 +288,7 @@ Assume, you created the hierachie
     create class Contracts ABSTRACT
     create class Stocks extends Contracts
 ```
-Then you can intialize the ActiveModel-Classes either by
+Then you can initialize the ActiveModel-Classes either by
 ```ruby
    r.create_class 'Contracts'
    r.create_class 'Stocks'
