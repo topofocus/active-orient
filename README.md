@@ -42,7 +42,11 @@ Creation and removal of Classes  and Edges is straightforward
  ```
 
 »M« is the REST::Model-Class itself, a constant pointing to the class-definition.
-Its a shortcut for »REST::Model::{Classname}.
+Its a shortcut for »REST::Model::{Classname}. If the optional »superClass: name« argument is used, the class inherents the orientdb_superclass, which resembles the ruby-syntax 
+```ruby
+   Options =  create_class 'Options' , superclass: 'Contracts'
+   class Options < REST::Model::Contracts
+```
 
 REST::Model-Instances represent  records (aka documents/vertices/edges) of the database.
 It is passed to several methods of REST::Orientdb.
@@ -90,10 +94,11 @@ Multible Documents can updated and deleted query based
 
 #### Active Model interface
  
-Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined dynamically by
+Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined t by
 ```ruby
-  vertex_class =  r.create_vertex_class classname 
-  edge_class   =  r.create_edge_class   classname 
+  M =  r.create_class classname # optional: , superclass: superclassname
+  Vertex =  r.create_vertex_class classname 
+  Edge   =  r.create_edge_class   classname 
   
 ```
 and is of TYPE REST::Model::{classname}
@@ -101,8 +106,7 @@ and is of TYPE REST::Model::{classname}
 If a document is created, an Instance of the Class is returned.
 If the database is queried, a list of Instances is returned.
 
-As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets 
-form the database.
+As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets form the database.
 
 ```ruby
   M.all 
@@ -114,7 +118,7 @@ returns an Array with all Documents/Edges of the Class.
 performs a query on the class and returns the result as Array
 
 ```ruby
-  M.count attributes: { town: 'Berlin' }
+  M.count where: { town: 'Berlin' }
 ```
 gets the number of datasets fullfilling the search-criteria
 
@@ -166,8 +170,8 @@ then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a
 
 Edges are easily inserted between documents (vertexes)
 ```ruby
-  Vertex = r.create_vertex_class name: 'd1'
-  Eedge = r.create_edge_class  name: 'e1'
+  Vertex = r.create_vertex_class 'd1'
+  Eedge = r.create_edge_class   'e1'
 
   start =  Vertex.new_document attributes:  { something: 'nice' }
   the_end   =  Vertex.new_document attributes: { something: 'not_nice' }
