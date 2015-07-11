@@ -37,8 +37,8 @@ module REST
     # Default Model comparison
     def == other
       case other
-      when String # Probably a Rails URI, delegate to AR::Base
-        super(other)
+      when String # Probably a link or a rid
+        link == other || rid == other
       else
         content_attributes.keys.inject(true) { |res, key|
           res && other.respond_to?(key) && (send(key) == other.send(key)) }

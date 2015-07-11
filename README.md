@@ -15,8 +15,7 @@ then
 
 ```ruby
   require './config/boot'
-  r = REST::OrientDB.new 
-  REST::Model.orientdb = r
+  r = REST::Model.orientdb = REST::OrientDB.new 
 ```
 
 Now any REST::Model-Object »knows« how to access the database.
@@ -24,7 +23,7 @@ Now any REST::Model-Object »knows« how to access the database.
 
 You can fetch a list of classes  
 ```ruby
-     r.database_classes include_system_classes:true
+     r.database_classes include_system_classes: true
     --> ["Car", (..), "E", "OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "Owns", "V", "_studio"]
 ```
  
@@ -37,34 +36,34 @@ Creation and removal of Classes  and Edges is straightforward
     r.delete_class        classname  # universal removal-class-method
     
     or
-    model =  r.create_class classname
+    M =  r.create_class classname
     (...)
-    r.delete_class model
+    r.delete_class M
  ```
 
-»model« is the REST::Model-Class itself, a constant pointing to the class-definition.
-REST::Model-Instances represent  records (aka documents/vertices/edges) of the database.
+»M« is the REST::Model-Class itself, a constant pointing to the class-definition.
+Its a shortcut for »REST::Model::{Classname}.
 
-It is used as argument to several methods, providing the class-name to operate on
-and as reference to instantiate the correct REST::Model-Object.
+REST::Model-Instances represent  records (aka documents/vertices/edges) of the database.
+It is passed to several methods of REST::Orientdb.
 
 If a schema is used, Properties can be created and retrieved as well
  ```ruby
-  r.create_properties( o_class: model ) do
+  r.create_properties( o_class: M ) do
      {	symbol: { propertyType: 'STRING' },
 	con_id: { propertyType: 'INTEGER' },
        details: { propertyType: 'LINK', linkedClass: 'Contracts' }
       }
 
-  r.get_class_properties o_class: model 
+  r.get_class_properties o_class: M 
  ```
  or
  ```ruby
- model.create_property field: 'symbol'
- model.create_property field: 'con_id', type: 'integer'
- model.create_property field: 'details', type: 'link', other_class: 'Contracts'
+ M.create_property field: 'symbol'
+ M.create_property field: 'con_id', type: 'integer'
+ M.create_property field: 'details', type: 'link', other_class: 'Contracts'
  ```
- or if the Model-Class is static
+ or the »long-version«
  ```ruby
  REST::Model::Contracts.create_property field: 'symbol'
 ```
@@ -72,12 +71,10 @@ If a schema is used, Properties can be created and retrieved as well
 
 Documents are easily created, updated, removed 
  ```ruby
-  record = model.new_document  attributes: { con_id: 345, symbol: 'EWQZ' }
-  # (or)
-  record = REST::Model::Contracts.new_document :attributes => { :con_id => 345, :symbol => 'EWQZ' }
+  record = M.new_document  attributes: { con_id: 345, symbol: 'EWQZ' }
 
   record.con_id =  346
-  record.update
+  record.update set: { a_new_property:  'value of the new property }
 
   record.delete
 
@@ -86,8 +83,8 @@ Documents are easily created, updated, removed
 Multible Documents can updated and deleted query based 
 
  ```ruby
-  r.update_or_create_documents o_class: model, set: {con_id: 345} , where: {symbol: 'EWZ'} 
-  r.delete_documents o_class: model , where: { con_id: 345, symbol: 'EWQZ' }
+  r.update_or_create_documents o_class: M, set: {con_id: 345} , where: {symbol: 'EWZ'} 
+  r.delete_documents o_class: M , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
 
@@ -99,44 +96,38 @@ Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defi
   edge_class   =  r.create_edge_class   classname 
   
 ```
-and of TYPE REST::Model::{classname}
+and is of TYPE REST::Model::{classname}
 
-If a document is created, an Instance to the Class is returned.
-If the database is queried, a list of Instances to the Class is returned.
+If a document is created, an Instance of the Class is returned.
+If the database is queried, a list of Instances is returned.
 
 As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets 
-form the database. »class« is equivalent to »REST::Model::{classname}«
+form the database.
 
 ```ruby
-  class.all 
+  M.all 
 ```
 returns an Array with all Documents/Edges of the Class.
 ```ruby
-  class.where attributes: { list of query-criteria } 
+  M.where attributes: { list of query-criteria } 
 ```
 performs a query on the class and returns the result as Array
 
 ```ruby
-  class.count attributes: { town: 'Berlin' }
+  M.count attributes: { town: 'Berlin' }
 ```
 gets the number of datasets fullfilling the search-criteria
 
 ```ruby
-  edge_class.create_edge attributes: { :birthday => Date.today }, from: '#23:45', to: '#12:21'
+  E = r.create_edge_class 'MyEdge'
+  E.create_edge attributes: { :birthday => Date.today }, from: '#23:45', to: '#12:21'
   # (or)
   vertex1 = r.get_document '#23:45'
-  edge_class.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
+  E.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 connects the documents specified by the rid's with the edge and assigns the attributes to the edge
 
-The instantiated REST::Model-Objects can be treated as expected:
-```ruby
-  new_document =  class.new_document attributes: { town: 'Berlin' }
-  # new_document builds the document in the database and returns the instantiated Model-Instance.
-  # We don't handle pure ruby REST:Model-Instances and thus don't have to deal with create and save. 
-  new_document.update set: { town: "Paris" }
-  new_document.delete
-```
+
 #### Links
 
 Links are followed and autoloaded.  This includes edges.
@@ -151,11 +142,18 @@ Links are followed and autoloaded.  This includes edges.
 
   base_document.to_link_class => REST::Model::Testlinkclass ....
 
-  (0..20).each{|y| base_document.add_linkset( :to_link_set, 
-				  link_class.new_document( attributes: { nr: y } ) )  }
+  base_document.add_items_to_property( :to_link_set ) do
+				(0 .. 20).map{|y|  link_class.new_document( attributes: { nr: y } )   }
+  end
 
+  # add link manually
+  base_document.to_link_set << link_class.new_document( attributes { another_nr: 'r' } )
+  # synchonize ruby with db
+  base_document.update     
+  base_document.to_link_set.size => 22
+
+  # fetch a specific link with ruby-array-methods
   base_document.to_link_set[19] => REST::Model::Testlinkclass ...
-
 ```
 
 If you got an undirectional graph
@@ -168,15 +166,15 @@ then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a
 
 Edges are easily inserted between documents (vertexes)
 ```ruby
-  vertex_class = r.create_vertex_class 'D1'
-  edge_class = r.create_edge_class 'E1'
+  Vertex = r.create_vertex_class name: 'd1'
+  Eedge = r.create_edge_class  name: 'e1'
 
-  start =  REST::Model:D1.new_document attributes:  { something: 'nice' }
-  end   =  REST::Model::D1.new_document attributes: { something: 'not_nice' }
-  the_edge = REST::Model::E1.create_edge(  attributes:  { transform_to: 'very bad' },
-				      from: start,
-				      to: end	)
-
+  start =  Vertex.new_document attributes:  { something: 'nice' }
+  the_end   =  Vertex.new_document attributes: { something: 'not_nice' }
+  the_edge = Edge.create_edge  attributes:  { transform_to: 'very bad' },
+			       from: start,
+			       to: the_end
+ 
   (...)
   the_edge.delete
 ```

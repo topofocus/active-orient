@@ -10,8 +10,32 @@ topo@gamma:~/new_hctw$ irb
 2.2.1 :002 > REST::Model.orientdb = ror = REST::OrientDB.new
     => #<REST::OrientDB:0x000000046f1a90 @res=#<RestClient::Resource:0x000000046c0af8 @url="http://localhost:2480", @block=nil, @options={:user=>"hctw", :password=>"**"}>, @database="hc_database", @classes=[]> 
 ```
+#### Object Mapping
+Lets create a class, put some content in it and perform basic oo-steps.
 
-####Contracts-Example
+Attributes(Properties) do not have to be formaly declared. However it is nessessary to introduce them properly. This is done with the »attibutes«-Argument during the initialisation step or via
+»update set:«  
+
+``` ruby
+  A =  r.create_class 'my_a_class'
+  => REST::Model::Myaclass
+  a = A.new_document attributes: { test: 45}
+  a.update set: { a_array: aa= [ 1,4,'r', :r ]  , 
+                  a_hash: { :a => 'b', b: 2 } }
+  a.to_human
+  => <Myaclass: a_array: [1, 4, "r", :r] a_hash: {:a=>"b", :b=>2} test: 45>
+
+```
+Later, the attibutes/properties can be handled as normal ruby objects ie.
+ 
+``` ruby
+  a.a_array << "a new element"
+  a.a_hash[ :a_new_element ] =  "value of the new element"
+  a.test += 3
+  a.test =  567
+```
+
+#### Contracts-Example
 Assume a Database, which is defined as
 ```
   create class Industries

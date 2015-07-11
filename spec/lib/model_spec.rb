@@ -55,7 +55,7 @@ describe REST::Model do
     end
   end
 
-  context "Add a document to the class" do
+  context "Add a document to the class" , focus: true do
     it "the database is empty before we start" do
       @r.get_documents o_class: @testmodel
       expect( @testmodel.count ).to be_zero
@@ -87,10 +87,18 @@ describe REST::Model do
       expect( obj.new_entry).to be_a String
     end
 
+    it "various Properties can be added to the document" do
+      obj =  @testmodel.first
+      obj.update set: { a_array: aa= [ 1,4,'r', :r ]  , a_hash: { :a => 'b', b: 2 } }
+      expect( obj.a_array ).to eq aa 
+      expect{ obj.reload! }.not_to change{ obj.attributes }
+      puts obj.to_human
+    end
+
     it "the document can be deleted"  do
       obj =  @testmodel.all.first
       obj.delete
-      expect( @testmodel.all ).to be_empty
+      expect( @testmodel.count ).to be_zero
     end
   end
   context  "Links and Linksets are followed"  do
@@ -114,13 +122,15 @@ describe REST::Model do
 
     it "create a linkset" do
       link_document =  @link_class.new_document attributes: { att: " -1 attribute" } 
-      base_document.update_linkset( :a_link_set, link_document )
+      #base_document.update_linkset( :a_link_set, link_document )
+      base_document.add_item_to_property( :a_link_set, link_document )
       expect( base_document.a_link_set ).to have(1).item
       expect( base_document.a_link_set.first).to be_a REST::Model
     end
 
     it "create multible links into a linkset " do
-    base_document.update_linkset(:a_link_set) do 
+    #base_document.update_linkset(:a_link_set) do 
+    base_document.add_items_to_property(:a_link_set) do 
       (1..9).map do |x|
 	link_document =  @link_class.new_document attributes: { att: " #{x} attribute" } 
       end
@@ -138,7 +148,7 @@ describe REST::Model do
 
   end
 
-  context "Operate with an embedded object" , focus: true do
+  context "Operate with an embedded object"  do
     before(:all) do 
       @r.delete_class  'Testbaseclass'
 
@@ -153,7 +163,8 @@ describe REST::Model do
       base_document = @base_class.new_document attributes: { embedded_item: emb }
       expect(base_document.embedded_item).to eq emb
 
-      base_document.update_embedded :embedded_item, " zU"
+      base_document.add_item_to_property :embedded_item, " zU"
+      #base_document.update_embedded :embedded_item, " zU"
       expect(base_document.embedded_item).to eq emb << " zU"
 
       reloaded_document =  base_document.reload!
@@ -165,7 +176,8 @@ describe REST::Model do
       emb = [1,2,"zu",1]
       nbase_document = @base_class.new_document attributes: { to_data: emb }
       expect(nbase_document.to_data).to eq emb
-      nbase_document.update_embedded :to_data, " 45"
+      #nbase_document.update_embedded :to_data, " 45"
+      nbase_document.add_item_to_property :to_data, " 45"
       expect(nbase_document.to_data).to eq emb << " 45"
 
       reloaded_document =  @r.get_document nbase_document.rid
@@ -205,7 +217,7 @@ describe REST::Model do
     end
 
 
-    it "creates an edge between two documents" do
+    it "creates an edge between two documents"  do
       node_1 =  @r.update_or_create_documents( o_class: @mynode, :where => { test: 23 } ).first 
       node_2  =  @r.update_or_create_documents( o_class: @mynode, :where => { test: 15 } ).first 
       node_3 = @r.update_or_create_documents( o_class: @mynode, :where => { test: 16 } ).first 
@@ -220,24 +232,25 @@ describe REST::Model do
 			  attributes: { halbwertzeit: 45 }, 
 			  from: node_1,
 			  to:   node_2 , unique: true )
-       expect( the_edge2).to eq the_edge
+       expect( the_edge.link ).to eq the_edge.link
 #      the_edge2= @myedge.create_edge( 
 #			  attributes: { halbwertzeit: 46 }, 
 #			  from: in_e,
 #			  to:   in_e2  )
-      expect( the_edge.out ).to eq node_1
-      expect( the_edge.in ).to eq node_2
+      expect( the_edge.out ).to eq node_1.link
+      expect( the_edge.in ).to eq node_2.link
 #      expect( the_edge2.out ).to eq in_e
 #      expect( the_edge2.in ).to eq in_e2
       out_e =  @mynode.where(  test: 23  ).first 
-      expect( out_e ).to eq node_1
+      expect( out_e ).to eq node_1.link
       expect( out_e.attributes).to include 'out_Myedge'
-      in_e = @mynode.where(  test: 15  ).first 
-      puts in_e.attributes.inspect
-      expect( node_1.attributes).to include 'in_Myedge'
-     expect( node_1.Myedge).to have(1).item
-     expect( node_1.myedge[0][:out].test).to eq 23
-     expect( node_1.in_Myedge[0][:in].test).to eq  15
+      in_e = @mynode.where(  test: 15  ).first
+      puts "--------------------------------"
+      puts node_1.attributes.inspect
+#      expect( in_e.attributes).to include 'in_Myedge'
+ #    expect( node_1.myedge).to have(1).item
+ #    expect( node_1.myedge[0][:out].test).to eq 23
+ #    expect( node_1.in_Myedge[0][:in].test).to eq  15
     end
 
     it "deletes an edge"  do

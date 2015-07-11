@@ -3,6 +3,11 @@
       self =~  /[0-9]{1,}:[0-9]{1,}/
     end
   end
+  class Hash
+    def nested_under_indifferent_access
+        HashWithIndifferentAccess.new self
+    end
+  end
 module REST
   require 'active_model'
   #
@@ -46,6 +51,10 @@ module REST
       end
     end
 
+#    def nested_under_indifferent_access
+#        self
+#    end
+
     define_model_callbacks :initialize
 
     mattr_accessor :logger
@@ -58,6 +67,8 @@ module REST
 #      @edges = HashWithIndifferentAccess.new
     
       run_callbacks :initialize do
+#	puts "initialize::attributes: #{attributes.inspect}"
+
 	attributes.keys.each do | att |
 	  unless att[0] == "@"	    # @ identifies Metadata-attributes
 	    att =  att.to_sym if att.is_a?(String)    
@@ -117,7 +128,7 @@ module REST
     # ActiveModel-style read/write_attribute accessors
     # Here we define the autoload mechanism
     def [] key
-     # puts "[]: #{key}"
+    #  puts "[]: #{key}"
       iv= attributes[key.to_sym]
       if  iv.is_a?(String) && iv.rid? && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
      # puts "autoload: #{iv}"

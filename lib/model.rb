@@ -62,6 +62,12 @@ Returns just the name of the Class
       self.class.to_s.split(':')[-1]
    end
 
+=begin
+If a Rest::Model-Object is included in a HashWidhtIndifferentAccess-Object, only the link is stored
+=end
+     def nested_under_indifferent_access # :nodoc:
+                link
+     end
 
    # hard-coded orientdb-columns
 #     prop :cluster, :version, :record, :fieldtypes
@@ -126,8 +132,9 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
 =end
    def self.create_edge **keyword_arguments 
      puts "key: #{keyword_arguments}" 
-      orientdb.nexus_edge o_class: self, **keyword_arguments 
-      [:from,:to].each{|y| keyword_arguments[y].reload }
+      o=orientdb.nexus_edge o_class: self, **keyword_arguments 
+      [:from,:to].each{|y| keyword_arguments[y].reload! }
+      o  # return_value
    end
 =begin
 Performs a query on the Class and returns an Array of REST:Model-Records.
@@ -184,6 +191,7 @@ With the optional :set argument ad-hoc attributes can be defined
 =end
    def update  set: {}
       attributes.merge! set
+    
      result= orientdb.patch_document(rid) do
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
@@ -199,41 +207,61 @@ With the optional :set argument ad-hoc attributes can be defined
      attributes = updated_dataset.attributes
      self  # return_value  (otherwise only the attributes would be returned)
    end
-=begin
-Convient method for updating a embedded-type-property
-its called via
-  model.update_embedded(  property, value )
-or
-  model.update_embedded( property) do
-    Array_of_Values_to_be_embedded
-  end
-to query embedded elements: 
-  select from {class} where {val{class} in({embedded_property}}.{embedded_property})
-=end
-   def update_embedded item, value=nil
-     logger.progname = 'REST::Model#UpdateEmbedded'
-     execute_array =  Array.new
-     self.attributes[item] = Array.new unless attributes[item].present?
-     add_2_execute_array = -> (v){ execute_array <<  {type: "cmd", language: "sql", command: "update #{link} add #{item} = #{v.to_or}"} }
-     if block_given?
-       values =  yield
-       values.each{|x| add_2_execute_array[x]; self.attributes[item] << x }
-     elsif value.present?
-       add_2_execute_array[value]
-       self.attributes[item] << value
-     end
-     puts execute_array.inspect
 
+=begin
+Convient method for populating aembedded- or linkset-property
+
+In both cases an array/ a collection is stored in the database.
+
+its called via
+  model.add_item_to_property( linkset- or embedded property, Object_to_be_linked_to )
+or
+  mode.iadd_items_to_property( linkset- or embedded property ) do
+      Array_of_Objects_to_be_linked_to
+      (actually, the objects must inherent from REST::Model, Numeric, String)
+  end
+
+  to_do:  use "<<" to add the item to the property
+=end
+   def add_item_to_property array, item=nil
+     logger.progname = 'REST::Model#AddItem2Property'
+     execute_array =  Array.new
+     self.attributes[array] = Array.new unless attributes[array].present?
+     add_2_execute_array = -> (it) do
+       case it
+       when REST::Model
+	 execute_array <<  {type: "cmd", language: "sql", command: "update #{link} add #{array} = #{it.link}"} 
+       when String
+	  execute_array <<  {type: "cmd", language: "sql", command: "update #{link} add #{array} = '#{it}'"} 
+       when Numeric
+	  execute_array <<  {type: "cmd", language: "sql", command: "update #{link} add #{array} = #{it}"} 
+       else
+	 logger.error { "Only Basic Formats supported . Cannot Serialize #{it.class} this way" }
+	 logger.error { "Try to load the array from the DB, modify it and update the hole record" }
+       end
+     end
+
+     if block_given?
+       items =  yield
+       items.each{|x| add_2_execute_array[x];  self.attributes[array] << x }
+     elsif item.present?
+       add_2_execute_array[item]
+       self.attributes[array] << item
+     end
      orientdb.execute do
        execute_array
      end
      reload!
 
    rescue RestClient::InternalServerError => e
-     logger.error  "update_embedded : something went wrong"
+     logger.error " Duplicate found in #{array} "
      logger.error e.inspect
    end
 
+   alias add_items_to_property add_item_to_property
+   ## historical aliases
+   alias update_linkset  add_item_to_property
+   alias update_embedded  add_item_to_property
 =begin
 Convient method for updating a linkset-property
 its called via
@@ -243,27 +271,6 @@ or
       Array_of_Objects_to_be_linked_to
   end
 =end
-   def update_linkset  item, link_class=nil 
-     logger.progname = 'REST::Model#UpdateLinkset'
-     execute_array =  Array.new
-     self.attributes[item] = Array.new unless attributes[item].present?
-     add_2_execute_array = -> (lc){ execute_array << {type: "cmd", language: "sql", command: "update #{link} add #{item} = #{lc.link}"} }
-     if block_given?
-       link_classes =  yield
-       link_classes.each{|x| add_2_execute_array[x];  self.attributes[item] << x }
-     elsif link_class.present?
-       add_2_execute_array[link_class]
-       self.attributes[item] << link_class
-     end
-     orientdb.execute do
-       execute_array
-     end
-     reload!
-
-   rescue RestClient::InternalServerError => e
-     logger.error " Duplicate found (#{link_class.link})"
-     logger.error e.inspect
-   end
 
 #private 
    def version
