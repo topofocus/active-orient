@@ -57,7 +57,7 @@ describe REST::Model do
 
   context "Add a document to the class"  do
     it "the database is empty before we start" do
-      @r.get_documents o_class: @testmodel
+      @r.get_documents  @testmodel
       expect( @testmodel.count ).to be_zero
     end
 
@@ -212,15 +212,15 @@ describe REST::Model do
       expect( @testmodel.all.size).to eq  46
     end
     it "datasets are unique only  on update" do
-    expect{ @r.update_or_create_documents( o_class: @testmodel, :where => { test: 45 }) }. not_to change { @testmodel.all.size }
+    expect{ @r.update_or_create_documents( @testmodel, :where => { test: 45 }) }. not_to change { @testmodel.all.size }
      expect{ @testmodel.new_document attributes: { test: 45} }.to change { @testmodel.all.size }
     end
 
 
     it "creates an edge between two documents"  do
-      node_1 =  @r.update_or_create_documents( o_class: @mynode, :where => { test: 23 } ).first 
-      node_2  =  @r.update_or_create_documents( o_class: @mynode, :where => { test: 15 } ).first 
-      node_3 = @r.update_or_create_documents( o_class: @mynode, :where => { test: 16 } ).first 
+      node_1 =  @r.update_or_create_documents(  @mynode, :where => { test: 23 } ).first 
+      node_2  =  @r.update_or_create_documents( @mynode, :where => { test: 15 } ).first 
+      node_3 = @r.update_or_create_documents(  @mynode, :where => { test: 16 } ).first 
       the_edge= @myedge.create_edge( 
 			  attributes: { halbwertzeit: 45 }, 
 			  from: node_1,

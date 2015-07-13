@@ -103,7 +103,7 @@ describe REST::OrientDB do
       model = @r.create_class classname
       @r.create_class  "Contracts"
 
-      rp = @r.create_properties( o_class: model ) do
+      rp = @r.create_properties( model ) do
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
 	  details: { propertyType: 'LINK', linkedClass: 'Contracts' }
@@ -112,12 +112,12 @@ describe REST::OrientDB do
       end
       expect( rp ).to eq 3
 
-      expect( @r.create_property o_class: model, field:'name', type: 'date').to eq 4
-      expect( @r.delete_property o_class: model, field:'name').to be_truthy
+      expect( @r.create_property model, field:'name', type: 'date').to eq 4
+      expect( @r.delete_property model, field:'name').to be_truthy
     end
     it "reads Properties form a class" do
 
-      rp= @r.get_class_properties o_class: classname
+      rp= @r.get_class_properties  classname
       # has "name"=>"neue_klasse10", "superClass"=>"", "superClasses"=>[], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[12], "defaultCluster"=>12, "clusterSelection"=>"round-robin", "records"=>0, "properties"=>[{"name"=>"con_id", "type"=>"INTEGER", "mandatory"=>false, "readonly"=>false, "notNull"=>false, "min"=>nil, "max"=>nil, "regexp"=>nil, "collate"=>"default"
       properties= rp['properties']
       [ :con_id, :symbol, :details].each do |f|
@@ -143,7 +143,7 @@ describe REST::OrientDB do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
       @rest_class = @r.create_class classname 
-      @r.create_properties( o_class: @rest_class ) do
+      @r.create_properties( @rest_class ) do
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
 	  details: { propertyType: 'LINK', linkedClass: 'Contracts' }
@@ -154,7 +154,7 @@ describe REST::OrientDB do
 
 
     it "create a single document"  do
-      res=  @r.create_document o_class: @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
+      res=  @r.create_document @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
       puts res.inspect
       expect( res).to be_a REST::Model
       expect( res.con_id ).to eq 345
@@ -164,16 +164,16 @@ describe REST::OrientDB do
 
 
     it "create through create_or_update"  do
-      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
+      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
       expect(res.a_new_property).to eq 34
-      res2= @r.create_or_update_document( o_class: @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
+      res2= @r.create_or_update_document( @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
       expect( res2.a_new_property).to eq 35
       expect( res2.version).to eq res.version+1
     end
 
     it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!
-      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
+      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
 	{ another_wired_property: "No time for tango" }
       end
 
@@ -182,7 +182,7 @@ describe REST::OrientDB do
 
     end
     it   "uses create_or_update and a block on a new document"  do  
-      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
+      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
 	{ another_wired_property: "No time for tango" }
       end
 
@@ -194,7 +194,7 @@ describe REST::OrientDB do
     it "update strange text" do  # from the orientdb group
       strange_text = { strange_text: "'@type':'d','a':'some \\ text'"}
 
-      res=  @r.create_or_update_document o_class: @rest_class , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do 
+      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do 
 	  strange_text
       end
       expect( res.strange_text ).to eq strange_text[:strange_text]
@@ -202,36 +202,36 @@ describe REST::OrientDB do
       expect( document_from_db.strange_text ).to eq strange_text[:strange_text]
     end
     it "read that document" do
-     r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
+     r=  @r.create_document  @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( r.class ).to eq @rest_class
-     res = @r.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
+     res = @r.get_documents  @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
      expect(res.first.symbol).to eq r.symbol
      expect(res.first.version).to eq  r.version
 
     end
 
     it "count datasets in class" do
-      r =  @r.count_documents o_class: @rest_class
+      r =  @r.count_documents  @rest_class
       expect( r ).to eq  4
     end
 
      it "updates that document" do
-       r=  @r.create_document o_class: @rest_class, attributes: { con_id: 340, symbol: 'EWZ' }
-       rr =  @r.update_documents o_class: @rest_class,
+       r=  @r.create_document  @rest_class, attributes: { con_id: 340, symbol: 'EWZ' }
+       rr =  @r.update_documents  @rest_class,
 	 set: { :symbol => 'TWR' },
 	 where: { con_id: 340 }
 	
-       res = @r.get_documents  o_class: @rest_class, where:{ con_id: 340 }
+       res = @r.get_documents   @rest_class, where:{ con_id: 340 }
        puts res.inspect
        expect( res.size ).to eq 1
        expect( res.first['symbol']).to eq 'TWR'
 
      end
      it "deletes that document" do
-     @r.create_document o_class: @rest_class , attributes: { con_id: 3410, symbol: 'EAZ' }
-     r=  @r.delete_documents o_class: @rest_class , where: { con_id: 3410 }
+     @r.create_document  @rest_class , attributes: { con_id: 3410, symbol: 'EAZ' }
+     r=  @r.delete_documents  @rest_class , where: { con_id: 3410 }
 
-     res = @r.get_documents o_class: @rest_class, where: { con_id: 3410 }
+     res = @r.get_documents  @rest_class, where: { con_id: 3410 }
      expect(r.size).to eq 1
 
 
@@ -244,7 +244,7 @@ describe REST::OrientDB do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
       @rest_class = @r.create_class classname 
-      @r.create_properties( o_class: @rest_class ) do
+      @r.create_properties(  @rest_class ) do
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' }   
 	}
@@ -260,8 +260,8 @@ describe REST::OrientDB do
     end
 
     it "get a document through the query-class" do
-     r=  @r.create_document o_class: @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
-     expect( @query_class.get_documents o_class: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
+     r=  @r.create_document  @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
+     expect( @query_class.get_documents @rest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
      expect( @query_class.records ).not_to be_empty
      expect( @query_class.records.first ).to eq r
      expect( @query_class.queries ).to have(1).record

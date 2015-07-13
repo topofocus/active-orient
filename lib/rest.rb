@@ -246,7 +246,7 @@ Other attributes are assigned dynamically upon reading documents
     def create_vertex_class name , superclass: 'V'
       unless database_classes( requery: true).include? name
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
-       execute o_class: name, transaction: false do 
+       execute  name, transaction: false do 
         [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
        end
       end
@@ -256,7 +256,7 @@ Other attributes are assigned dynamically upon reading documents
     def create_edge_class name , superclass: 'E'
       unless database_classes( requery: true).include? name
        sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
-       execute o_class: name, transaction: false do 
+       execute  name, transaction: false do 
         [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
        end
       end
@@ -268,19 +268,19 @@ nexus_edge connects two documents/vertexes
 The parameter o_class can be either a class or a string
 =end
 
-    def nexus_edge o_class: , attributes: {}, from:,  to:, unique: false
+    def nexus_edge o_class , attributes: {}, from:,  to:, unique: false
       logger.progname = "REST::OrientDB#NexusEdge"
       translate_to_rid = ->(obj){ if obj.is_a?( REST::Model ) then obj.link else obj end }
       if unique
 	wwhere = { out: translate_to_rid[from],  in: translate_to_rid[to] }.merge(attributes) 
-	existing_edge = get_documents( o_class: o_class, where: wwhere )
+	existing_edge = get_documents( o_class, where: wwhere )
 	if  existing_edge.first.is_a?( REST::Model )
 	  logger.debug { "reusing  edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
 	return existing_edge.first  
 	end
       end
       logger.debug { "creating edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
-      response=  execute( o_class: o_class, transaction: false) do 
+      response=  execute( o_class, transaction: false) do 
       #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]}; ")} ]
       attr_string =  attributes.blank? ? "" : "set #{ generate_sql_list attributes }"
       [ { type: "cmd", language: 'sql', 
@@ -352,7 +352,7 @@ todo: remove all instances of the class
 
     end
 
-    def create_property o_class:, field:, type: 'string', linked_class: nil
+    def create_property o_class, field:, type: 'string', linked_class: nil
       logger.progname= 'OrientDB#CreateProperty'
       begin
 	last_argument = if linked_class.present?
@@ -385,14 +385,14 @@ todo: remove all instances of the class
 =begin
 
 creates properties which are defined as json in the provided block as
-       create_properties( class_name: classname ) do
+       create_properties( classname or class ) do
                { symbol: { propertyType: 'STRING' },
                  con_id: { propertyType: 'INTEGER' } ,
                 details: { propertyType: 'LINK', linkedClass: 'Contracts' }
 	        }
 
 =end
-    def create_properties o_class:
+    def create_properties o_class
       logger.progname= 'OrientDB#CreateProperty'
 
       begin
@@ -413,7 +413,7 @@ creates properties which are defined as json in the provided block as
 
     end
 
-    def delete_property o_class:, field:
+    def delete_property o_class, field:
           logger.progname = 'OrientDB#DeleteProperty'
        begin
 	 response = @res[property_uri( class_name(o_class)){ field } ].delete
@@ -425,7 +425,7 @@ creates properties which are defined as json in the provided block as
 
     end
 
-    def get_class_properties o_class:   #  :nodoc:
+    def get_class_properties o_class   #  :nodoc:
       JSON.parse( @res[ class_uri{ class_name(o_class) } ].get )
     end
     #
@@ -443,7 +443,7 @@ creates properties which are defined as json in the provided block as
 ##  update_or_create_documents
 ## -----------------------------------------------------------------------------------------
 
-    def create_document o_class:, attributes: {}
+    def create_document o_class, attributes: {}
       attributes = yield if attributes.empty? && block_given?
       post_argument = { '@class' => class_name(o_class) }.merge attributes
       response = @res[ document_uri ].post post_argument.to_json
@@ -476,7 +476,7 @@ If raw is specified, the JSON-Array is returned, eg
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
-    def get_documents o_class: , where: {} , raw: false, limit: -1, ignore_block: false
+    def get_documents o_class , where: {} , raw: false, limit: -1, ignore_block: false
 
         select_string =  'select from ' << class_name(o_class) 
 	where_string =  compose_where( where )
@@ -492,7 +492,7 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
     end
 
 
-    def count_documents o_class: , where: {}
+    def count_documents o_class , where: {}
 
 	url=  query_sql_uri << "select COUNT(*) from #{class_name(o_class)} " << compose_where( where ) 
 	puts "url: #{url}"
@@ -537,28 +537,28 @@ Based on the query specified in :where records are updated according to :set
 
 Returns an Array of updated documents 
 =end
-    def create_or_update_document o_class: , set: {}, where:{}, &b
+    def create_or_update_document o_class , set: {}, where:{}, &b
       logger.progname =  'Rest#CreateOrUpdateDocument'
-      r= update_or_create_documents o_class: o_class, set: set, where:  where, &b
+      r= update_or_create_documents o_class, set: set, where:  where, &b
       if r.size > 1
 	logger.error { "multible documents updated by #{ generate_sql_list( where )}" }
       end
       r.first  # return_value
     end
-    def update_or_create_documents o_class: , set: {}, where: {} , &b
+    def update_or_create_documents o_class , set: {}, where: {} , &b
       logger.progname =  'Rest#UpdateOrCreateDocuments'
       if where.blank?
-	[ create_document( o_class: o_class, attributes: set ) ]
+	[ create_document( o_class, attributes: set ) ]
       else
 	set.extract!( where.keys ) # removes any keys from where in set
-	possible_documents = get_documents( o_class: o_class, where: where, ignore_block: true)
+	possible_documents = get_documents( o_class, where: where, ignore_block: true)
 	if possible_documents.empty?
 	  if block_given?
 	    more_where =   yield   # do Preparations prior to the creation of the dataset
     			      # if the block returns a Hash , it is merged into the insert_query.
 	    where.merge! more_where if more_where.is_a?(Hash)
 	  end
-	  [ create_document( o_class: o_class, attributes: set.merge(where) )  ]
+	  [ create_document( o_class, attributes: set.merge(where) )  ]
 	else 
 	    possible_documents.map{| doc | doc.update( set: set ) }
 	end
@@ -569,8 +569,8 @@ Deletes  documents.
 They are defined by a query. All records which match the attributes are deleted.
 An Array with freed index-values is returned
 =end
-    def delete_documents o_class:, where: {}
-       get_documents( o_class: o_class, where: where).map do |doc|
+    def delete_documents o_class, where: {}
+       get_documents( o_class, where: where).map do |doc|
 	 if doc['@type']=='d'  # document
 	   index = doc['@rid'][1,doc['@rid'].size] # omit the first character ('#')
 	   r=@res[ document_uri{ index  }].delete
@@ -620,7 +620,7 @@ Lazy Updating of the given Document.
 =begin
 Updates the database in a oldschool-manner
 
-  update_documents class_name: @classname,
+  update_documents classname,
           set: { :symbol => 'TWR' },
           where: { con_id: 340 }
    
@@ -631,7 +631,7 @@ returns the JSON-Response.
 =end
 
 
-    def update_documents o_class:, set: , where: {}
+    def update_documents o_class, set: , where: {}
       url = "update #{class_name(o_class)}  set "<< generate_sql_list(set) << compose_where(where)
       response = @res[ URI.encode( command_sql_uri << url) ].post '' #url.to_json 
     end
@@ -668,7 +668,7 @@ structure of the provided block:
  It's used by REST::Query.execute_queries
 
 =end
-    def execute  transaction: true, o_class: 'Myquery'
+    def execute o_class = 'Myquery', transaction: true  
       batch =  { transaction: transaction, operations: yield }
       response = @res[ batch_uri ].post batch.to_json
       if response.code == 200

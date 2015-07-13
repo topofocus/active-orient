@@ -58,13 +58,13 @@ It is passed to several methods of REST::Orientdb.
 
 If a schema is used, Properties can be created and retrieved as well
  ```ruby
-  r.create_properties( o_class: M ) do
+  r.create_properties(  M ) do
      {	symbol: { propertyType: 'STRING' },
 		con_id: { propertyType: 'INTEGER' },
        		details: { propertyType: 'LINK', linkedClass: 'Contracts' }
       }
 
-  r.get_class_properties o_class: M 
+  r.get_class_properties  M 
  ```
  or
  ```ruby
@@ -92,8 +92,8 @@ Documents are easily created, updated, removed
 Multible Documents can updated and deleted query based 
 
  ```ruby
-  r.update_or_create_documents o_class: M, set: {con_id: 345} , where: {symbol: 'EWZ'} 
-  r.delete_documents o_class: M , where: { con_id: 345, symbol: 'EWQZ' }
+  r.update_or_create_documents  M, set: {con_id: 345} , where: {symbol: 'EWZ'} 
+  r.delete_documents M , where: { con_id: 345, symbol: 'EWQZ' }
 
  ```
 

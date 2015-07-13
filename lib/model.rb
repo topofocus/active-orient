@@ -103,7 +103,7 @@ eg .  update #link set  ...
 Queries the database and fetches the count of datasets
 =end
    def self.count where: {}
-     orientdb.count_documents( o_class: self , where: where)
+     orientdb.count_documents( self , where: where)
    end
 =begin
 Creates a new document with the applied attributes
@@ -111,7 +111,7 @@ and returns the freshly instantiated Object
 =end
 
    def self.new_document attributes: {}
-      orientdb.create_or_update_document o_class: self, set: attributes
+      orientdb.create_or_update_document  self, set: attributes
    end
 =begin
 Create a Property in the Schema of the Class
@@ -120,7 +120,7 @@ Create a Property in the Schema of the Class
 =end
 
    def self.create_property **keyword_arguments 
-     orientdb.create_property o_class: self, **keyword_arguments 
+     orientdb.create_property  self, **keyword_arguments 
    end
 =begin
 Only if the Class inherents from »E« 
@@ -132,7 +132,7 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
 =end
    def self.create_edge **keyword_arguments 
      puts "key: #{keyword_arguments}" 
-      o=orientdb.nexus_edge o_class: self, **keyword_arguments 
+      o=orientdb.nexus_edge  self, **keyword_arguments 
       [:from,:to].each{|y| keyword_arguments[y].reload! }
       o  # return_value
    end
@@ -141,7 +141,7 @@ Performs a query on the Class and returns an Array of REST:Model-Records.
 
 =end
 def self.where attributes =  {}
-  orientdb.get_documents o_class: self, where: attributes
+  orientdb.get_documents  self, where: attributes
 end
 =begin
 
@@ -176,10 +176,10 @@ Actually we just check the second term as we trust the constuctor to work proper
      orientdb.get_document rid
    end
    def self.all
-     orientdb.get_documents( o_class: self)
+     orientdb.get_documents self
    end
    def self.first
-     orientdb.get_documents( o_class: self, limit: 1).pop
+     orientdb.get_documents(  self, limit: 1).pop
    end
 =begin
 Convient update of the dataset by calling sql-patch
