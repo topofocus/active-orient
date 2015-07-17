@@ -26,7 +26,7 @@ todo: implement object-inherence
    def self.orientdb_class name: 
        #logger.progname =  "REST::Model#orientdb_class" 
      klass = Class.new( self )
-     name =  name.camelize
+     name =  name.to_s.camelize
      if self.send :const_defined?, name 
       # logger.debug { "Class  #{name} already defined ... skipping" }
        retrieved_class =  self.send :const_get, name

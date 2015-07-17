@@ -74,7 +74,32 @@ describe REST::OrientDB do
       expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
     end
 
-    it "create and delete an Edge-Class" do
+
+    describe "create a bunch of classes"  do
+      before(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
+      let( :classes_simple ) { ["one", "two" , "trhee"] }
+      let( :classes_vertex ) { { v: [ :one_v, :two_v,  :trhee_v] } }
+
+    
+      it "init: database does not contain classes" do
+
+	classes_simple.each{|x| expect( @r.database_classes ).not_to include x }
+      end
+
+      it "create  simple classes" do
+	klasses = @r.create_classes classes_simple 
+	classes_simple.each{|y| expect( @r.database_classes( requery: true) ).to include y }
+	klasses.each{|x| expect(x.superclass).to eq REST::Model }
+      end
+      it "create Vertex clases" do
+	klasses = @r.create_classes classes_vertex
+	classes_vertex[:v].each{|y| expect( @r.database_classes( requery: true) ).to include y.to_s }
+	klasses.each{|x| expect(x.superclass).to eq REST::Model }
+
+      end
+    end
+
+    it "create and delete an Edge-Class"  do
     
     classname = 'Myedge'
     @r.delete_class classname

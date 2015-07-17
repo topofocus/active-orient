@@ -212,6 +212,54 @@ parameter: include_system_classes: false|true, requery: false|true
     alias inspect_classes database_classes 
     
 =begin
+Creates classes and class-hierachies. 
+Does _NOT_ allocate Ruby-classes
+
+Takes an Array or a Hash as argument.
+
+The Array case: Creates Basic-Classes
+In the Hash case it interpretes key/value as
+ { SuperClass => [ class, class, ...], SuperClass => [] , ... }
+=end
+
+    def create_classes classes
+      # rebuild cashed classes-array
+      database_classes requery: true
+      # the block should provide an Array of classes| superClasses-pairs
+      # eg [[ :homus, :V] , ... ]
+#      classes = yield 
+      consts = Array.new
+      execute  transaction: false do 
+	  class_cmd = ->(s,n) do
+	    consts << REST::Model.orientdb_class( name: n)
+	    unless database_classes.include? n
+	    { type: "cmd", language: 'sql', command:  "create class #{n} extends #{s}"  } 
+
+	    end 
+	  end  ## class_cmd
+	  
+	  c = if classes.is_a?(Array)
+		classes.map do | n |
+		  consts << REST::Model.orientdb_class( name: n)
+		  unless database_classes.include? n
+		    { type: "cmd", language: 'sql', command:  "create class #{n} " } 
+		  end
+		end
+	      elsif classes.is_a?(Hash)
+		classes.keys.map do | superclass | 
+		  if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
+		    class_cmd[superclass, classes[superclass] ]
+		  else 
+		    classes[superclass].map{|n| class_cmd[superclass, n] }
+		  end
+		end.flatten
+	      end.compact # erase nil-entries, in case the class is already allocated
+      end
+      # returns an array of allocated Constants/Classes
+       consts
+    end
+
+=begin
 creates a class and returns the a REST::Model:{Newclass}-Class- (Constant)
 which is designed to take any documents stored in this class
 
@@ -219,48 +267,17 @@ Predefined attributes: version, cluster, record
 Other attributes are assigned dynamically upon reading documents
 =end
     def create_class   newclass
-      logger.progname= 'OrientDB#CreateClass'
-      # convert neclass to Xxxx
-      newclass = newclass.downcase.capitalize
-      if database_classes.include? newclass
-	# reuse predefined class
-	REST::Model.orientdb_class( name: newclass)
-      else
-	begin
-	  response = @res[ class_uri{ newclass } ].post ''
-	  ror_class= REST::Model.orientdb_class( name: newclass)
-	  yield ror_class if block_given?   #  perform actions only if the class was sucessfully created
-	  ror_class # return_value
-	rescue RestClient::InternalServerError => e
-	  # expected answer: {"errors"=>[{"code"=>500, "reason"=>500, "content"=>"java.lang.IllegalArgumentException: Class 'NeueKlasse10' already exists"}]}
-	  if e.http_body.split(':').last =~ /already exists/
-	    REST::Model.orientdb_class( name: newclass)
-	  else
-	    logger.error { "Class #{newclass} was NOT created" }
-	    nil
-	  end
-	end # exeception
-      end 
+      create_classes( [ newclass ] ).first
     end
 
+    alias define_class create_class
+
     def create_vertex_class name , superclass: 'V'
-      unless database_classes( requery: true).include? name
-       sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
-       execute  name, transaction: false do 
-        [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
-       end
-      end
-      REST::Model.orientdb_class( name: name)
+      create_classes( { superclass => name } ).first
     end
 
     def create_edge_class name , superclass: 'E'
-      unless database_classes( requery: true).include? name
-       sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command.squeeze(' ') } }
-       execute  name, transaction: false do 
-        [ { type: "cmd", language: 'sql', command:  "create class #{name} extends #{superclass}"} ]
-       end
-      end
-      REST::Model.orientdb_class( name: name)
+      create_classes( { superclass => name } ).first
     end
 
 =begin
@@ -670,30 +687,31 @@ structure of the provided block:
 =end
     def execute o_class = 'Myquery', transaction: true  
       batch =  { transaction: transaction, operations: yield }
-      response = @res[ batch_uri ].post batch.to_json
-      if response.code == 200
-	if response.body['result'].present?
-	 result= JSON.parse(response.body)['result']
-	 result.map do |x| 
-	   if x.is_a? Hash 
-	     if x.has_key?('@class')
-		REST::Model.orientdb_class( name: x['@class']).new x
-	     elsif x.has_key?( 'value' )
-	       x['value']
-	     else
-	       puts "o_class: #{o_class.inspect}"
-		REST::Model.orientdb_class( name: class_name(o_class)).new x
-	       
-	     end
-	   end
-	 end.compact # return_value
+      unless batch[:operations].blank?
+	response = @res[ batch_uri ].post batch.to_json 
+	if response.code == 200
+	  if response.body['result'].present?
+	    result= JSON.parse(response.body)['result']
+	    result.map do |x| 
+	      if x.is_a? Hash 
+		if x.has_key?('@class')
+		  REST::Model.orientdb_class( name: x['@class']).new x
+		elsif x.has_key?( 'value' )
+		  x['value']
+		else
+		  puts "o_class: #{o_class.inspect}"
+		  REST::Model.orientdb_class( name: class_name(o_class)).new x
+		end
+	      end
+	    end.compact # return_value
 
+	  else
+	    response.body
+	  end
 	else
-	  response.body
+	  nil
 	end
-      else
-	nil
-      end
+	end
     end
     def class_name  name_or_class
       if name_or_class.is_a? Class
