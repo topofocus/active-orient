@@ -116,11 +116,11 @@ and returns the freshly instantiated Object
 =begin
 Create a Property in the Schema of the Class
  :call-seq: 
-  self.create_property  field: (required) , type: 'string', linked_class: nil
+  self.create_property  field (required) , type: 'string', linked_class: nil
 =end
 
-   def self.create_property **keyword_arguments 
-     orientdb.create_property  self, **keyword_arguments 
+   def self.create_property field, **keyword_arguments 
+     orientdb.create_property  self, field,  **keyword_arguments 
    end
 =begin
 Only if the Class inherents from »E« 

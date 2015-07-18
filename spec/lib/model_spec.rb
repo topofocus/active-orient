@@ -108,8 +108,8 @@ describe REST::Model do
 
       @link_class = @r.create_class 'Testlinkclass'
       @base_class = @r.create_class 'Testbaseclass'
-      @base_class.create_property field: 'to_link_class', type: 'link', linked_class: @link_class
-      @base_class.create_property field: 'a_link_set', type: 'linkset', linked_class: @link_class
+      @base_class.create_property  'to_link_class', type: 'link', linked_class: @link_class
+      @base_class.create_property  'a_link_set', type: 'linkset', linked_class: @link_class
     
     end
      let( :base_document) { @base_class.new_document attributes: { base: 'my_base_with_linkset' } }
@@ -153,8 +153,8 @@ describe REST::Model do
       @r.delete_class  'Testbaseclass'
 
       @base_class = @r.create_class 'Testbaseclass'
-      @base_class.create_property field: 'to_data', type: 'embeddedlist', linked_class: 'FLOAT'
-#      @base_class.create_property field: 'a_link_set', type: 'linkset', linked_class: @link_class
+      @base_class.create_property  'to_data', type: 'embeddedlist', linked_class: 'FLOAT'
+#      @base_class.create_property  'a_link_set', type: 'linkset', linked_class: @link_class
     
     end
     it "work with a schemaless approach" do

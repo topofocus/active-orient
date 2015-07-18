@@ -88,12 +88,12 @@ describe REST::OrientDB do
 
       it "create  simple classes" do
 	klasses = @r.create_classes classes_simple 
-	classes_simple.each{|y| expect( @r.database_classes( requery: true) ).to include y }
+	classes_simple.each{|y| expect( @r.database_classes( requery: true) ).to include y.to_s.capitalize }
 	klasses.each{|x| expect(x.superclass).to eq REST::Model }
       end
       it "create Vertex clases" do
 	klasses = @r.create_classes classes_vertex
-	classes_vertex[:v].each{|y| expect( @r.database_classes( requery: true) ).to include y.to_s }
+	classes_vertex[:v].each{|y| expect( @r.database_classes( requery: true) ).to include y.to_s.capitalize }
 	klasses.each{|x| expect(x.superclass).to eq REST::Model }
 
       end
@@ -137,8 +137,8 @@ describe REST::OrientDB do
       end
       expect( rp ).to eq 3
 
-      expect( @r.create_property model, field:'name', type: 'date').to eq 4
-      expect( @r.delete_property model, field:'name').to be_truthy
+      expect( @r.create_property model, 'name', type: 'date').to eq 4
+      expect( @r.delete_property model, 'name').to be_truthy
     end
     it "reads Properties form a class" do
 

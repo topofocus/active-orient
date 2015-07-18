@@ -212,25 +212,25 @@ parameter: include_system_classes: false|true, requery: false|true
     alias inspect_classes database_classes 
     
 =begin
-Creates classes and class-hierachies. 
-Does _NOT_ allocate Ruby-classes
+Creates classes and class-hierachies in OrientDB and in Ruby. 
 
-Takes an Array or a Hash as argument.
 
-The Array case: Creates Basic-Classes
-In the Hash case it interpretes key/value as
+Takes an Array or a Hash as argument and returns an Array of
+successfull allocated Ruby-Classes
+
+If the argument is an array,  Basic-Classes are build.
+
+Otherwise  key/value pairs are assumend to follow this terminology
  { SuperClass => [ class, class, ...], SuperClass => [] , ... }
 =end
 
     def create_classes classes
       # rebuild cashed classes-array
       database_classes requery: true
-      # the block should provide an Array of classes| superClasses-pairs
-      # eg [[ :homus, :V] , ... ]
-#      classes = yield 
       consts = Array.new
       execute  transaction: false do 
 	  class_cmd = ->(s,n) do
+	    n = n.to_s.capitalize
 	    consts << REST::Model.orientdb_class( name: n)
 	    unless database_classes.include? n
 	    { type: "cmd", language: 'sql', command:  "create class #{n} extends #{s}"  } 
@@ -238,22 +238,23 @@ In the Hash case it interpretes key/value as
 	    end 
 	  end  ## class_cmd
 	  
-	  c = if classes.is_a?(Array)
-		classes.map do | n |
-		  consts << REST::Model.orientdb_class( name: n)
-		  unless database_classes.include? n
-		    { type: "cmd", language: 'sql', command:  "create class #{n} " } 
-		  end
-		end
-	      elsif classes.is_a?(Hash)
-		classes.keys.map do | superclass | 
-		  if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
-		    class_cmd[superclass, classes[superclass] ]
-		  else 
-		    classes[superclass].map{|n| class_cmd[superclass, n] }
-		  end
-		end.flatten
-	      end.compact # erase nil-entries, in case the class is already allocated
+	  if classes.is_a?(Array)
+	    classes.map do | n |
+	    n = n.to_s.capitalize
+	      consts << REST::Model.orientdb_class( name: n)
+	      unless database_classes.include? n
+		{ type: "cmd", language: 'sql', command:  "create class #{n} " } 
+	      end
+	    end
+	  elsif classes.is_a?(Hash)
+	    classes.keys.map do | superclass | 
+	      if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
+		class_cmd[superclass, classes[superclass] ]
+	      else 
+		classes[superclass].map{|n| class_cmd[superclass, n] }
+	      end
+	    end.flatten 
+	  end.compact # erase nil-entries, in case the class is already allocated
       end
       # returns an array of allocated Constants/Classes
        consts
@@ -264,6 +265,7 @@ creates a class and returns the a REST::Model:{Newclass}-Class- (Constant)
 which is designed to take any documents stored in this class
 
 Predefined attributes: version, cluster, record
+
 Other attributes are assigned dynamically upon reading documents
 =end
     def create_class   newclass
@@ -369,25 +371,14 @@ todo: remove all instances of the class
 
     end
 
-    def create_property o_class, field:, type: 'string', linked_class: nil
+    def create_property o_class, field, type: 'string', linked_class: nil
       logger.progname= 'OrientDB#CreateProperty'
-      begin
-	last_argument = if linked_class.present?
-			  "/#{class_name(linked_class)}"
-			else 
-			  ""
-			end
-      response = @res[ property_uri(class_name(o_class)){ field +'/'+type.upcase + last_argument } ].post ''
-      if response.code == 201
-        response.body.to_i
-      else
-	0
-      end
-      rescue RestClient::InternalServerError => e
-	logger.error { "Property #{field} was NOT created" }
-	logger.error { e.response }
-	nil
-      end
+	js= if linked_class.nil?
+	 { field => { propertyType: type.upcase } }
+	    else
+	 { field => { propertyType: type.upcase,  linkedClass: linked_class } }
+	    end
+	create_properties( o_class ){ js }
 
     end
 ## -----------------------------------------------------------------------------------------
@@ -430,7 +421,7 @@ creates properties which are defined as json in the provided block as
 
     end
 
-    def delete_property o_class, field:
+    def delete_property o_class, field
           logger.progname = 'OrientDB#DeleteProperty'
        begin
 	 response = @res[property_uri( class_name(o_class)){ field } ].delete

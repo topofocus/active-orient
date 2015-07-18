@@ -49,7 +49,7 @@ Creation and removal of Classes  and Edges is straightforward
 »M« is the REST::Model-Class itself, a constant pointing to the class-definition.
 Its a shortcut for »REST::Model::{Classname}. If the optional »superClass: name« argument is used, the class inherents the orientdb_superclass, which resembles the ruby-syntax 
 ```ruby
-   Options =  create_class 'Options' , superclass: 'Contracts'
+   Options = r.create_class 'Options' , superclass: 'Contracts'
    class Options < REST::Model::Contracts
 ```
 
