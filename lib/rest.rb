@@ -272,7 +272,7 @@ Other attributes are assigned dynamically upon reading documents
       create_classes( [ newclass ] ).first
     end
 
-    alias define_class create_class
+    alias open_class create_class
 
     def create_vertex_class name , superclass: 'V'
       create_classes( { superclass => name } ).first
