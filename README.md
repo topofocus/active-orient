@@ -68,13 +68,13 @@ If a schema is used, Properties can be created and retrieved as well
  ```
  or
  ```ruby
- M.create_property field: 'symbol'
- M.create_property field: 'con_id', type: 'integer'
- M.create_property field: 'details', type: 'link', other_class: 'Contracts'
+ M.create_property  'symbol'
+ M.create_property  'con_id', type: 'integer'
+ M.create_property  'details', type: 'link', other_class: 'Contracts'
  ```
  or the »long-version«
  ```ruby
- REST::Model::Contracts.create_property field: 'symbol'
+ REST::Model::Contracts.create_property  'symbol'
 ```
 
 
@@ -118,7 +118,7 @@ As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to
 ```
 returns an Array with all Documents/Edges of the Class.
 ```ruby
-  M.where attributes: { list of query-criteria } 
+  M.where  town: 'Berlin'
 ```
 performs a query on the class and returns the result as Array
 
@@ -143,8 +143,8 @@ Links are followed and autoloaded.  This includes edges.
 ```ruby
   TestLinks = r.create_class 'Testlinkclass'
   TestBase = r.create_class 'Testbaseclass'
-  TestBase.create_property field: 'to_link_class', type: 'link', linked_class: link_class
-  TestBase.create_property field: 'to_link_set', type: 'linkset', linked_class: link_class
+  TestBase.create_property  'to_link_class', type: 'link', linked_class: link_class
+  TestBase.create_property  'to_link_set', type: 'linkset', linked_class: link_class
 
   link_document =  TestLinks.new_document attributes: { att: 'one attribute' }
   base_document =  TestBase.new_document attributes: { base: 'my_base', to_link_class: link_document.link }

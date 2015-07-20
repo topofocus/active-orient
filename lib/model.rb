@@ -139,6 +139,13 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
 =begin
 Performs a query on the Class and returns an Array of REST:Model-Records.
 
+Example:
+  Log =  r.open_class 'Log'
+  Log.where priority: 'high'
+  --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
+  => [ #<REST::Model::Log:0x0000000480f7d8 @metadata={ ... },  ... ]
+
+
 =end
 def self.where attributes =  {}
   orientdb.get_documents  self, where: attributes
