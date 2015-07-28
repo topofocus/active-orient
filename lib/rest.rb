@@ -145,7 +145,7 @@ after the removal of the database, the working-database might be empty
 ## -----------------------------------------------------------------------------------------
     
 =begin
-returns an Array with Class-attribute-hash-Elements
+returns an Array with (unmodified) Class-attribute-hash-Elements
 
   get_classes 'name', 'superClass'
   returns
@@ -157,18 +157,28 @@ returns an Array with Class-attribute-hash-Elements
 =end
 
     def get_classes *attributes
-      response =   @res[database_uri].get
-      if response.code == 200
-       classes=  JSON.parse( response.body )['classes' ]
-       unless attributes.empty?
-        classes.map{|y| y.select{| v,_| attributes.include?(v) } }
-       else
-	 classes
-       end
+      i = 0
+      begin
+	response =   @res[database_uri].get
+	if response.code == 200
+	  classes=  JSON.parse( response.body )['classes' ]
+	  unless attributes.empty?
+	    classes.map{|y| y.select{| v,_| attributes.include?(v) } }
+	  else
+	    classes
+	  end
 
-       #.map{ |y| y.name }
-      else
-	[]
+	  #.map{ |y| y.name }
+	else
+	  []
+	end
+      rescue JSON::ParserError
+	if i.zero?
+	  i = i + 1
+	  retry
+	else
+	  raise
+	end
       end
 
     end
@@ -181,10 +191,10 @@ to fetch all Edges
  class_hierachie( base_class: 'E').flatten
 =end
 
-    def class_hierachie base_class: ''
-      @all_classes =  get_classes( 'name', 'superClass')
+    def class_hierachie base_class: '', requery: false
+      @all_classes =  get_classes( 'name', 'superClass') if requery || @all_classes.blank?
       def fv s   # :nodoc:
-	 @all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ] } 
+	 @all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ].camelize } 
       end
 
       def fx v # :nodoc:
@@ -202,9 +212,10 @@ parameter: include_system_classes: false|true, requery: false|true
     def database_classes include_system_classes: false, requery: false
       requery =  true if @classes.empty?
       if requery
-      system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "V", "_studio","E"]
-      all_classes = get_classes( 'name' ).map( &:values).flatten
-      @classes = include_system_classes ? all_classes : all_classes - system_classes 
+	class_hierachie  requery: true
+	system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "V", "_studio","E"]
+	all_classes = get_classes( 'name' ).map( &:values).flatten
+	@classes = include_system_classes ? all_classes : all_classes - system_classes 
       end
       @classes 
     end
@@ -230,7 +241,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
       consts = Array.new
       execute  transaction: false do 
 	  class_cmd = ->(s,n) do
-	    n = n.to_s.capitalize
+	    n = n.to_s.camelize # capitalize
 	    consts << REST::Model.orientdb_class( name: n)
 	    unless database_classes.include? n
 	    { type: "cmd", language: 'sql', command:  "create class #{n} extends #{s}"  } 
@@ -240,7 +251,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	  
 	  if classes.is_a?(Array)
 	    classes.map do | n |
-	    n = n.to_s.capitalize
+	    n = n.to_s.camelize # capitalize
 	      consts << REST::Model.orientdb_class( name: n)
 	      unless database_classes.include? n
 		{ type: "cmd", language: 'sql', command:  "create class #{n} " } 
@@ -256,6 +267,8 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	    end.flatten 
 	  end.compact # erase nil-entries, in case the class is already allocated
       end
+      # refresh cached class-informations
+      database_classes requery: true
       # returns an array of allocated Constants/Classes
        consts
     end
@@ -319,7 +332,6 @@ Todo: implement delete_edges after querying the database in one statement
 
 =end
     def delete_edge *rid
-      #puts "rid: #{rid.inspect}"
       rid =  rid.map do |mm|
 	if mm.is_a?(String)
 	  if mm.rid?
@@ -341,21 +353,21 @@ Todo: implement delete_edges after querying the database in one statement
        end
     end
 =begin
-deletes the database and returns true on success
+deletes the specified class and returns true on success
 
-after the removal of the database, the working-database might be empty
 
 todo: remove all instances of the class 
 =end
     def delete_class o_class
       cl= class_name(o_class)
       logger.progname = 'OrientDB#DeleteClass'
-      
+	
+      if database_classes.include? cl
       begin
 	response = @res[class_uri{ cl } ].delete
 	if response.code == 204
 	  # return_value: sussess of the removal
-	  !database_classes( requery: true).include?(cl)
+	  !database_classes( requery: true ).include?(cl)
 	  # don't delete the ruby-class
 	  #	   REST::Model.send :remove_const, cl.to_sym if o_class.is_a?(Class)
 	end
@@ -367,6 +379,9 @@ todo: remove all instances of the class
 	else
 	  true
 	end
+      end
+      else
+	logger.info { "Class #{cl} not present. "}
       end
 
     end
@@ -503,7 +518,6 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
     def count_documents o_class , where: {}
 
 	url=  query_sql_uri << "select COUNT(*) from #{class_name(o_class)} " << compose_where( where ) 
-	puts "url: #{url}"
 	result =  JSON.parse( @res[URI.encode(url) ].get )['result']
 	result.first['COUNT']
 
@@ -608,7 +622,9 @@ In the optional block, a subset of properties can be defined (as array of names)
 	if e.http_body.split(':').last =~ /was not found|does not exist in database/
 	  nil
 	else
-	  puts e.http_body.inspect
+	  logger.progname 'OrientDB#GetDocument'
+	  logger.error "something went wrong"
+	  logger.error e.http_body.inspect
 	  raise
 	end
     end
@@ -655,7 +671,7 @@ returns the JSON-Response.
 Execute a predefined Function
 =end
     def call_function    *args
-puts "uri:#{function_uri { args.join('/') } }"
+#puts "uri:#{function_uri { args.join('/') } }"
       @res[ function_uri { args.join('/') } ].post ''
     rescue RestClient::InternalServerError => e
 	puts  JSON.parse(e.http_body)
@@ -690,6 +706,7 @@ structure of the provided block:
 		elsif x.has_key?( 'value' )
 		  x['value']
 		else
+		  puts "REST::Execute"
 		  puts "o_class: #{o_class.inspect}"
 		  REST::Model.orientdb_class( name: class_name(o_class)).new x
 		end
@@ -704,14 +721,20 @@ structure of the provided block:
 	end
 	end
     end
+=begin
+Converts a given name to the camelized database-classname
+
+Converts a given class-constant to the corresponding database-classname
+=end
     def class_name  name_or_class
-      if name_or_class.is_a? Class
+      name= if name_or_class.is_a? Class
 	name_or_class.to_s.split('::').last
       elsif name_or_class.is_a? REST::Model
 	name_or_class.classname
       else
-	name_or_class
+	name_or_class.to_s
       end
+     name.camelize # return_value
     end
     def compose_where arg
       if arg.blank?

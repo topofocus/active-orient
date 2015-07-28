@@ -32,7 +32,7 @@ todo: implement object-inherence
        retrieved_class =  self.send :const_get, name
      else
      
-	new_class = self.send :const_set  , name.capitalize , klass
+	new_class = self.send :const_set  , name , klass
 	new_class.orientdb =  orientdb
 	new_class # return_value
      end
@@ -47,13 +47,14 @@ the rid_store is updated!
 to_do: fetch for version in the db and load the object if a change is detected
 =end
    def self.autoload_object   link
+#     puts "autoload_object #{link}"
      link_cluster_and_record = link[1,link.size].split(':').map &:to_i
      @@rid_store[link_cluster_and_record].presence || orientdb.get_document( link ) 
    end
 
   def self.superClass
-    puts new.classname
-    orientdb.get_classes( 'name', 'superClass').detect{|x| x["name"] == new.classname}['superClass']
+    orientdb.get_classes( 'name', 'superClass').detect{|x| x["name"].downcase ==  new.class.to_s.downcase.split(':')[-1].to_s
+    }['superClass']
   end
 =begin
 Returns just the name of the Class 
@@ -122,6 +123,13 @@ Create a Property in the Schema of the Class
    def self.create_property field, **keyword_arguments 
      orientdb.create_property  self, field,  **keyword_arguments 
    end
+
+   def self.create_link name, class_name
+     orientdb.create_property self,  name, type: 'link', linked_class: class_name
+   end
+   def self.create_linkset name, class_name
+     orientdb.create_property self,  name, type: 'linkset', linked_class: class_name
+   end
 =begin
 Only if the Class inherents from »E« 
 Instantiate a new Edge betwen two Vertices
@@ -131,7 +139,6 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
   self.create_edge from: , to: , unique: false, attributes:{} 
 =end
    def self.create_edge **keyword_arguments 
-     puts "key: #{keyword_arguments}" 
       o=orientdb.nexus_edge  self, **keyword_arguments 
       [:from,:to].each{|y| keyword_arguments[y].reload! }
       o  # return_value
@@ -184,7 +191,7 @@ Actually we just check the second term as we trust the constuctor to work proper
    end
    def self.all
      orientdb.get_documents self
-   end
+end
    def self.first
      orientdb.get_documents(  self, limit: 1).pop
    end
@@ -206,9 +213,10 @@ With the optional :set argument ad-hoc attributes can be defined
      REST::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
      reload!
    end
-
-   def reload! updated_dataset=nil
-    # puts "link: #{rid}"
+=begin
+Overwrite the attributes with Database-Contents
+=end
+   def reload! 
      updated_dataset = orientdb.get_document( link)
      @metadata[:version]= updated_dataset.version
      attributes = updated_dataset.attributes
@@ -250,7 +258,7 @@ or
 
      if block_given?
        items =  yield
-       items.each{|x| add_2_execute_array[x];  self.attributes[array] << x }
+       items.each{|x| add_2_execute_array[x];   self.attributes[array] << x }
      elsif item.present?
        add_2_execute_array[item]
        self.attributes[array] << item

@@ -80,6 +80,11 @@ describe REST::Model do
       expect(all.first.test).to eq 45
     end
 
+    it "the document can be retrieved by first" do
+      expect( @testmodel.first ).to be_a REST::Model::Modeltest
+      expect( @testmodel.first.test ).to eq 45
+    end
+
     it "the document can be updated"  do
       obj =  @testmodel.first
       expect{ obj.update set: { test: 76, new_entry: "This is a new Entry" } }.to change{ obj.version }.by 1
@@ -92,24 +97,23 @@ describe REST::Model do
       obj.update set: { a_array: aa= [ 1,4,'r', :r ]  , a_hash: { :a => 'b', b: 2 } }
       expect( obj.a_array ).to eq aa 
       expect{ obj.reload! }.not_to change{ obj.attributes }
-      puts obj.to_human
     end
 
     it "the document can be deleted"  do
-      obj =  @testmodel.all.first
+      obj =  @testmodel.first
       obj.delete
       expect( @testmodel.count ).to be_zero
     end
   end
-  context  "Links and Linksets are followed"  do
+  context  "Links and Linksets are followed" , focus: true do
     before(:all) do 
       @r.delete_class  'Testlinkclass'
       @r.delete_class  'Testbaseclass'
 
       @link_class = @r.create_class 'Testlinkclass'
       @base_class = @r.create_class 'Testbaseclass'
-      @base_class.create_property  'to_link_class', type: 'link', linked_class: @link_class
-      @base_class.create_property  'a_link_set', type: 'linkset', linked_class: @link_class
+#      @base_class.create_link  'toLinkClass',  @link_class
+#      @base_class.create_linkset  'aLinkSet',  @link_class
     
     end
      let( :base_document) { @base_class.new_document attributes: { base: 'my_base_with_linkset' } }
@@ -124,19 +128,21 @@ describe REST::Model do
       link_document =  @link_class.new_document attributes: { att: " -1 attribute" } 
       #base_document.update_linkset( :a_link_set, link_document )
       base_document.add_item_to_property( :a_link_set, link_document )
-      expect( base_document.a_link_set ).to have(1).item
-      expect( base_document.a_link_set.first).to be_a REST::Model
+      base_document.reload!
+      puts base_document.inspect
+      expect( base_document[ :a_link_set ] ).to have(1).item
+      expect( base_document[ :a_link_set ].first).to be_a REST::Model
     end
 
     it "create multible links into a linkset " do
     #base_document.update_linkset(:a_link_set) do 
     base_document.add_items_to_property(:a_link_set) do 
       (1..9).map do |x|
-	link_document =  @link_class.new_document attributes: { att: " #{x} attribute" } 
+	 @link_class.new_document attributes: { att: " #{x} attribute" } 
       end
     end
   
-     expect( base_document.a_link_set ).to have(9).items
+     expect( base_document[ :a_link_set ]).to have(9).items
     # reload document
      reloaded_document =  base_document.reload!
      expect( reloaded_document.a_link_set).to have(9).items
@@ -245,8 +251,8 @@ describe REST::Model do
       expect( out_e ).to eq node_1.link
       expect( out_e.attributes).to include 'out_Myedge'
       in_e = @mynode.where(  test: 15  ).first
-      puts "--------------------------------"
-      puts node_1.attributes.inspect
+#      puts "--------------------------------"
+#      puts node_1.attributes.inspect
 #      expect( in_e.attributes).to include 'in_Myedge'
  #    expect( node_1.myedge).to have(1).item
  #    expect( node_1.myedge[0][:out].test).to eq 23

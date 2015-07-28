@@ -1,6 +1,6 @@
   class String
     def rid? 
-      self =~  /[0-9]{1,}:[0-9]{1,}/
+      self =~  /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/   
     end
   end
   class Hash
@@ -130,7 +130,7 @@ module REST
     def [] key
     #  puts "[]: #{key}"
       iv= attributes[key.to_sym]
-      if  iv.is_a?(String) && iv.rid? && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
+      if  iv.is_a?(String) && iv.rid? #&& @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
      # puts "autoload: #{iv}"
 	REST::Model.autoload_object  iv
       elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )

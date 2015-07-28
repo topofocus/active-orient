@@ -45,7 +45,12 @@ describe REST::OrientDB do
 
 
   context "perform database requests" do
-      let( :classname ) { "Neueklasse10" }
+      let( :classname ) { "new_class" }
+      let( :edgename ) { "new_edge" }
+      let( :vertexname ) { "new_vertex" }
+      it 'retrieve the pluralized classname'  do
+	expect( @r.class_name classname ).to eq classname.camelize
+      end
 
     it "get all Classes" do
       classes = @r.get_classes 'name', 'superClass'
@@ -54,99 +59,107 @@ describe REST::OrientDB do
       ["E","V", "OFunction" , 
        "OIdentity" , "ORIDs" , "ORestricted" ,
        "ORole" , "OSchedule" , "OTriggered" , "OUser" ].each do |c|
-	expect( classes.detect{ |x|  x['name'] ==c } ).to be_truthy
+	expect( classes.detect{ |x|  x['name'] == c } ).to be_truthy
 
       end
     end
 
-    it "create  and delete a Class  " do
+    it "create  and delete a Class  "  do
+      # ActiveModel-Classes are Singular, OrientDB-Classes are Pluralized
       re = @r.delete_class  classname
 #      expect( re ).to be_falsy
       model = @r.create_class  classname
-      expect(model.new).to be_a REST::Model
-      rr = @r.create_class  classname
-      expect(model.to_s).to eq 'REST::Model::Neueklasse10'
-      re = @r.delete_class model
-      expect( re ).to be_truthy
-      expect(  @r.get_classes( 'name' ) ).not_to include( { 'name' => classname } )
-      rr = @r.create_class  classname
-      # the class is created again
-      expect(  @r.get_classes( 'name' ) ).to include( { 'name' => classname } )
+      expect( model.new  ).to be_a REST::Model
+      expect( model.to_s ).to eq "REST::Model::#{classname.camelize}"
+      expect( @r.class_name  model ).to eq classname.camelize
+      expect( @r.database_classes ).to include @r.class_name( classname )  
+      expect( @r.delete_class( model ) ).to be_truthy
+      expect( @r.database_classes ).not_to include @r.class_name( classname )
     end
 
+    it "create and delete an Edge " do
+      # Edges are always Singular
+      @r.delete_class  edgename
+      model = @r.create_edge_class  edgename
+      expect( model.new ).to be_a REST::Model
+      expect( model.superClass ).to eq "E"
+      expect( model.to_s ).to eq "REST::Model::#{edgename.camelize}"
+      ## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
+      expect( model.new.is_edge? ).to be_falsy
+      expect( @r.class_name  model ).to eq edgename.camelize
+      expect( @r.delete_class( model ) ).to be_truthy
+      expect( @r.database_classes ).not_to include @r.class_name( classname )
+    end
 
-    describe "create a bunch of classes"  do
+    it "create and delete a Vertex-Class"   do
+
+      @r.delete_class vertexname
+      expect( @r.database_classes ).not_to include @r.class_name( vertexname)
+      myvertex = @r.create_vertex_class  vertexname
+      expect(@r.database_classes ).to include @r.class_name( vertexname )
+      expect( myvertex ).to be_a  Class
+      expect( myvertex.new).to be_a REST::Model
+      expect( @r.class_hierachie( base_class: 'V') ).to include @r.class_name( vertexname)
+      expect( @r.delete_class vertexname ).to be_truthy
+    end
+
+    describe "create a bunch of classes"   do
       before(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
+      after(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
       let( :classes_simple ) { ["one", "two" , "trhee"] }
       let( :classes_vertex ) { { v: [ :one_v, :two_v,  :trhee_v] } }
 
-    
+
       it "init: database does not contain classes" do
 
-	classes_simple.each{|x| expect( @r.database_classes ).not_to include x }
+	classes_simple.each{|x| expect( @r.database_classes ).not_to include @r.class_name(x) }
       end
 
       it "create  simple classes" do
 	klasses = @r.create_classes classes_simple 
-	classes_simple.each{|y| expect( @r.database_classes( requery: true) ).to include y.to_s.capitalize }
+	classes_simple.each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
 	klasses.each{|x| expect(x.superclass).to eq REST::Model }
       end
       it "create Vertex clases" do
 	klasses = @r.create_classes classes_vertex
-	classes_vertex[:v].each{|y| expect( @r.database_classes( requery: true) ).to include y.to_s.capitalize }
-	klasses.each{|x| expect(x.superclass).to eq REST::Model }
-
+	classes_vertex[:v].each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
+	klasses.each do |x|
+	  expect(x.superclass).to eq REST::Model 
+	  expect(x.superClass).to eq 'V' 
+	end
       end
     end
 
-    it "create and delete an Edge-Class"  do
-    
-    classname = 'Myedge'
-    @r.delete_class classname
-    expect( @r.database_classes( requery:true )).not_to include classname
-    myedge = @r.create_edge_class  classname
-    expect(@r.database_classes( :requery => true )).to include classname
-    expect( myedge ).to be_a  Class
-    expect( myedge.new).to be_a REST::Model
-    expect( @r.class_hierachie( base_class: 'E') ).to include classname
-  end
-    it "create and delete an Vertex-Class"   do
-    
-    classname = 'Myvertex'
-    @r.delete_class classname
-    expect( @r.database_classes( requery:true )).not_to include classname
-    myvertex = @r.create_vertex_class  classname
-    expect(@r.database_classes( :requery => true )).to include classname
-    expect( myvertex ).to be_a  Class
-    expect( myvertex.new).to be_a REST::Model
-    expect( @r.class_hierachie( base_class: 'V') ).to include classname
-  end
+    describe "define Properties at Class-Level"   do
+      before(:all){ @r.create_class 'property' }
+      after(:all){ @r.delete_class 'property' }
 
-    it "creates a class and puts a property into "  do
-      @r.delete_class classname
-      @r.database_classes( requery:true )
-      model = @r.create_class classname
-      @r.create_class  "Contracts"
 
-      rp = @r.create_properties( model ) do
-	{ symbol: { propertyType: 'STRING' },
-	  con_id: { propertyType: 'INTEGER' } ,  
-	  details: { propertyType: 'LINK', linkedClass: 'Contracts' }
-	}
-	#quatsch: { propertyType: 'LINK', linkedClass: 'Multiquiatsch' }# --> error: Missing linked class
+      it "Class is present" do
+	expect( REST::Model::Property.new_document ).to be_a REST::Model
       end
-      expect( rp ).to eq 3
 
-      expect( @r.create_property model, 'name', type: 'date').to eq 4
-      expect( @r.delete_property model, 'name').to be_truthy
-    end
-    it "reads Properties form a class" do
+      it "define a Property at class-level" do
+	Property = @r.open_class 'property'
+	rp = @r.create_properties( Property ) do
+	  { symbol: { propertyType: 'STRING' },
+     con_id: { propertyType: 'INTEGER' } ,  
+     details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+	  }
+	end
 
-      rp= @r.get_class_properties  classname
-      # has "name"=>"neue_klasse10", "superClass"=>"", "superClasses"=>[], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[12], "defaultCluster"=>12, "clusterSelection"=>"round-robin", "records"=>0, "properties"=>[{"name"=>"con_id", "type"=>"INTEGER", "mandatory"=>false, "readonly"=>false, "notNull"=>false, "min"=>nil, "max"=>nil, "regexp"=>nil, "collate"=>"default"
-      properties= rp['properties']
-      [ :con_id, :symbol, :details].each do |f|
-	expect( properties.detect{|x| x['name']== f.to_s}  ).to be_truthy
+	expect( rp ).to eq 3
+
+	puts Property.new_document.inspect
+	puts rp.inspect
+	rp= @r.get_class_properties  Property 
+
+	# has "name"=>"Properties", "superClass"=>"", "superClasses"=>[], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[12], "defaultCluster"=>12, "clusterSelection"=>"round-robin", "records"=>0, "properties"=>[{"name"=>"con_id", "type"=>"INTEGER", "mandatory"=>false, "readonly"=>false, "notNull"=>false, "min"=>nil, "max"=>nil, "regexp"=>nil, "collate"=>"default"
+
+	properties= rp['properties']
+	[ :con_id, :symbol, :details].each do |f|
+	  expect( properties.detect{|x| x['name']== f.to_s}  ).to be_truthy
+	end
       end
 
 
