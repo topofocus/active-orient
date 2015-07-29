@@ -224,14 +224,14 @@ Overwrite the attributes with Database-Contents
    end
 
 =begin
-Convient method for populating aembedded- or linkset-property
+Convient method for populating embedded- or linkset-properties
 
 In both cases an array/ a collection is stored in the database.
 
 its called via
   model.add_item_to_property( linkset- or embedded property, Object_to_be_linked_to )
 or
-  mode.iadd_items_to_property( linkset- or embedded property ) do
+  mode.add_items_to_property( linkset- or embedded property ) do
       Array_of_Objects_to_be_linked_to
       (actually, the objects must inherent from REST::Model, Numeric, String)
   end

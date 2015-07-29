@@ -128,15 +128,17 @@ module REST
     # ActiveModel-style read/write_attribute accessors
     # Here we define the autoload mechanism
     def [] key
-    #  puts "[]: #{key}"
       iv= attributes[key.to_sym]
       if  iv.is_a?(String) && iv.rid? #&& @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
      # puts "autoload: #{iv}"
 	REST::Model.autoload_object  iv
-      elsif iv.is_a?(Array) && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
+      elsif iv.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
      # puts "autoload: #{iv.inspect}"
-	iv.map{|y| REST::Model.autoload_object  y }
+	iv.map{|y| y.rid? ? REST::Model.autoload_object(  y ) : y  }
+      elsif ib.is_a? Hash
+
       else
+
 	iv
       end
     end

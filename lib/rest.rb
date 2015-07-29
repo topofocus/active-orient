@@ -551,13 +551,13 @@ n
       'g' for linkbag
 
 =end
+=begin
+Creating a new Database-Entry ( where is omitted )
 
-=begin 
-UpdateOrCreateDocument
+otherwise updating the Database-Entry (if present)
 
-Based on the query specified in :where records are updated according to :set
-
-Returns an Array of updated documents 
+The optional Block should provide a hash with attributes(properties). These are used if
+a new dataset is created.
 =end
     def create_or_update_document o_class , set: {}, where:{}, &b
       logger.progname =  'Rest#CreateOrUpdateDocument'
@@ -567,6 +567,14 @@ Returns an Array of updated documents
       end
       r.first  # return_value
     end
+=begin 
+Based on the query specified in :where records are updated according to :set
+
+Returns an Array of updated documents 
+
+The optional Block should provide a hash with attributes(properties). These are used if
+a new dataset is created.
+=end
     def update_or_create_documents o_class , set: {}, where: {} , &b
       logger.progname =  'Rest#UpdateOrCreateDocuments'
       if where.blank?
