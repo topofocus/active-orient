@@ -28,7 +28,7 @@ then
 
 »r« is the Database-Instance itself.  The database is empty.
 
-Methods to to create/open/delete a database-class and to declare schema-based properties are available in the Database-Instance
+Let's create some classes 
 
  ```ruby
     M = r.open_class          classname  # 
@@ -40,8 +40,9 @@ Methods to to create/open/delete a database-class and to declare schema-based pr
  ```
 
 
-»M« is the REST::Model-Class itself, a constant pointing to the class-definition.
-Its a shortcut for »REST::Model::{Classname}. 
+»M« is the REST::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
+Its a shortcut for »REST::Model::{Classname}. It is reused if present, thus one can define methods just
+as in ActiveRecord/Rails.
 
 If a schema is used, properties can be created and retrieved as well
  ```ruby
