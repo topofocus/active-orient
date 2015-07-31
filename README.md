@@ -20,13 +20,15 @@ then
 
 ```ruby
   require './config/boot'
-  r = REST::Model.orientdb = REST::OrientDB.new 
+  r = REST::OrientDB.new  database: 'First'
+   => #<REST::OrientDB:0x000000048d0488 @res=#<RestClient::Resource:0x00000004927288 
+       @url="http://localhost:2480", @block=nil, 
+       @options={:user=>"xx", :password=>"***"}>, @database="First", @classes=[]> 
 ```
 
-Now any REST::Model-Object »knows« how to access the database.
-»r« is the Database-Instance itself. 
+»r« is the Database-Instance itself.  The database is empty.
 
-Its needed to create/open/delete a database-class and to declare schema-based properties.
+Methods to to create/open/delete a database-class and to declare schema-based properties are available in the Database-Instance
 
  ```ruby
     M = r.open_class          classname  # 
@@ -76,7 +78,7 @@ As for ActiveRecord-Tables, the Class itself provides methods to inspect and to 
   M.first
   M.last
 ```
-returns an Array with all Documents/Edges of the Class, the first and the last Record.
+returns an Array containing all Documents/Edges of the Class, the first and the last Record.
 ```ruby
   M.where  town: 'Berlin'
 ```
@@ -92,16 +94,18 @@ gets the number of datasets fullfilling the search-criteria
   vertex_2 = Vertex.create  flower: "rose"
   E.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
-connects the vertices  with the edge and assigns the attributes to the edge
+connects the vertices and assigns the attributes to the edge
 
 
 #### Links
 
 A record in a database-class is defined by a »rid«. Every Model-Object comes with a handy »link«-method.
-In OrientDB this can be used to organize 1:1 and 1:n relationships.
+
+In OrientDB links are used to realise unidirectional  1:1 and 1:n relationships.
+
 ActiveOrient autoloads Model-objects.
 
-If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies this object when stored in a Model-property.
+If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the REST::Model object.
 
 ```ruby
   TestLinks = r.create_class 'Test_link_class'

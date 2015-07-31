@@ -99,7 +99,7 @@ describe REST::OrientDB do
       expect(@r.database_classes ).to include @r.class_name( vertexname )
       expect( myvertex ).to be_a  Class
       expect( myvertex.new).to be_a REST::Model
-      expect( @r.class_hierachie( base_class: 'V') ).to include @r.class_name( vertexname)
+      expect( @r.class_hierachie( base_class: 'V').flatten ).to include @r.class_name( vertexname)
       expect( @r.delete_class vertexname ).to be_truthy
     end
 

@@ -43,6 +43,7 @@ initialises the Database-Connection and publishes the Instance to any REST::Mode
     connect() if connect
     # save existing classes 
     @classes = []
+    REST::Model.orientdb =  self
   end
 
 ##  included for development , should be removed in production release  
@@ -52,8 +53,21 @@ initialises the Database-Connection and publishes the Instance to any REST::Mode
 ## 
 
   def connect 
-    r= @res["/connect/#{ @database }" ].get
-    r.code == 204 ? true : nil 
+    i = 0
+    begin
+      r= @res["/connect/#{ @database }" ].get
+      r.code == 204 ? true : nil 
+    rescue RestClient::Unauthorized => e
+      if i.zero?
+	logger.info{ "Database #{@database} NOT present --> creating" }
+	i=i+1
+	create_database
+	retry
+      else
+	Kernel.exit
+      end
+    end
+
   end
 
 ## -----------------------------------------------------------------------------------------
