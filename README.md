@@ -41,8 +41,7 @@ Let's create some classes
 
 
 »M« is the REST::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
-Its a shortcut for »REST::Model::{Classname}. It is reused if present, thus one can define methods just
-as in ActiveRecord/Rails.
+Its a shortcut for »REST::Model::{Classname} and is reused if defined elsewhere.
 
 If a schema is used, properties can be created and retrieved as well
  ```ruby
