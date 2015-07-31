@@ -9,7 +9,7 @@ describe Orient::OArray do
     REST::Model.orientdb  =  @r = REST::OrientDB.new database: 'hc_database'
     @r.delete_class 'model_test'
     TestModel = @r.open_class "model_test" 
-    @record = TestModel.new_instance
+    @record = TestModel.create
   end
 
   context "check isolated" do
@@ -56,10 +56,10 @@ describe Orient::OArray do
 	@r.delete_class  'Test_link_class'
 
 	LinkClass = @r.open_class 'Test_link_class'
-	@new_record = TestModel.new_instance ll: [ ]
+	@new_record = TestModel.create ll: [ ]
 	(1..9).each do |i|
 	  @new_record.ll << i
-	  @new_record.ll << LinkClass.new_instance( att: "#{i} attribute" )
+	  @new_record.ll << LinkClass.create( att: "#{i} attribute" )
 	end
       end
 
@@ -71,7 +71,7 @@ describe Orient::OArray do
       end
 
       it "add and remove records" do
-	expect{ @new_record.ll << LinkClass.new_instance( new: "Neu" ) }.to change { @new_record.ll.size }.by 1
+	expect{ @new_record.ll << LinkClass.create( new: "Neu" ) }.to change { @new_record.ll.size }.by 1
 	expect{ @new_record.ll.delete  LinkClass.last }.to change { @new_record.ll.size }.by -1
 	expect{ @new_record.ll.delete  9 }.to change { @new_record.ll.size }.by -1
 	expect{ @new_record.ll.delete 19 }.not_to change { @new_record.ll.size }
@@ -91,9 +91,9 @@ describe Orient::OArray do
 	BaseClass = @r.open_class 'Test_base_class'
 	LinkClass = @r.open_class 'Test_link_class'
 	BaseClass.create_linkset  'aLinkSet',  LinkClass
-	@new_record = BaseClass.new_instance  aLinkSet: []
+	@new_record = BaseClass.create  aLinkSet: []
 	(1..9).each do |i|
-	  @new_record.aLinkSet << LinkClass.new_instance( att: "#{i} attribute" )
+	  @new_record.aLinkSet << LinkClass.create( att: "#{i} attribute" )
 	end
       end
 
@@ -103,7 +103,7 @@ describe Orient::OArray do
 	expect( @new_record.aLinkSet.at(0)).to eq LinkClass.first
       end
       it "add and remove records" do
-	expect{ @new_record.aLinkSet << LinkClass.new_instance( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
+	expect{ @new_record.aLinkSet << LinkClass.create( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
 #	expect{ @new_record.aLinkSet.delete  LinkClass.last }.to change { @new_record.aLinkSet.size }.by -1
 	# gives an Error - its not possible to mix links with other objects
 #	expect{ @new_record.aLinkSet.<<   9 }.to change { @new_record.aLinkSet.size }.by 1

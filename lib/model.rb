@@ -112,7 +112,7 @@ Creates a new Instance of the Class with the applied attributes
 and returns the freshly instantiated Object
 =end
 
-   def self.new_instance attributes = {}
+   def self.create attributes = {}
       orientdb.create_or_update_document  self, set: attributes
    end
 
@@ -221,8 +221,8 @@ With the optional :set argument ad-hoc attributes can be defined
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
 #     returns a new instance of REST::Model
-     REST::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
-     #reload!
+     #REST::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
+     reload!
    end
 =begin
 Overwrite the attributes with Database-Contents

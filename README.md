@@ -1,9 +1,9 @@
 # ActiveOrient
-Access OrientDB from Ruby using the robust high-level REST-HTTP-API
+Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
+datasets.
 
 The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
 
-It is written to store data, gathered by a Ruby-program ( ib-ruby in particular), into an OrientDB-Database,to query the Database in a rubish (aka activeRecord) manner and then to deal conviently with ActiveModel-Objects.
 
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
 Clone the project and run bundle install/ bundle update,
@@ -24,41 +24,26 @@ then
 ```
 
 Now any REST::Model-Object »knows« how to access the database.
-»r« is the Database-Instance itself.
+»r« is the Database-Instance itself. 
 
-You can fetch a list of classes  
-```ruby
-     r.database_classes include_system_classes: true
-    --> ["Car", (..), "E", "OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "Owns", "V", "_studio"]
-```
- 
-Creation and removal of Classes  and Edges is straightforward
+Its needed to create/open/delete a database-class and to declare schema-based properties.
+
  ```ruby
-    r.create_class        classname  # creates a basic document-class
-    r.create_vertex_class classname  # creates a vertex-class 
-    r.create_edge_class   classname  # creates an edge-class, providing bidirectional links between documents
+    M = r.open_class          classname  # 
+    M = r.create_class        classname  # creates or opens a basic document-class
+    M = r.create_vertex_class classname  # creates or opens a vertex-class 
+    M = r.create_edge_class   classname  # creates or opens an edge-class, providing bidirectional links between documents
 
-    r.delete_class        classname  # universal removal-class-method
-    
-    or
-    M =  r.create_class classname
-    (...)
-    r.delete_class M
+    r.delete_class   M                   # universal removal-class-method
  ```
 
+
 »M« is the REST::Model-Class itself, a constant pointing to the class-definition.
-Its a shortcut for »REST::Model::{Classname}. If the optional »superClass: name« argument is used, the class inherents the orientdb_superclass, which resembles the ruby-syntax 
-```ruby
-   Options = r.create_class 'Options' , superclass: 'Contracts'
-   class Options < REST::Model::Contracts
-```
+Its a shortcut for »REST::Model::{Classname}. 
 
-REST::Model-Instances represent  records (aka documents/vertices/edges) of the database.
-It is passed to several methods of REST::Orientdb.
-
-If a schema is used, Properties can be created and retrieved as well
+If a schema is used, properties can be created and retrieved as well
  ```ruby
-  r.create_properties(  M ) do
+  r.create_properties( M ) do
      {	symbol: { propertyType: 'STRING' },
 		con_id: { propertyType: 'INTEGER' },
        		details: { propertyType: 'LINK', linkedClass: 'Contracts' }
@@ -72,51 +57,26 @@ If a schema is used, Properties can be created and retrieved as well
  M.create_property  'con_id', type: 'integer'
  M.create_property  'details', type: 'link', other_class: 'Contracts'
  ```
- or the »long-version«
- ```ruby
- REST::Model::Contracts.create_property  'symbol'
-```
-
-
-Documents are easily created, updated, removed 
- ```ruby
-  record = M.new_document  attributes: { con_id: 345, symbol: 'EWQZ' }
-
-  record.con_id =  346
-  record.update set: { a_new_property:  'value of the new property }
-
-  record.delete
-
- ```
-
-Multible Documents can updated and deleted query based 
-
- ```ruby
-  r.update_or_create_documents  M, set: {con_id: 345} , where: {symbol: 'EWZ'} 
-  r.delete_documents M , where: { con_id: 345, symbol: 'EWQZ' }
-
- ```
 
 #### Active Model interface
  
-Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined t by
+Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined  by
 ```ruby
-  M =  r.create_class classname # optional: , superclass: superclassname
+  M =  r.create_class classname #  , superclass: superclassname ( optional )
   Vertex =  r.create_vertex_class classname 
   Edge   =  r.create_edge_class   classname 
   
 ```
 and is of TYPE REST::Model::{classname}
 
-If a document is created, an Instance of the Class is returned.
-If the database is queried, a list of Instances is returned.
-
-As for ActiveRecord-Tables, the Class itself  provides methods to inspect and to filter datasets form the database.
+As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
 ```ruby
-  M.all 
+  M.all   
+  M.first
+  M.last
 ```
-returns an Array with all Documents/Edges of the Class.
+returns an Array with all Documents/Edges of the Class, the first and the last Record.
 ```ruby
   M.where  town: 'Berlin'
 ```
@@ -128,41 +88,31 @@ performs a query on the class and returns the result as Array
 gets the number of datasets fullfilling the search-criteria
 
 ```ruby
-  E = r.create_edge_class 'MyEdge'
-  E.create_edge attributes: { :birthday => Date.today }, from: '#23:45', to: '#12:21'
-  # (or)
-  vertex1 = r.get_document '#23:45'
+  vertex_1 = Vertex.create  color: "blue"
+  vertex_2 = Vertex.create  flower: "rose"
   E.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
-connects the documents specified by the rid's with the edge and assigns the attributes to the edge
+connects the vertices  with the edge and assigns the attributes to the edge
 
 
 #### Links
 
 Links are followed and autoloaded.  This includes edges.
 ```ruby
-  TestLinks = r.create_class 'Testlinkclass'
-  TestBase = r.create_class 'Testbaseclass'
-  TestBase.create_property  'to_link_class', type: 'link', linked_class: link_class
-  TestBase.create_property  'to_link_set', type: 'linkset', linked_class: link_class
+  TestLinks = r.create_class 'Test_link_class'
+  TestBase = r.create_class 'Test_base_class'
 
-  link_document =  TestLinks.new_document attributes: { att: 'one attribute' }
-  base_document =  TestBase.new_document attributes: { base: 'my_base', to_link_class: link_document.link }
+  link_document =  TestLinks.create  att: 'one attribute' 
+  base_document =  TestBase.create  base: 'my_base', single_link: link_document.link 
+```
+then  base_document.single_link  automatically loads the  REST::Model::Testlinkclass-object
 
-  base_document.to_link_class => REST::Model::Testlinkclass ....
-
-  base_document.add_items_to_property( :to_link_set ) do
-	( 0 .. 20 ).map{|y|  TestLinks.new_document( attributes: { nr: y } )   }
+To store a list of links to other Database-Objects a simple Array is allocated
+``` ruby
+  base_document =  TestBase.create links: []
+  ( 0 .. 20 ).each{ |y|  base_document.links << TestLinks.create  nr: y  }
   end
 
-  # add link manually
-  base_document.to_link_set << TestLinks.new_document( attributes { another_nr: 'r' } )
-  # synchonize ruby with db
-  base_document.update     
-  base_document.to_link_set.size => 22
-
-  # fetch a specific link with ruby-array-methods
-  base_document.to_link_set[19] => REST::Model::Testlinkclass ...
 ```
 
 If you got an undirectional graph
@@ -178,8 +128,8 @@ Edges are easily handled
   Vertex = r.create_vertex_class 'd1'
   Eedge = r.create_edge_class   'e1'
 
-  start =  Vertex.new_document attributes:  { something: 'nice' }
-  the_end   =  Vertex.new_document attributes: { something: 'not_nice' }
+  start =  Vertex.create  something: 'nice' 
+  the_end   =  Vertex.create  something: 'not_nice' 
   the_edge = Edge.create_edge  attributes:  { transform_to: 'very bad' },
 			       from: start,
 			       to: the_end
@@ -283,34 +233,3 @@ and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemo
  
  
  
-#### Ruby-Objects
-
-OrientDB-Classes are mapped to Ruby-Active-Model-Classes. These can further specified like 
-ActiveRecord-Models.
-
-Assume, you created the hierachie
-```
-    create class Contracts ABSTRACT
-    create class Stocks extends Contracts
-```
-Then you can initialize the ActiveModel-Classes either by
-```ruby
-   r.create_class 'Contracts'
-   r.create_class 'Stocks'
-``` 
-or
-```ruby
-  class REST::Model::Contracts < REST::Model
-      def a_method
-      ...
-      end
-   end
-   
-  class REST::Model::Stocks < REST::Model::Contracts
-      def a_method
-      ...
-      end
-  end
-```
-
-

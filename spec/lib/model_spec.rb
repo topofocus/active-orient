@@ -18,8 +18,8 @@ describe REST::Model do
 
     @r= REST::OrientDB.new database: 'hc_database' , :connect => false
     REST::Model.orientdb  =  @r
-    @r.delete_class 'modeltest'
-    @testmodel = @r.create_class "modeltest" 
+    @r.delete_class 'model_test'
+    TestModel = @r.open_class "model_test" 
     @myedge = @r.create_edge_class  'Myedge'
     @mynode = @r.create_vertex_class  'Mynode'
   end
@@ -45,7 +45,7 @@ describe REST::Model do
 
   context "The Models have proper superClasses"  do
     it "A document class has an empty superClass" do
-      expect( @testmodel.superClass ).to eq "" 
+      expect( TestModel.superClass ).to eq "" 
     end
     it "An Vertex inherents from »V«" do
       expect( @mynode.superClass ).to eq "V"
@@ -57,169 +57,71 @@ describe REST::Model do
 
   context "Add a document to the class"  do
     it "the database is empty before we start" do
-      @r.get_documents  @testmodel
-      expect( @testmodel.count ).to be_zero
+      @r.get_documents  TestModel
+      expect( TestModel.count ).to be_zero
     end
 
-    let( :new_document ){REST::Model::Modeltest.new_document attributes: { test: 45} }
-    it "create a document" do
-      before   =  @testmodel.count 
-      expect( new_document.test ).to eq 45 # = @testmodel.new_document attributes: { test: 45} 
-      after = @testmodel.count   
-      expect( before +1 ).to eq after
-      expect(new_document).to be_a REST::Model::Modeltest
+    let( :new_document ){REST::Model::ModelTest.create test: 45 }
+    it "create a document"  do
+      expect( new_document.test ).to eq 45 
+      expect(new_document).to be_a REST::Model::ModelTest
       expect( REST::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end  
 
 
     it "the document can be retrieved by all"  do
-      all = @testmodel.all
+      all = TestModel.all
       expect(all).to be_a Array
       expect(all.size).to eq 1
-      expect(all.first).to  be_a REST::Model::Modeltest
+      expect(all.first).to  be_a REST::Model::ModelTest
       expect(all.first.test).to eq 45
     end
 
     it "the document can be retrieved by first" do
-      expect( @testmodel.first ).to be_a REST::Model::Modeltest
-      expect( @testmodel.first.test ).to eq 45
+      expect( TestModel.first ).to be_a REST::Model::ModelTest
+      expect( TestModel.first.test ).to eq 45
     end
 
     it "the document can be updated"  do
-      obj =  @testmodel.first
+      obj =  TestModel.create test: 77
       expect{ obj.update set: { test: 76, new_entry: "This is a new Entry" } }.to change{ obj.version }.by 1
       expect( obj.test ).to eq 76
       expect( obj.new_entry).to be_a String
     end
 
     it "various Properties can be added to the document" do
-      obj =  @testmodel.first
+      obj =  TestModel.first
       obj.update set: { a_array: aa= [ 1,4,'r', :r ]  , a_hash: { :a => 'b', b: 2 } }
       expect( obj.a_array ).to eq aa 
       expect{ obj.reload! }.not_to change{ obj.attributes }
     end
 
     it "the document can be deleted"  do
-      obj =  @testmodel.first
-      obj.delete
-      expect( @testmodel.count ).to be_zero
+      obj =  TestModel.first
+      expect{ obj.delete }.to change { TestModel.count }.by -1
     end
   end
-  context  "Links and Linksets are followed" , focus: true do
-    before(:all) do 
-      @r.delete_class  'Testlinkclass'
-      @r.delete_class  'Testbaseclass'
-
-      @link_class = @r.create_class 'Testlinkclass'
-      @base_class = @r.create_class 'Testbaseclass'
-#      @base_class.create_link  'toLinkClass',  @link_class
-#      @base_class.create_linkset  'aLinkSet',  @link_class
-    
-    end
-     let( :base_document) { @base_class.new_document attributes: { base: 'my_base_with_linkset' } }
-
-    it "create a link"   do
-     link_document =  @link_class.new_document attributes: { att: 'one attribute' } 
-     base_document =  @base_class.new_document attributes: { base: 'my_base', to_link_class: link_document.link } 
-     expect(base_document.to_link_class).to eq link_document
-    end
-
-    it "create a linkset" do
-      link_document =  @link_class.new_document attributes: { att: " -1 attribute" } 
-      #base_document.update_linkset( :a_link_set, link_document )
-      base_document.add_item_to_property( :a_link_set, link_document )
-      base_document.reload!
-      puts base_document.inspect
-      expect( base_document[ :a_link_set ] ).to have(1).item
-      expect( base_document[ :a_link_set ].first).to be_a REST::Model
-    end
-
-    it "create multible links into a linkset " do
-    #base_document.update_linkset(:a_link_set) do 
-    base_document.add_items_to_property(:a_link_set) do 
-      (1..9).map do |x|
-	 @link_class.new_document attributes: { att: " #{x} attribute" } 
-      end
-    end
-  
-     expect( base_document[ :a_link_set ]).to have(9).items
-    # reload document
-     reloaded_document =  base_document.reload!
-     expect( reloaded_document.a_link_set).to have(9).items
-     reloaded_document.a_link_set.each{|x| expect(x).to be_a REST::Model }
-   #  expect(base_document.to_link_class).to eq link_document
-
-    end
-      
-
-  end
-
-  context "Operate with an embedded object"  do
-    before(:all) do 
-      @r.delete_class  'Testbaseclass'
-
-      @base_class = @r.create_class 'Testbaseclass'
-      @base_class.create_property  'to_data', type: 'embeddedlist', linked_class: 'FLOAT'
-#      @base_class.create_property  'a_link_set', type: 'linkset', linked_class: @link_class
-    
-    end
-    it "work with a schemaless approach" do
-  
-      emb = [1,"  2  ","zu",1]
-      base_document = @base_class.new_document attributes: { embedded_item: emb }
-      expect(base_document.embedded_item).to eq emb
-
-      base_document.add_item_to_property :embedded_item, " zU"
-      #base_document.update_embedded :embedded_item, " zU"
-      expect(base_document.embedded_item).to eq emb << " zU"
-
-      reloaded_document =  base_document.reload!
-      expect(reloaded_document.embedded_item).to eq emb
-  
-    end
-
-    it "work with embeddedlist" do
-      emb = [1,2,"zu",1]
-      nbase_document = @base_class.new_document attributes: { to_data: emb }
-      expect(nbase_document.to_data).to eq emb
-      #nbase_document.update_embedded :to_data, " 45"
-      nbase_document.add_item_to_property :to_data, " 45"
-      expect(nbase_document.to_data).to eq emb << " 45"
-
-      reloaded_document =  @r.get_document nbase_document.rid
-      expect(reloaded_document.to_data).to eq emb
-      expect(reloaded_document.to_data).to eq [1,2,"zu",1, " 45"]  # Orientdb convertes " 45" to a numeric
-    end
-  end
-
- # context "Query", focus: true do
-
-   #   before(:all){@testmodel.new_document attributes: { test: 45} }
-      
-#      it 
- # end
 
   context "ActiveRecord mimics"    do
-   before(:all){ (0..45).each{|x| @testmodel.new_document :attributes => { test: x } }}
+   before(:all){ (0..45).each{|x| TestModel.create  test: x  }}
    it "fetch all documents into an Array" do
-#      @testmodel.new_document attributes: { test: 45} 
-      all_documents = @testmodel.all
+      all_documents = TestModel.all
       expect( all_documents ).to be_a Array #HashWithIndifferentAccess
       expect( all_documents ).to have_at_least(46).elements
       all_documents.each{|x| expect(x).to be_a REST::Model }
     end
 
     it "get a set of documents queried by where"  do
-      all_documents = @testmodel.all  ## all fetches only 20 records
+      all_documents = TestModel.all  ## all fetches only 20 records
 #      puts all_documents.map( &:test).join(' .. ')
-      nr_23=  @testmodel.where  test: 23 
+      nr_23=  TestModel.where  test: 23 
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23
-      expect( @testmodel.all.size).to eq  46
+      expect( TestModel.all.size).to eq  47
     end
     it "datasets are unique only  on update" do
-    expect{ @r.update_or_create_documents( @testmodel, :where => { test: 45 }) }. not_to change { @testmodel.all.size }
-     expect{ @testmodel.new_document attributes: { test: 45} }.to change { @testmodel.all.size }
+    expect{ @r.update_or_create_documents( TestModel, :where => { test: 45 }) }. not_to change { TestModel.count }
+     expect{ TestModel.create  test: 45 }.to change { TestModel.count }
     end
 
 
