@@ -391,7 +391,7 @@ todo: remove all instances of the class
 	js= if linked_class.nil?
 	 { field => { propertyType: type.upcase } }
 	    else
-	 { field => { propertyType: type.upcase,  linkedClass: linked_class } }
+	 { field => { propertyType: type.upcase,  linkedClass: class_name( linked_class ) } }
 	    end
 	create_properties( o_class ){ js }
 
@@ -499,14 +499,25 @@ If raw is specified, the JSON-Array is returned, eg
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 
-    def get_documents o_class , where: {} , raw: false, limit: -1, ignore_block: false
+    def get_documents o_class , where: {} , raw: false, limit: -1, order: nil, ignore_block: false
 
         select_string =  'select from ' << class_name(o_class) 
 	where_string =  compose_where( where )
+	order_string =  if order.present? 
+			  " order by " << if order.is_a?( Hash )
+					   order.map{ |x,y| "#{x} #{y} " }.join( " " )
+					elsif order.is_a?( Array )
+					    order.map{ |x| "#{x} asc "}.join( " " )
+					else
+					    order.to_s
+					end
+			else
+			  ""
+			end
 	#
 	# a block can be provided to extract the sql-statements prior to their execution
-	yield( select_string + where_string ) if block_given? #&& !ignore_block
-	url=  query_sql_uri << select_string << where_string  << "/#{limit}" 
+	yield( select_string + where_string + order_string ) if block_given? #&& !ignore_block
+	url=  query_sql_uri << select_string << where_string  << order_string << "/#{limit}" 
 	response =  @res[URI.encode(url) ].get
       r=JSON.parse( response.body )['result'].map do |document |
 	  if raw then document else  o_class.new( document ) end

@@ -134,9 +134,7 @@ module REST
 	REST::Model.autoload_object  iv
       elsif iv.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
      # puts "autoload: #{iv.inspect}"
-	iv.map{|y| y.rid? ? REST::Model.autoload_object(  y ) : y  }
-      elsif ib.is_a? Hash
-
+	Orient::OArray.new self, *iv.map{|y| (y.is_a?(String) && y.rid?) ? REST::Model.autoload_object(  y ) : y  }
       else
 
 	iv
@@ -164,9 +162,12 @@ module REST
 	  x 
 	end
 	}
+      elsif val.is_a?(Array)
+	val = Orient::OArray.new( self, *val )
 
       end
-#      puts "val = #{val.inspect}"
+     # puts "val = #{val.inspect}"
+     # puts "val = #{val.class}"
       val = HashWithIndifferentAccess.new(val) if val.is_a?( Hash )
       attributes[key.to_sym] = val
     end

@@ -5,6 +5,7 @@ require "#{project_root}/lib/base.rb"
 require "#{project_root}/lib/base_properties.rb"
 
 require "#{project_root}/lib/model.rb"
+require "#{project_root}/lib/orient.rb"
 require "#{project_root}/lib/rest.rb"
 #require "#{project_root}/lib/graph.rb"
 

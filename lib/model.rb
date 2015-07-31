@@ -52,6 +52,7 @@ to_do: fetch for version in the db and load the object if a change is detected
      @@rid_store[link_cluster_and_record].presence || orientdb.get_document( link ) 
    end
 
+  
   def self.superClass
     orientdb.get_classes( 'name', 'superClass').detect{|x| x["name"].downcase ==  new.class.to_s.downcase.split(':')[-1].to_s
     }['superClass']
@@ -107,11 +108,16 @@ Queries the database and fetches the count of datasets
      orientdb.count_documents( self , where: where)
    end
 =begin
-Creates a new document with the applied attributes
+Creates a new Instance of the Class with the applied attributes
 and returns the freshly instantiated Object
 =end
 
-   def self.new_document attributes: {}
+   def self.new_instance attributes = {}
+      orientdb.create_or_update_document  self, set: attributes
+   end
+
+   # historic method
+   def self.new_document attributes: {}  # :nodoc:
       orientdb.create_or_update_document  self, set: attributes
    end
 =begin
@@ -195,6 +201,11 @@ end
    def self.first
      orientdb.get_documents(  self, limit: 1).pop
    end
+
+   def self.last
+     #  debug:: orientdb.get_documents( self, order: { "@rid" => 'desc' }, limit: 1 ){ |x| puts x }.pop
+     orientdb.get_documents( self, order: { "@rid" => 'desc' }, limit: 1 ).pop
+   end
 =begin
 Convient update of the dataset by calling sql-patch
 The attributes are saved to the database.
@@ -206,12 +217,12 @@ With the optional :set argument ad-hoc attributes can be defined
    def update  set: {}
       attributes.merge! set
     
-     result= orientdb.patch_document(rid) do
+      result= orientdb.patch_document(rid) do
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
 #     returns a new instance of REST::Model
      REST::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
-     reload!
+     #reload!
    end
 =begin
 Overwrite the attributes with Database-Contents
@@ -221,6 +232,46 @@ Overwrite the attributes with Database-Contents
      @metadata[:version]= updated_dataset.version
      attributes = updated_dataset.attributes
      self  # return_value  (otherwise only the attributes would be returned)
+   end
+
+   def remove_item_from_property array, item=nil
+     logger.progname = 'REST::Model#RemoveItemFromProperty'
+     execute_array =  Array.new
+     return unless attributes.has_key? array
+     remove_execute_array = -> (it) do
+       case it
+       when REST::Model
+	 execute_array <<  {type: "cmd", language: "sql", command: "update #{link} remove #{array} = #{it.link}"} 
+       when String
+	  execute_array <<  {type: "cmd", language: "sql", command: "update #{link} remove #{array} = '#{it}'"} 
+       when Numeric
+	  execute_array <<  {type: "cmd", language: "sql", command: "update #{link} remove #{array} = #{it}"} 
+       else
+	 logger.error { "Only Basic Formats supported . Cannot Serialize #{it.class} this way" }
+	 logger.error { "Try to load the array from the DB, modify it and update the hole record" }
+       end
+     end
+
+     if block_given?
+       items =  yield
+       items.each{|x| remove_execute_array[x];   self.attributes[array].delete( x ) }
+     elsif item.present?
+       remove_execute_array[item]
+       a= attributes; a.delete item
+       self.attributes[array].delete( item )
+     end
+     puts "execute_array => #{execute_array}"
+#    puts "attributes: #{attributes.inspect}"
+     orientdb.execute do
+       execute_array
+     end
+     reload!
+    #puts "attributes: #{attributes.inspect}"
+     
+
+   rescue RestClient::InternalServerError => e
+     logger.error " Could not remove item in #{array} "
+     logger.error e.inspect
    end
 
 =begin
