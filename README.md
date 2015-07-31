@@ -48,7 +48,7 @@ If a schema is used, properties can be created and retrieved as well
   r.create_properties( M ) do
      {	symbol: { propertyType: 'STRING' },
 		con_id: { propertyType: 'INTEGER' },
-       		details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+       	details: { propertyType: 'LINK', linkedClass: 'Contracts' }
       }
 
   r.get_class_properties  M 
