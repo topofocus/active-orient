@@ -97,15 +97,25 @@ connects the vertices  with the edge and assigns the attributes to the edge
 
 #### Links
 
-Links are followed and autoloaded.  This includes edges.
+A record in a database-class is defined by a »rid«. Every Model-Object comes with a handy »link«-method.
+In OrientDB this can be used to organize 1:1 and 1:n relationships.
+ActiveOrient autoloads Model-objects.
+
+If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies this object when stored in a Model-property.
+
 ```ruby
   TestLinks = r.create_class 'Test_link_class'
   TestBase = r.create_class 'Test_base_class'
 
   link_document =  TestLinks.create  att: 'one attribute' 
-  base_document =  TestBase.create  base: 'my_base', single_link: link_document.link 
+  base_document =  TestBase.create  base: 'my_base', single_link: link_document 
 ```
-then  base_document.single_link  automatically loads the  REST::Model::Testlinkclass-object
+then  base_document.single_link stores the rid. When accessed, REST::Model::Testlinkclass-object is autoloaded
+and 
+``` ruby
+   base_document.single_link.att
+```
+reads the stored content of link_document. 
 
 To store a list of links to other Database-Objects a simple Array is allocated
 ``` ruby
@@ -114,12 +124,13 @@ To store a list of links to other Database-Objects a simple Array is allocated
   end
 
 ```
+base_document.links behaves like a ruby-array. 
 
-If you got an undirectional graph
+As a consequence, if you got an undirectional graph
 
    a --> b ---> c --> d
 
-then the graphelements can be explored by joining the objects ( a.b.c.d ), or (a.b[5].c[9].d )
+the graphelements can be explored by joining the objects ( a.b.c.d ), or (a.b[5].c[9].d )
 
 #### Edges
 
