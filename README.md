@@ -110,8 +110,7 @@ If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies this
   link_document =  TestLinks.create  att: 'one attribute' 
   base_document =  TestBase.create  base: 'my_base', single_link: link_document 
 ```
-then  base_document.single_link stores the rid. When accessed, REST::Model::Testlinkclass-object is autoloaded
-and 
+base_document.single_link just contains the rid. When accessed, the REST::Model::Testlinkclass-object is autoloaded and 
 ``` ruby
    base_document.single_link.att
 ```
