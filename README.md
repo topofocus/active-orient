@@ -31,10 +31,10 @@ then
 Let's create some classes 
 
  ```ruby
-    M = r.open_class          classname  # 
-    M = r.create_class        classname  # creates or opens a basic document-class
-    M = r.create_vertex_class classname  # creates or opens a vertex-class 
-    M = r.create_edge_class   classname  # creates or opens an edge-class, providing bidirectional links between documents
+    M = r.open_class          'classname'  # 
+    M = r.create_class        'classname'  # creates or opens a basic document-class
+    M = r.create_vertex_class 'classname'  # creates or opens a vertex-class 
+    M = r.create_edge_class   'classname'  # creates or opens an edge-class, providing bidirectional links between documents
 
     r.delete_class   M                   # universal removal-class-method
  ```
@@ -64,10 +64,10 @@ If a schema is used, properties can be created and retrieved as well
  
 Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defined  by
 ```ruby
-  M =  r.create_class classname #  , superclass: superclassname ( optional )
-  Vertex =  r.create_vertex_class classname 
-  Edge   =  r.create_edge_class   classname 
-  
+  M =  r.create_class 'classname' 
+  M =  r.create_class { superclass_name:  'classname'  }
+  Vertex =  r.create_vertex_class 'classname' 
+  Edge   =  r.create_edge_class   'classname' 
 ```
 and is of TYPE REST::Model::{classname}
 
@@ -92,7 +92,7 @@ gets the number of datasets fullfilling the search-criteria
 ```ruby
   vertex_1 = Vertex.create  color: "blue"
   vertex_2 = Vertex.create  flower: "rose"
-  E.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
+  Edge.create_edge attributes: { :birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 connects the vertices and assigns the attributes to the edge
 

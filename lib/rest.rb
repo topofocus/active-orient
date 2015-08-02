@@ -39,7 +39,7 @@ initialises the Database-Connection and publishes the Instance to any REST::Mode
 
   def initialize database: nil,  connect: true
     @res = get_ressource
-    @database = database|| YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
+    @database = database.presence || YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
     connect() if connect
     # save existing classes 
     @classes = []
@@ -93,11 +93,11 @@ Types are either 'plocal' or 'memory'
 
 returns the name of the working-database
 =end
-    def create_database type: 'plocal' , name: @database
+    def create_database type: 'plocal' , database: @database
           logger.progname = 'OrientDB#CreateDatabase'
 	  old_d = @database
 	  @classes = []
-	  @database = name
+	  @database = database
 	  begin
           response = @res[database_uri{ type }].post  ""
 	  if response.code == 200
@@ -126,22 +126,22 @@ deletes the database and returns true on success
 
 after the removal of the database, the working-database might be empty
 =end
-    def delete_database name:
+    def delete_database database:
       @classes = []
       logger.progname = 'OrientDB#DropDatabase'
        old_ds =  @database
-       change_database name
+       change_database database
        begin
 	 response = @res[database_uri].delete
-	 if name == old_ds
+	 if database == old_ds
 	   change_database ""
 	   logger.info{ "Working database deleted" }
 	 else
 	   change_database old_ds
-	   logger.info{ "Database #{name} deleted, working database is still #{@database} "}
+	   logger.info{ "Database #{database} deleted, working database is still #{@database} "}
 	 end
        rescue RestClient::InternalServerError => e
-	 logger.info{ "Database #{name} NOT deleted" }
+	 logger.info{ "Database #{database} NOT deleted" }
 	 change_database old_ds
        end
       !response.nil?  && response.code == 204 ?  true : false
@@ -227,7 +227,7 @@ parameter: include_system_classes: false|true, requery: false|true
       requery =  true if @classes.empty?
       if requery
 	class_hierachie  requery: true
-	system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "V", "_studio","E"]
+	system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "_studio"]
 	all_classes = get_classes( 'name' ).map( &:values).flatten
 	@classes = include_system_classes ? all_classes : all_classes - system_classes 
       end
@@ -273,11 +273,16 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	    end
 	  elsif classes.is_a?(Hash)
 	    classes.keys.map do | superclass | 
-	      if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
-		class_cmd[superclass, classes[superclass] ]
-	      else 
-		classes[superclass].map{|n| class_cmd[superclass, n] }
-	      end
+	      items =  Array.new
+	      superClass =  superclass.to_s.camelize 
+	      items <<  { type: "cmd", language: 'sql', command:  "create class #{superClass} abstract" }  unless  database_classes.flatten.include?( superClass ) 
+	      items << if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
+		class_cmd[superClass, classes[superclass] ]
+	      elsif  classes[superclass].is_a?( Array )  
+		classes[superclass].map{|n| class_cmd[superClass, n] }
+	      end 
+	      #puts items.flatten.map{|x| x[:command]}
+	      items  # returnvalue
 	    end.flatten 
 	  end.compact # erase nil-entries, in case the class is already allocated
       end

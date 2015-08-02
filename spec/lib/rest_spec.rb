@@ -14,25 +14,23 @@ describe REST::OrientDB do
 
     # working-database: hc_database
 #    REST::Model.logger = Logger.new('/dev/stdout')
-    @r= REST::OrientDB.new database: 'hc_database' , :connect => false
-    REST::Model.orientdb = @r
-    databases =  @r.get_databases
-    unless databases.include? 'hc_database'
-      @r.create_database name: 'hc_database'
-    end
+    @database_name = 'MyTest'
+    r = REST::OrientDB.new connect: false
+    r.delete_database database: @database_name
+    @r= REST::OrientDB.new database: @database_name
 
     end
 
 
   context "check private methods", :private do
     it 'simple_uris' do
-      expect( @r.property_uri('test')).to eq "property/hc_database/test"
-      expect( @r.command_sql_uri ).to eq "command/hc_database/sql/"
-      expect( @r.query_sql_uri ).to eq "query/hc_database/sql/"
-      expect( @r.database_uri ).to eq "database/hc_database"
-      expect( @r.document_uri ).to eq "document/hc_database"
-      expect( @r.class_uri ).to eq "class/hc_database"
-      expect( @r.class_uri {'test'} ).to eq "class/hc_database/test"
+      expect( @r.property_uri('test')).to eq "property/#{@database_name}/test"
+      expect( @r.command_sql_uri ).to eq "command/#{@database_name}/sql/"
+      expect( @r.query_sql_uri ).to eq "query/#{@database_name}/sql/"
+      expect( @r.database_uri ).to eq "database/#{@database_name}"
+      expect( @r.document_uri ).to eq "document/#{@database_name}"
+      expect( @r.class_uri ).to eq "class/#{@database_name}"
+      expect( @r.class_uri {'test'} ).to eq "class/#{@database_name}/test"
 
     end
   end
@@ -56,7 +54,7 @@ describe REST::OrientDB do
       classes = @r.get_classes 'name', 'superClass'
 
       # the standard-properties should always be present
-      ["E","V", "OFunction" , 
+      ["OFunction" , 
        "OIdentity" , "ORIDs" , "ORestricted" ,
        "ORole" , "OSchedule" , "OTriggered" , "OUser" ].each do |c|
 	expect( classes.detect{ |x|  x['name'] == c } ).to be_truthy
@@ -65,7 +63,6 @@ describe REST::OrientDB do
     end
 
     it "create  and delete a Class  "  do
-      # ActiveModel-Classes are Singular, OrientDB-Classes are Pluralized
       re = @r.delete_class  classname
 #      expect( re ).to be_falsy
       model = @r.create_class  classname
@@ -77,7 +74,7 @@ describe REST::OrientDB do
       expect( @r.database_classes ).not_to include @r.class_name( classname )
     end
 
-    it "create and delete an Edge " do
+    it "create and delete an Edge "  do
       # Edges are always Singular
       @r.delete_class  edgename
       model = @r.create_edge_class  edgename
@@ -120,7 +117,7 @@ describe REST::OrientDB do
 	classes_simple.each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
 	klasses.each{|x| expect(x.superclass).to eq REST::Model }
       end
-      it "create Vertex clases" do
+      it "create Vertex clases"  do
 	klasses = @r.create_classes classes_vertex
 	classes_vertex[:v].each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
 	klasses.each do |x|
@@ -139,12 +136,13 @@ describe REST::OrientDB do
 	expect( REST::Model::Property.new_document ).to be_a REST::Model
       end
 
-      it "define a Property at class-level" do
+      it "define a Property at class-level"  do
 	Property = @r.open_class 'property'
+	@r.open_class 'contracts'
 	rp = @r.create_properties( Property ) do
 	  { symbol: { propertyType: 'STRING' },
-     con_id: { propertyType: 'INTEGER' } ,  
-     details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+	    con_id: { propertyType: 'INTEGER' } ,  
+	    details: { propertyType: 'LINK', linkedClass: 'Contracts' }
 	  }
 	end
 
@@ -370,14 +368,14 @@ describe REST::OrientDB do
 
     it "create a database" do
       newDB = 'newTestDatabase'
-      r =  @r.create_database name: newDB
+      r =  @r.create_database database: newDB
       expect(r).to eq newDB
     end
 
-    it "delete a database" do
+    it "delete a database"  do
 
       rmDB = 'newTestDatabase'
-      r = @r.delete_database name: rmDB
+      r = @r.delete_database database: rmDB
       expect( r ).to be_truthy
     end
   end

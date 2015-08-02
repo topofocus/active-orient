@@ -34,13 +34,12 @@ describe Orient::OArray do
   context "add and populate an OArray" do
     it "initialize the Object" do
       @record.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] }
-      puts @record.ll.class
       expect( @record.ll ).to be_a Orient::OArray
       expect( @record.ll.first ).to eq "test"
       expect( @record.ll[1] ).to eq 5
     end
     it "modify the Object" do
-      expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 1
+      expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 2
       expect{ @record.ll << 78 }.to change { @record.ll.size }.by 1
 
       expect{ @record.ll.delete_at(2) }.to change { @record.ll.size }.by -1
