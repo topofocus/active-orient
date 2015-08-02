@@ -6,18 +6,18 @@ require 'active_support'
 shared_examples_for 'a valid Class' do
 
 end
-describe REST::OrientDB do
+describe ActiveOrient::OrientDB do
   
 #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
 
     # working-database: hc_database
-#    REST::Model.logger = Logger.new('/dev/stdout')
+    ActiveOrient::Model.logger = Logger.new('/dev/stdout')
     @database_name = 'MyTest'
-    r = REST::OrientDB.new connect: false
+    r = ActiveOrient::OrientDB.new connect: false
     r.delete_database database: @database_name
-    @r= REST::OrientDB.new database: @database_name
+    @r= ActiveOrient::OrientDB.new database: @database_name
 
     end
 
@@ -66,8 +66,8 @@ describe REST::OrientDB do
       re = @r.delete_class  classname
 #      expect( re ).to be_falsy
       model = @r.create_class  classname
-      expect( model.new  ).to be_a REST::Model
-      expect( model.to_s ).to eq "REST::Model::#{classname.camelize}"
+      expect( model.new  ).to be_a ActiveOrient::Model
+      expect( model.to_s ).to eq "ActiveOrient::Model::#{classname.camelize}"
       expect( @r.class_name  model ).to eq classname.camelize
       expect( @r.database_classes ).to include @r.class_name( classname )  
       expect( @r.delete_class( model ) ).to be_truthy
@@ -78,9 +78,9 @@ describe REST::OrientDB do
       # Edges are always Singular
       @r.delete_class  edgename
       model = @r.create_edge_class  edgename
-      expect( model.new ).to be_a REST::Model
+      expect( model.new ).to be_a ActiveOrient::Model
       expect( model.superClass ).to eq "E"
-      expect( model.to_s ).to eq "REST::Model::#{edgename.camelize}"
+      expect( model.to_s ).to eq "ActiveOrient::Model::#{edgename.camelize}"
       ## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
       expect( model.new.is_edge? ).to be_falsy
       expect( @r.class_name  model ).to eq edgename.camelize
@@ -95,7 +95,7 @@ describe REST::OrientDB do
       myvertex = @r.create_vertex_class  vertexname
       expect(@r.database_classes ).to include @r.class_name( vertexname )
       expect( myvertex ).to be_a  Class
-      expect( myvertex.new).to be_a REST::Model
+      expect( myvertex.new).to be_a ActiveOrient::Model
       expect( @r.class_hierachie( base_class: 'V').flatten ).to include @r.class_name( vertexname)
       expect( @r.delete_class vertexname ).to be_truthy
     end
@@ -115,28 +115,28 @@ describe REST::OrientDB do
       it "create  simple classes" do
 	klasses = @r.create_classes classes_simple 
 	classes_simple.each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
-	klasses.each{|x| expect(x.superclass).to eq REST::Model }
+	klasses.each{|x| expect(x.superclass).to eq ActiveOrient::Model }
       end
       it "create Vertex clases"  do
 	klasses = @r.create_classes classes_vertex
 	classes_vertex[:v].each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
 	klasses.each do |x|
-	  expect(x.superclass).to eq REST::Model 
+	  expect(x.superclass).to eq ActiveOrient::Model 
 	  expect(x.superClass).to eq 'V' 
 	end
       end
     end
 
-    describe "define Properties at Class-Level"   do
+    describe "handle Properties at Class-Level"   do
       before(:all){ @r.create_class 'property' }
       after(:all){ @r.delete_class 'property' }
 
 
       it "Class is present" do
-	expect( REST::Model::Property.new_document ).to be_a REST::Model
+	expect( ActiveOrient::Model::Property.new_document ).to be_a ActiveOrient::Model
       end
 
-      it "define a Property at class-level"  do
+      it "define some Properties"  do
 	Property = @r.open_class 'property'
 	@r.open_class 'contracts'
 	rp = @r.create_properties( Property ) do
@@ -148,8 +148,6 @@ describe REST::OrientDB do
 
 	expect( rp ).to eq 3
 
-	puts Property.new_document.inspect
-	puts rp.inspect
 	rp= @r.get_class_properties  Property 
 
 	# has "name"=>"Properties", "superClass"=>"", "superClasses"=>[], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[12], "defaultCluster"=>12, "clusterSelection"=>"round-robin", "records"=>0, "properties"=>[{"name"=>"con_id", "type"=>"INTEGER", "mandatory"=>false, "readonly"=>false, "notNull"=>false, "min"=>nil, "max"=>nil, "regexp"=>nil, "collate"=>"default"
@@ -192,7 +190,7 @@ describe REST::OrientDB do
     it "create a single document"  do
       res=  @r.create_document @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
       puts res.inspect
-      expect( res).to be_a REST::Model
+      expect( res).to be_a ActiveOrient::Model
       expect( res.con_id ).to eq 345
       expect( res.symbol ).to eq 'EWQZ'
       expect( res.version).to eq 1
@@ -285,7 +283,7 @@ describe REST::OrientDB do
 	  con_id: { propertyType: 'INTEGER' }   
 	}
       end
-      @query_class =  REST::Query.new
+      @query_class =  ActiveOrient::Query.new
 #      @query_class.orientdb =  @r
     end
     after(:all){  @r.delete_class @rest_class }
@@ -349,7 +347,7 @@ describe REST::OrientDB do
       expect( res).to be_a Array
       expect( res.size ).to eq 1 
       expect( res.first.name).to eq  'Lancia Musa'
-      expect( res.first).to be_a REST::Model::Myquery
+      expect( res.first).to be_a ActiveOrient::Model::Myquery
 
     end
 

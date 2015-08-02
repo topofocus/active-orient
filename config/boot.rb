@@ -15,8 +15,8 @@ result = libs.reverse.collect { |file| [file, require( file )] }
 
 logger =  Logger.new '/dev/stdout'
 #REST::Graph.logger =  logger
-REST::Model.logger =  logger
-REST::OrientDB.logger =  logger
+ActiveOrient::Model.logger =  logger
+ActiveOrient::OrientDB.logger =  logger
 
 
 

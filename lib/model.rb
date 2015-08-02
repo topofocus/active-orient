@@ -9,29 +9,26 @@ class Numeric
    "#{self.to_s}"  
   end
 end
-module REST
+module ActiveOrient
 
 #require 'base'
 #require 'base_properties'
 
-class Model < REST::Base
+class Model < ActiveOrient::Base
    include BaseProperties
 
    mattr_accessor :orientdb
    mattr_accessor :logger
 =begin
-orientdb_class is used to instantiate a REST:Model:{class} by providing its name
+orientdb_class is used to instantiate a ActiveOrient:Model:{class} by providing its name
 todo: implement object-inherence
 =end
    def self.orientdb_class name: 
-       #logger.progname =  "REST::Model#orientdb_class" 
      klass = Class.new( self )
      name =  name.to_s.camelize
      if self.send :const_defined?, name 
-      # logger.debug { "Class  #{name} already defined ... skipping" }
        retrieved_class =  self.send :const_get, name
      else
-     
 	new_class = self.send :const_set  , name , klass
 	new_class.orientdb =  orientdb
 	new_class # return_value
@@ -39,7 +36,7 @@ todo: implement object-inherence
    end
 
 =begin
-REST::Model.autoload_object "#00:00"
+ActiveOrient::Model.autoload_object "#00:00"
 either retrieves the object from the rid_store or loads it from the DB
 
 the rid_store is updated!
@@ -150,13 +147,13 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
       o  # return_value
    end
 =begin
-Performs a query on the Class and returns an Array of REST:Model-Records.
+Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
 
 Example:
   Log =  r.open_class 'Log'
   Log.where priority: 'high'
   --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
-  => [ #<REST::Model::Log:0x0000000480f7d8 @metadata={ ... },  ... ]
+  => [ #<ActiveOrient::Model::Log:0x0000000480f7d8 @metadata={ ... },  ... ]
 
 
 =end
@@ -177,7 +174,7 @@ returns true (successfully deleted) or false  ( obj not deleted)
      else
       orientdb.delete_document  rid
      end
-     REST::Base.remove_riid self if r # removes the obj from the rid_store
+     ActiveOrient::Base.remove_riid self if r # removes the obj from the rid_store
      r # true or false 
    end
 =begin
@@ -210,7 +207,7 @@ end
 Convient update of the dataset by calling sql-patch
 The attributes are saved to the database.
 With the optional :set argument ad-hoc attributes can be defined
-  obj = REST::Model::Contracts.first
+  obj = ActiveOrient::Model::Contracts.first
   obj.name =  'new_name'
   obj.update set: { yesterdays_event: 35 }
 =end
@@ -220,8 +217,8 @@ With the optional :set argument ad-hoc attributes can be defined
       result= orientdb.patch_document(rid) do
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
-#     returns a new instance of REST::Model
-     #REST::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
+#     returns a new instance of ActiveOrient::Model
+     #ActiveOrient::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
      reload!
    end
 =begin
@@ -235,12 +232,12 @@ Overwrite the attributes with Database-Contents
    end
 
    def remove_item_from_property array, item=nil
-     logger.progname = 'REST::Model#RemoveItemFromProperty'
+     logger.progname = 'ActiveOrient::Model#RemoveItemFromProperty'
      execute_array =  Array.new
      return unless attributes.has_key? array
      remove_execute_array = -> (it) do
        case it
-       when REST::Model
+       when ActiveOrient::Model
 	 execute_array <<  {type: "cmd", language: "sql", command: "update #{link} remove #{array} = #{it.link}"} 
        when String
 	  execute_array <<  {type: "cmd", language: "sql", command: "update #{link} remove #{array} = '#{it}'"} 
@@ -260,7 +257,7 @@ Overwrite the attributes with Database-Contents
        a= attributes; a.delete item
        self.attributes[array].delete( item )
      end
-     puts "execute_array => #{execute_array}"
+#     puts "execute_array => #{execute_array}"
 #    puts "attributes: #{attributes.inspect}"
      orientdb.execute do
        execute_array
@@ -284,18 +281,18 @@ its called via
 or
   mode.add_items_to_property( linkset- or embedded property ) do
       Array_of_Objects_to_be_linked_to
-      (actually, the objects must inherent from REST::Model, Numeric, String)
+      (actually, the objects must inherent from ActiveOrient::Model, Numeric, String)
   end
 
   to_do:  use "<<" to add the item to the property
 =end
    def add_item_to_property array, item=nil
-     logger.progname = 'REST::Model#AddItem2Property'
+     logger.progname = 'ActiveOrient::Model#AddItem2Property'
      execute_array =  Array.new
      self.attributes[array] = Array.new unless attributes[array].present?
      add_2_execute_array = -> (it) do
        case it
-       when REST::Model
+       when ActiveOrient::Model
 	 execute_array <<  {type: "cmd", language: "sql", command: "update #{link} add #{array} = #{it.link}"} 
        when String
 	  execute_array <<  {type: "cmd", language: "sql", command: "update #{link} add #{array} = '#{it}'"} 

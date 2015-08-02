@@ -2,7 +2,7 @@
 require 'spec_helper'
 require 'active_support'
 
-module REST
+module ActiveOrient 
   class Base
     def self.get_riid
       @@rid_store
@@ -10,35 +10,34 @@ module REST
   end
 end
 
-describe REST::Model do
+describe ActiveOrient::Model do
   before( :all ) do
 
     # working-database: hc_database
-    REST::Base.logger = Logger.new('/dev/stdout')
+    ActiveOrient::Base.logger = Logger.new('/dev/stdout')
 
-    @r= REST::OrientDB.new database: 'hc_database' , :connect => false
-    REST::Model.orientdb  =  @r
+    @r= ActiveOrient::OrientDB.new database: 'MyTest'
     @r.delete_class 'model_test'
     TestModel = @r.open_class "model_test" 
     @myedge = @r.create_edge_class  'Myedge'
     @mynode = @r.create_vertex_class  'Mynode'
   end
 
-  context "REST::Model classes got a logger and a database-reference" do
+  context "ActiveOrient::Model classes got a logger and a database-reference" do
     
-    subject { REST::Model.orientdb_class name: 'Test' }
+    subject { ActiveOrient::Model.orientdb_class name: 'Test' }
     it{ is_expected.to be_a Class }
     its( :logger) { is_expected.to be_a Logger }
-    its( :orientdb) { is_expected.to be_a REST::OrientDB }
+    its( :orientdb) { is_expected.to be_a ActiveOrient::OrientDB }
 
     it "a Model-Instance inherents logger and db-reference" do
       object =  subject.new
       expect( object.logger ).to be_a Logger
-      expect( object.orientdb ).to be_a REST::OrientDB
+      expect( object.orientdb ).to be_a ActiveOrient::OrientDB
     end
 
     it "repeatedly instantiated Model-Objects are allocated once" do
-      second =  REST::Model.orientdb_class name: 'Test' 
+      second =  ActiveOrient::Model.orientdb_class name: 'Test' 
       expect( second).to eq subject
     end
   end
@@ -61,11 +60,11 @@ describe REST::Model do
       expect( TestModel.count ).to be_zero
     end
 
-    let( :new_document ){REST::Model::ModelTest.create test: 45 }
+    let( :new_document ){ActiveOrient::Model::ModelTest.create test: 45 }
     it "create a document"  do
       expect( new_document.test ).to eq 45 
-      expect(new_document).to be_a REST::Model::ModelTest
-      expect( REST::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
+      expect(new_document).to be_a ActiveOrient::Model::ModelTest
+      expect( ActiveOrient::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end  
 
 
@@ -73,12 +72,12 @@ describe REST::Model do
       all = TestModel.all
       expect(all).to be_a Array
       expect(all.size).to eq 1
-      expect(all.first).to  be_a REST::Model::ModelTest
+      expect(all.first).to  be_a ActiveOrient::Model::ModelTest
       expect(all.first.test).to eq 45
     end
 
     it "the document can be retrieved by first" do
-      expect( TestModel.first ).to be_a REST::Model::ModelTest
+      expect( TestModel.first ).to be_a ActiveOrient::Model::ModelTest
       expect( TestModel.first.test ).to eq 45
     end
 
@@ -108,7 +107,7 @@ describe REST::Model do
       all_documents = TestModel.all
       expect( all_documents ).to be_a Array #HashWithIndifferentAccess
       expect( all_documents ).to have_at_least(46).elements
-      all_documents.each{|x| expect(x).to be_a REST::Model }
+      all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }
     end
 
     it "get a set of documents queried by where"  do
@@ -133,7 +132,7 @@ describe REST::Model do
 			  attributes: { halbwertzeit: 45 }, 
 			  from: node_1,
 			  to:   node_2  )
-      expect( the_edge).to be_a REST::Model
+      expect( the_edge).to be_a ActiveOrient::Model
 
       # creation of a second edge with the same properties leads to  reusing the existent edge
       the_edge2= @myedge.create_edge( 

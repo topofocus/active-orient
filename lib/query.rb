@@ -1,6 +1,6 @@
 
-module REST
-class Query < REST::Model
+module ActiveOrient 
+class Query < ActiveOrient::Model
 
    has_many :records
    has_many :queries
@@ -14,7 +14,7 @@ class Query < REST::Model
      self.queries = []
    end
 =begin
-calls REST::Rest#GetDocuments
+calls ActiveOrient::REST#GetDocuments
 stores the query in the query-stack and saves the result in the record-Array
 
 returns the count of assigned records

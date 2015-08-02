@@ -8,7 +8,7 @@
         HashWithIndifferentAccess.new self
     end
   end
-module REST
+module  ActiveOrient
   require 'active_model'
   #
   # Base class for tableless IB data Models, extends ActiveModel API
@@ -61,7 +61,7 @@ module REST
     # If a opts hash is given, keys are taken as attribute names, values as data.
     # The model instance fields are then set automatically from the opts Hash.
     def initialize attributes={}, opts={}
-      logger.progname= "REST::Base#initialize"
+      logger.progname= "ActiveOrient::Base#initialize"
       #possible_link_array_candidates = link_candidates = Hash.new
       @metadata = HashWithIndifferentAccess.new
 #      @edges = HashWithIndifferentAccess.new
@@ -112,7 +112,7 @@ module REST
 
 	  self.attributes = attributes # set_attribute_defaults is now after_init callback
 	end
-	REST::Base.store_riid self
+	ActiveOrient::Base.store_riid self
       end
 
     # ActiveModel API (for serialization)
@@ -131,10 +131,10 @@ module REST
       iv= attributes[key.to_sym]
       if  iv.is_a?(String) && iv.rid? #&& @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
      # puts "autoload: #{iv}"
-	REST::Model.autoload_object  iv
+	ActiveOrient::Model.autoload_object  iv
       elsif iv.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
      # puts "autoload: #{iv.inspect}"
-	Orient::OArray.new self, *iv.map{|y| (y.is_a?(String) && y.rid?) ? REST::Model.autoload_object(  y ) : y  }
+	OrientSupport::Array.new self, *iv.map{|y| (y.is_a?(String) && y.rid?) ? ActiveOrient::Model.autoload_object(  y ) : y  }
       else
 
 	iv
@@ -146,14 +146,14 @@ module REST
     end
 
     def []= key, val
-      val = val.rid if val.is_a? REST::Model
+      val = val.rid if val.is_a? ActiveOrient::Model
 #      if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
 #	if @metadata[ :fieldTypes ] =~ /out=x,in=x/
 #	puts "VAL is a ARRAY"
 #	else
 #	  puts "METADATA: #{ @metadata[ :fieldTypes ]}  "
 #	end
-#	val# = val.map{|x|  if val.is_a? REST::Model then val.rid else val end }
+#	val# = val.map{|x|  if val.is_a? ActiveOrient::Model then val.rid else val end }
 #      end
       if val.is_a?(Array) && val.first.is_a?(Hash)
 	val = val.map{|x|  if x.is_a?( Hash ) 
@@ -163,7 +163,7 @@ module REST
 	end
 	}
       elsif val.is_a?(Array)
-	val = Orient::OArray.new( self, *val )
+	val = OrientSupport::Array.new( self, *val )
 
       end
      # puts "val = #{val.inspect}"

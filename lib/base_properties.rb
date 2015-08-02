@@ -2,7 +2,7 @@ require 'active_model'
 require 'active_support/concern'
 require 'active_support/hash_with_indifferent_access'
 
-module REST
+module ActiveOrient
 
   # Module adds prop Macro and
   module BaseProperties

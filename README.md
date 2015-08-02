@@ -20,8 +20,8 @@ then
 
 ```ruby
   require './config/boot'
-  r = REST::OrientDB.new  database: 'First'
-   => #<REST::OrientDB:0x000000048d0488 @res=#<RestClient::Resource:0x00000004927288 
+  r = ActiveOrient::OrientDB.new  database: 'First'
+   => #<ActiveOrient::OrientDB:0x000000048d0488 @res=#<RestClient::Resource:0x00000004927288 
        @url="http://localhost:2480", @block=nil, 
        @options={:user=>"xx", :password=>"***"}>, @database="First", @classes=[]> 
 ```
@@ -40,8 +40,8 @@ Let's create some classes
  ```
 
 
-»M« is the REST::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
-Its a shortcut for »REST::Model::{Classname} and is reused if defined elsewhere.
+»M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
+Its a shortcut for »ActiveOrient::Model::{Classname} and is reused if defined elsewhere.
 
 If a schema is used, properties can be created and retrieved as well
  ```ruby
@@ -69,7 +69,7 @@ Every OrientDB-Database-Class is mirrord as Ruby-Class. The Class itself is defi
   Vertex =  r.create_vertex_class 'classname' 
   Edge   =  r.create_edge_class   'classname' 
 ```
-and is of TYPE REST::Model::{classname}
+and is of TYPE ActiveOrient::Model::{classname}
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
@@ -105,7 +105,7 @@ In OrientDB links are used to realise unidirectional  1:1 and 1:n relationships.
 
 ActiveOrient autoloads Model-objects.
 
-If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the REST::Model object.
+If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the ActiveOrient::Model object.
 
 ```ruby
   TestLinks = r.create_class 'Test_link_class'
@@ -114,7 +114,7 @@ If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the 
   link_document =  TestLinks.create  att: 'one attribute' 
   base_document =  TestBase.create  base: 'my_base', single_link: link_document 
 ```
-base_document.single_link just contains the rid. When accessed, the REST::Model::Testlinkclass-object is autoloaded and 
+base_document.single_link just contains the rid. When accessed, the ActiveOrient::Model::Testlinkclass-object is autoloaded and 
 ``` ruby
    base_document.single_link.att
 ```
@@ -157,7 +157,7 @@ The Edges are accessed  by their names (downcase).
 
 ```ruby
   start.e1[0]
-  --> #<REST::Model::E1:0x000000041e4e30 
+  --> #<ActiveOrient::Model::E1:0x000000041e4e30 
 	@metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", 
 		   "cluster"=>16, "record"=>43}, 
         @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
@@ -173,11 +173,11 @@ The Attributes "in" and "out" can be used to move across the graph
 #### Execute SQL-Commands
 At least - sql-commands can be executed as batch
 
-The REST::Query-Class provides a Query-Stack and an Records-Array which keeps the results.
-The REST::Query-Class acts as Parent-Class for aggregated Records (without a @rid), which are REST::Model::Myquery Objects. If a Query returns a database-record, the correct REST::Model-Class is instantiated.
+The ActiveOrient::Query-Class provides a Query-Stack and an Records-Array which keeps the results.
+The ActiveOrient::Query-Class acts as Parent-Class for aggregated Records (without a @rid), which are ActiveOrient::Model::Myquery Objects. If a Query returns a database-record, the correct ActiveOrient::Model-Class is instantiated.
 
 ```ruby
-   ach = REST::Query.new
+   ach = ActiveOrient::Query.new
     
    ach.queries << 'create class Contracts ABSTRACT'
    ach.queries << 'create property Contracts.subcategory link'
@@ -194,7 +194,7 @@ The REST::Query-Class acts as Parent-Class for aggregated Records (without a @ri
 This feature can be used as a substitute for simple functions
 
 ```ruby
- roq = REST::Query.new
+ roq = ActiveOrient::Query.new
  roq.queries =["select name, categories.subcategories.contracts from Industries  where name containstext     …'ial'"]
  roq.execute_queries.each{|x|  puts x.name, x.categories.inspect }
  --> Basic Materials 	[["#21:1"]]
@@ -204,11 +204,11 @@ This feature can be used as a substitute for simple functions
 
 OrientDB supports the execution of SQL-Batch-Commands. 
 ( http://orientdb.com/docs/2.0/orientdb.wiki/SQL-batch.html )
-This is supported simply by using a Array as Argument for REST::Query.queries
+This is supported simply by using a Array as Argument for ActiveOrient::Query.queries
 
 Therefor complex queries can be simplified using database-variables 
 ```ruby
-   ach = REST::Query.new
+   ach = ActiveOrient::Query.new
    ach.queries << [ "select expand( contracts )  from Openinterest"
 	            "let con = select expand( contracts )  from Openinterest; ",
 		    "...", ... ]
@@ -223,12 +223,12 @@ The contract-documents can easily be fetched with
 ```
 or
 ```ruby
-    ror_query = REST::Query.new
+    ror_query = ActiveOrient::Query.new
     ['Contracts', 'Industries', 'Categories', 'Subcategories'].each do |table|
         ror_query.queries = [ "select count(*) from #{table}"]
  
         count = ror_query.execute_queries
-        # count=> [#<REST::Model::Myquery:0x00000003b317c8 
+        # count=> [#<ActiveOrient::Model::Myquery:0x00000003b317c8 
         #		@metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"count=l"},
         #		@attributes={"count"=>4 } ] --> a Array with one Element, therefor count.pop 
         puts "Table #{table} \t #{count.pop.count} Datasets "
@@ -240,9 +240,9 @@ or
 
 ```
 
-Note that the fetched Object is of type »Stocks« (REST::Model::Stocks).
+Note that the fetched Object is of type »Stocks« (ActiveOrient::Model::Stocks).
 
-The REST-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-REST
+The ActiveOrient-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-ActiveOrient
 and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
  
  

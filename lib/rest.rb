@@ -1,4 +1,4 @@
-module REST
+module ActiveOrient
 require 'cgi'
 require 'rest-client'
 require 'active_support/core_ext/string'  # provides blank?, present?, presence etc
@@ -6,7 +6,7 @@ require 'active_support/core_ext/string'  # provides blank?, present?, presence 
 =begin
 OrientDB performs queries to a OrientDB-Database
 
-The communication is based on the REST-API.
+The communication is based on the ActiveOrient-API.
 
 The OrientDB-Server is specified in config/connect.yml
 
@@ -29,12 +29,12 @@ Contructor: OrientDB is conventionally initialized.
 Thus several instances pointing to the same or different databases can coexist 
 
 A simple 
- xyz =  REST::OrientDB.new
+ xyz =  ActiveOrient::OrientDB.new
 uses the database specified in the yaml-file »config/connect.yml« and connects 
 
 *USECASE*
- xyz =  REST::Model.orientdb = REST::OrientDB.new
-initialises the Database-Connection and publishes the Instance to any REST::Model-Object
+ xyz =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new
+initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
 =end
 
   def initialize database: nil,  connect: true
@@ -43,7 +43,7 @@ initialises the Database-Connection and publishes the Instance to any REST::Mode
     connect() if connect
     # save existing classes 
     @classes = []
-    REST::Model.orientdb =  self
+    ActiveOrient::Model.orientdb =  self
   end
 
 ##  included for development , should be removed in production release  
@@ -256,7 +256,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
       execute  transaction: false do 
 	  class_cmd = ->(s,n) do
 	    n = n.to_s.camelize # capitalize
-	    consts << REST::Model.orientdb_class( name: n)
+	    consts << ActiveOrient::Model.orientdb_class( name: n)
 	    unless database_classes.include? n
 	    { type: "cmd", language: 'sql', command:  "create class #{n} extends #{s}"  } 
 
@@ -266,7 +266,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	  if classes.is_a?(Array)
 	    classes.map do | n |
 	    n = n.to_s.camelize # capitalize
-	      consts << REST::Model.orientdb_class( name: n)
+	      consts << ActiveOrient::Model.orientdb_class( name: n)
 	      unless database_classes.include? n
 		{ type: "cmd", language: 'sql', command:  "create class #{n} " } 
 	      end
@@ -293,7 +293,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
     end
 
 =begin
-creates a class and returns the a REST::Model:{Newclass}-Class- (Constant)
+creates a class and returns the a ActiveOrient::Model:{Newclass}-Class- (Constant)
 which is designed to take any documents stored in this class
 
 Predefined attributes: version, cluster, record
@@ -320,12 +320,12 @@ The parameter o_class can be either a class or a string
 =end
 
     def nexus_edge o_class , attributes: {}, from:,  to:, unique: false
-      logger.progname = "REST::OrientDB#NexusEdge"
-      translate_to_rid = ->(obj){ if obj.is_a?( REST::Model ) then obj.link else obj end }
+      logger.progname = "ActiveOrient::OrientDB#NexusEdge"
+      translate_to_rid = ->(obj){ if obj.is_a?( ActiveOrient::Model ) then obj.link else obj end }
       if unique
 	wwhere = { out: translate_to_rid[from],  in: translate_to_rid[to] }.merge(attributes) 
 	existing_edge = get_documents( o_class, where: wwhere )
-	if  existing_edge.first.is_a?( REST::Model )
+	if  existing_edge.first.is_a?( ActiveOrient::Model )
 	  logger.debug { "reusing  edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
 	return existing_edge.first  
 	end
@@ -388,7 +388,7 @@ todo: remove all instances of the class
 	  # return_value: sussess of the removal
 	  !database_classes( requery: true ).include?(cl)
 	  # don't delete the ruby-class
-	  #	   REST::Model.send :remove_const, cl.to_sym if o_class.is_a?(Class)
+	  #	   ActiveOrient::Model.send :remove_const, cl.to_sym if o_class.is_a?(Class)
 	end
       rescue RestClient::InternalServerError => e
 	if database_classes( requery: true).include?( cl )
@@ -449,7 +449,8 @@ creates properties which are defined as json in the provided block as
 	end
       rescue RestClient::InternalServerError => e
 	logger.error { "Properties in #{class_name(o_class)} were NOT created" }
-	logger.error { e.response}
+	response = JSON.parse( e.response)['errors'].pop
+	logger.error { "Error-code #{response['code']} --> #{response['content'].split(':').last }" }
 	nil
       end
 
@@ -641,7 +642,7 @@ An Array with freed index-values is returned
       
     end
 =begin
-Retrieves a Document from the Database as REST::Model::{class} 
+Retrieves a Document from the Database as ActiveOrient::Model::{class} 
 The argument can either be a rid (#[x}:{y}) or a link({x}:{y}) 
 If no Document  is found, nil is returned
 
@@ -654,7 +655,7 @@ In the optional block, a subset of properties can be defined (as array of names)
       response = @res[ document_uri { rid } ].get 
 
       raw_data = JSON.parse( response.body) #.merge( "#no_links" => "#no_links" )
-      REST::Model.orientdb_class( name: raw_data['@class']).new raw_data
+      ActiveOrient::Model.orientdb_class( name: raw_data['@class']).new raw_data
       
     rescue RestClient::InternalServerError => e
 	if e.http_body.split(':').last =~ /was not found|does not exist in database/
@@ -673,7 +674,7 @@ Lazy Updating of the given Document.
       content = yield
       content.each do | c |
 	key,value = c
-	content[key]= value.link if value.is_a? REST::Model
+	content[key]= value.link if value.is_a? ActiveOrient::Model
       end
       @res[ document_uri { rid } ].patch content.to_json
     end
@@ -727,7 +728,7 @@ structure of the provided block:
    (...)
  ]
 
- It's used by REST::Query.execute_queries
+ It's used by ActiveOrient::Query.execute_queries
 
 =end
     def execute o_class = 'Myquery', transaction: true  
@@ -740,13 +741,13 @@ structure of the provided block:
 	    result.map do |x| 
 	      if x.is_a? Hash 
 		if x.has_key?('@class')
-		  REST::Model.orientdb_class( name: x['@class']).new x
+		  ActiveOrient::Model.orientdb_class( name: x['@class']).new x
 		elsif x.has_key?( 'value' )
 		  x['value']
 		else
-		  puts "REST::Execute"
+		  puts "ActiveOrient::Execute"
 		  puts "o_class: #{o_class.inspect}"
-		  REST::Model.orientdb_class( name: class_name(o_class)).new x
+		  ActiveOrient::Model.orientdb_class( name: class_name(o_class)).new x
 		end
 	      end
 	    end.compact # return_value
@@ -767,7 +768,7 @@ Converts a given class-constant to the corresponding database-classname
     def class_name  name_or_class
       name= if name_or_class.is_a? Class
 	name_or_class.to_s.split('::').last
-      elsif name_or_class.is_a? REST::Model
+      elsif name_or_class.is_a? ActiveOrient::Model
 	name_or_class.classname
       else
 	name_or_class.to_s

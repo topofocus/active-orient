@@ -1,9 +1,9 @@
-module Orient
+module OrientSupport
 =begin 
 This Module fences specialized ruby objects 
 =end
 
-  class OArray < Array
+  class Array < Array
 =begin
 Initialisation method stores the modelinstance in @orient.
 
@@ -38,7 +38,7 @@ Further a list of array-elements is expected, which are forwarded (as Array) to 
     end
 
   end
-  class LinkMap < OArray
+  class LinkMap < OrientSupport::Array
 
     def []= arg
     end
