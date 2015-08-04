@@ -4,6 +4,8 @@ describe OrientSupport::Array do
   before( :all ) do
 
     # working-database: hc_database
+    r =  ActiveOrient::OrientDB.new connect:false
+    r.delete_database database: 'MyTest'
 
     @r = ActiveOrient::OrientDB.new database: 'MyTest'
     @r.delete_class 'model_test'
@@ -11,16 +13,16 @@ describe OrientSupport::Array do
     @record = TestModel.create
   end
 
-  context "check isolated" do
-    it "initialize Object" do
-      basic = OrientSupport::Array.new @record
-      expect( basic ).to be_a OrientSupport::Array
+  context "check isolated", focus: true do
+    let( :basic ) { OrientSupport::Array.new @record, 'test', 6, 5 }
+    it { expect( basic ).to be_a OrientSupport::Array }
 
-    end
-    it "add item o Object" do
-      basic = OrientSupport::Array.new @record, 'test', 6, 5
-      expect( basic ).to have(3).items
-    
+    it { expect( basic ).to have(3).items }
+
+
+    it "change the value of an element" do
+      expect{ basic[0]  =  "a new Value " }.to change{ basic.first }
+      expect( basic ).to eq [ "a new Value ", 6, 5 ]
     end
   end
 
@@ -30,12 +32,13 @@ describe OrientSupport::Array do
     it{ expect( @record ).to be_a ActiveOrient::Model::ModelTest }
   end
 
-  context "add and populate an Array" do
+  context "add and populate an Array", focus:true  do
+    before(:each){ @record.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
+  
     it "initialize the Object" do
-      @record.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] }
       expect( @record.ll ).to be_a OrientSupport::Array
       expect( @record.ll.first ).to eq "test"
-      expect( @record.ll[1] ).to eq 5
+      expect( @record.ll[2] ).to eq 8
     end
     it "modify the Object" do
       expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 1
@@ -46,6 +49,10 @@ describe OrientSupport::Array do
       expect do
 	expect{ @record.ll.delete 7988, 'uzg' }.to change { @record.ll.size }.by( -2 )
       end.to change{  @record.version }.by 1
+    end
+    it "update the object" do
+      expect{ @record.ll[0]  =  "a new Value " }.to change{ @record.version }
+      expect( @record.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
     end
 
 
