@@ -14,7 +14,7 @@ class Query < ActiveOrient::Model
      self.queries = []
    end
 =begin
-calls ActiveOrient::REST#GetDocuments
+calls ActiveOrient::ActiveOrient#GetDocuments
 stores the query in the query-stack and saves the result in the record-Array
 
 returns the count of assigned records
@@ -30,17 +30,17 @@ returns the count of assigned records
 =begin
 All predefined queries are send to the database.
 The result is stored in the records.
-Unknown Records are of Type REST::Model::Myquery, uses REST::Orientdb.execute which tries to autosuggest the REST::Model::{Class}
+Unknown Records are of Type ActiveOrient::Model::Myquery, uses ActiveOrient::Orientdb.execute which tries to autosuggest the ActiveOrient::Model::{Class}
 
 example: Multible Records
-ach = REST::Query.new
+ach = ActiveOrient::Query.new
 ach.queries << 'create class Contracts ABSTRACT'
 ach.queries << 'create property Contracts.details link'
 ach.queries << 'create class Stocks extends Contracts'
 result = ach.execute_queries transaction: false
 
 example: Batch
-q = REST::Query.new
+q = ActiveOrient::Query.new
 q.queries << [
       "select expand( contracts )  from Openinterest"
        "let con = select expand( contracts )  from Openinterest; ",

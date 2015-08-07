@@ -4,6 +4,7 @@ This Module fences specialized ruby objects
 =end
 
   class Array < Array
+    include Support
 =begin
 Initialisation method stores the modelinstance in @orient.
 
@@ -62,6 +63,14 @@ this only works if the hole embedded Array is previosly loaded into the ruby-arr
 
     def delete *item
       @orient.remove_item_from_property( @name ) {  item  } if @name.present?
+    end
+
+    def where *item
+      where_string = item.map{|m| where_string =  compose_where m }.join( ' and ' )
+      query = "select from ( select expand( #{@name} ) from #{@orient.classname})  #{where_string} "
+      puts query
+      @orient.query query
+
     end
 
   end

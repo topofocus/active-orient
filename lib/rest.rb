@@ -1,3 +1,12 @@
+class String
+  def to_classname
+    if self[0] =='$'
+      self[1..-1]
+    else
+      self.camelize
+    end
+  end
+end
 module ActiveOrient
 require 'cgi'
 require 'rest-client'
@@ -21,6 +30,7 @@ A Sample:
 
 
 =end
+
 class OrientDB
   mattr_accessor :logger  ## borrowed from active_support
 
@@ -208,7 +218,7 @@ to fetch all Edges
     def class_hierachie base_class: '', requery: false
       @all_classes =  get_classes( 'name', 'superClass') if requery || @all_classes.blank?
       def fv s   # :nodoc:
-	 @all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ].camelize } 
+	 @all_classes.find_all{ |x| x[ 'superClass' ]== s }.map{| v| v[ 'name' ]} #.camelize } 
       end
 
       def fx v # :nodoc:
@@ -255,7 +265,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
       consts = Array.new
       execute  transaction: false do 
 	  class_cmd = ->(s,n) do
-	    n = n.to_s.camelize # capitalize
+	    n = n.to_s.to_classname # capitalize
 	    consts << ActiveOrient::Model.orientdb_class( name: n)
 	    unless database_classes.include? n
 	    { type: "cmd", language: 'sql', command:  "create class #{n} extends #{s}"  } 
@@ -265,7 +275,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	  
 	  if classes.is_a?(Array)
 	    classes.map do | n |
-	    n = n.to_s.camelize # capitalize
+	    n = n.to_s.to_classname # capitalize
 	      consts << ActiveOrient::Model.orientdb_class( name: n)
 	      unless database_classes.include? n
 		{ type: "cmd", language: 'sql', command:  "create class #{n} " } 
@@ -274,7 +284,7 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	  elsif classes.is_a?(Hash)
 	    classes.keys.map do | superclass | 
 	      items =  Array.new
-	      superClass =  superclass.to_s.camelize 
+	      superClass =  superclass.to_s.to_classname
 	      items <<  { type: "cmd", language: 'sql', command:  "create class #{superClass} abstract" }  unless  database_classes.flatten.include?( superClass ) 
 	      items << if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
 		class_cmd[superClass, classes[superclass] ]
@@ -299,6 +309,12 @@ which is designed to take any documents stored in this class
 Predefined attributes: version, cluster, record
 
 Other attributes are assigned dynamically upon reading documents
+
+The classname is Camelized  by default, eg: classnames are always Capitalized, underscores ('_') indicate
+that the following letter is capitalized, too.
+
+Other class-names can be used if a "$" is placed at the begining of the name-string. However, most of the
+model-based methods will not work in this case.
 =end
     def create_class   newclass
       create_classes( [ newclass ] ).first
@@ -547,10 +563,25 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 
 
     def count_documents o_class , where: {}
+      logger.progname = 'OrientDB#count_documents'
+      i=0
+      begin
 
 	url=  query_sql_uri << "select COUNT(*) from #{class_name(o_class)} " << compose_where( where ) 
 	result =  JSON.parse( @res[URI.encode(url) ].get )['result']
 	result.first['COUNT']
+    rescue RestClient::InternalServerError => e
+      response = JSON.parse( e.response)['errors'].pop
+      logger.error { response['content'].split(':').last  }
+      i=i+1
+      if i > 1
+	raise
+      else
+      o_class =  "$"+ class_name(o_class).underscore
+      logger.info { "trying to query using #{o_class}" }
+      retry
+      end
+    end
 
     end
 
@@ -734,6 +765,8 @@ structure of the provided block:
     def execute o_class = 'Myquery', transaction: true  
       batch =  { transaction: transaction, operations: yield }
       unless batch[:operations].blank?
+#	puts "batch_uri: #{@res[batch_uri]}"
+ #       puts "post: #{batch.to_json}"
 	response = @res[ batch_uri ].post batch.to_json 
 	if response.code == 200
 	  if response.body['result'].present?
@@ -773,7 +806,7 @@ Converts a given class-constant to the corresponding database-classname
       else
 	name_or_class.to_s
       end
-     name.camelize # return_value
+     name.to_classname # return_value
     end
     def compose_where arg
       if arg.blank?

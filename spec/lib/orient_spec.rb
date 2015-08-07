@@ -5,15 +5,15 @@ describe OrientSupport::Array do
 
     # working-database: hc_database
     r =  ActiveOrient::OrientDB.new connect:false
-    r.delete_database database: 'MyTest'
+    r.delete_database database: 'ArrayTest'
 
-    @r = ActiveOrient::OrientDB.new database: 'MyTest'
+    @r = ActiveOrient::OrientDB.new database: 'ArrayTest'
     @r.delete_class 'model_test'
     TestModel = @r.open_class "model_test" 
     @record = TestModel.create
   end
 
-  context "check isolated", focus: true do
+  context "check isolated" do
     let( :basic ) { OrientSupport::Array.new @record, 'test', 6, 5 }
     it { expect( basic ).to be_a OrientSupport::Array }
 
@@ -32,7 +32,7 @@ describe OrientSupport::Array do
     it{ expect( @record ).to be_a ActiveOrient::Model::ModelTest }
   end
 
-  context "add and populate an Array", focus:true  do
+  context "add and populate an Array" do
     before(:each){ @record.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
   
     it "initialize the Object" do
@@ -86,6 +86,39 @@ describe OrientSupport::Array do
 	expect{ @new_record.ll.delete_if{|x| x == LinkClass.first.link}}.to change {@new_record.ll.size }.by -1
       end 
     end
+  end
+  context 'work with subsets of the embedded array', focus: true do
+    before(:all) do 
+      @r.delete_class  'Test_link_class'
+
+      LinkClass = @r.open_class 'Test_link_class'
+      @new_record = TestModel.create ll: [ ]
+      (1..99).each do |i|
+	@new_record.ll << i
+	@new_record.ll << LinkClass.create( att: "#{i} attribute" )
+      end
+    end
+
+#    it{ expect( @new_record.ll ).to have(198).items }
+
+    it "get one element from the embedded array by index" do
+	i = 50
+#	numeric_element =  @new_record.ll[i] 
+	linked_element = @new_record.ll[i+1]
+
+#          expect( numeric_element ).to be_a Numeric
+          expect( linked_element ).to be_a ActiveOrient::Model::LinkClass
+    end
+
+    it "get one element from the embedded array by condition" do
+      expect(  @new_record.ll.where( :att => "30 attribute" ).pop ).to be_a LinkClass
+       linked_element =  @new_record.ll.where( "att like '4\\%'" )
+       puts linked_element.inspect
+      # raises an Error: 505 HTTP Version Not Supported
+    end
+
+
+
   end
 
    context 'work with a hard-coded linkmap' do

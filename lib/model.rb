@@ -146,6 +146,12 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
       [:from,:to].each{|y| keyword_arguments[y].reload! }
       o  # return_value
    end
+
+   def query  q 
+     a= ActiveOrient::Query.new 
+     a.queries << q
+     a.execute_queries
+   end
 =begin
 Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
 
@@ -213,7 +219,6 @@ With the optional :set argument ad-hoc attributes can be defined
 =end
    def update  set: {}
       attributes.merge! set
-    
       result= orientdb.patch_document(rid) do
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end

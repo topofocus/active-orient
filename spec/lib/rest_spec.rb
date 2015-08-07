@@ -14,7 +14,7 @@ describe ActiveOrient::OrientDB do
 
     # working-database: hc_database
     ActiveOrient::Model.logger = Logger.new('/dev/stdout')
-    @database_name = 'MyTest'
+    @database_name = 'RestTest'
     r = ActiveOrient::OrientDB.new connect: false
     r.delete_database database: @database_name
     @r= ActiveOrient::OrientDB.new database: @database_name
