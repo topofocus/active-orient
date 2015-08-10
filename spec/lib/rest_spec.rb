@@ -215,7 +215,7 @@ describe ActiveOrient::OrientDB do
       expect( res.attributes.keys ).not_to include 'another_wired_property'  ## block is not executed, because its not a new document
 
     end
-    it   "uses create_or_update and a block on a new document"  do  
+    it   "uses create_or_update and a block on a new document" do  
       res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
 	{ another_wired_property: "No time for tango" }
       end
@@ -249,7 +249,7 @@ describe ActiveOrient::OrientDB do
       expect( r ).to eq  4
     end
 
-     it "updates that document" do
+     it "updates that document"   do
        r=  @r.create_document  @rest_class, attributes: { con_id: 340, symbol: 'EWZ' }
        rr =  @r.update_documents  @rest_class,
 	 set: { :symbol => 'TWR' },

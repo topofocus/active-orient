@@ -1,13 +1,3 @@
-  class String
-    def rid? 
-      self =~  /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/   
-    end
-  end
-  class Hash
-    def nested_under_indifferent_access
-        HashWithIndifferentAccess.new self
-    end
-  end
 module  ActiveOrient
   require 'active_model'
   #
@@ -51,9 +41,6 @@ module  ActiveOrient
       end
     end
 
-#    def nested_under_indifferent_access
-#        self
-#    end
 
     define_model_callbacks :initialize
 
@@ -75,6 +62,8 @@ module  ActiveOrient
 	    unless self.class.instance_methods.detect{|x| x == att }
 	      self.class.define_property att, nil 
 	      logger.debug { "property #{att.to_s} assigned to #{self.class.to_s}" }
+	    else
+#	      logger.info{ "property #{att.to_s}  NOT assigned " }
 	    end
 	  end
 	end
@@ -109,7 +98,6 @@ module  ActiveOrient
 	end
 
 
-
 	  self.attributes = attributes # set_attribute_defaults is now after_init callback
 	end
 	ActiveOrient::Base.store_riid self
@@ -128,7 +116,9 @@ module  ActiveOrient
     # ActiveModel-style read/write_attribute accessors
     # Here we define the autoload mechanism
     def [] key
+
       iv= attributes[key.to_sym]
+  #    iv.from_orient unless iv.nil?
       if  iv.is_a?(String) && iv.rid? #&& @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
      # puts "autoload: #{iv}"
 	ActiveOrient::Model.autoload_object  iv
@@ -144,7 +134,10 @@ module  ActiveOrient
     def update_attribute key, value
       @attributes[key] = value
     end
-
+=begin
+Here we define how the attributes are initialized 
+Key and val are set by the RestCliend
+=end
     def []= key, val
       val = val.rid if val.is_a? ActiveOrient::Model
 #      if val.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=n" )
@@ -155,36 +148,33 @@ module  ActiveOrient
 #	end
 #	val# = val.map{|x|  if val.is_a? ActiveOrient::Model then val.rid else val end }
 #      end
-      if val.is_a?(Array) && val.first.is_a?(Hash)
-	val = val.map{|x|  if x.is_a?( Hash ) 
-	       HashWithIndifferentAccess.new(x)
-	else
-	  x 
-	end
-	}
-      elsif val.is_a?(Array)
-	val = OrientSupport::Array.new( self, *val )
-
-      end
-     # puts "val = #{val.inspect}"
-     # puts "val = #{val.class}"
-      val = HashWithIndifferentAccess.new(val) if val.is_a?( Hash )
-      attributes[key.to_sym] = val
+      attributes[key.to_sym] = case val
+	 when Array
+	   if  val.first.is_a?(Hash)
+	     v=val.map do |x| 
+	       if x.is_a?( Hash ) 
+		 HashWithIndifferentAccess.new(x)
+	       else
+		 x 
+	       end
+	     end
+	     OrientSupport::Array.new( self, *v )
+	   else
+	     OrientSupport::Array.new( self, *val )
+	   end
+	 when Hash
+	    HashWithIndifferentAccess.new(val) 
+	 else
+	   val
+	 end
+      
     end
 
     def to_model
       self
     end
 
-    def new_record?
-      true
-    end
 
-    def save
-      valid?
-    end
-
-    alias save! save
 
     ### Noop methods mocking ActiveRecord::Base macros
     

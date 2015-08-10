@@ -1,12 +1,3 @@
-class String
-  def to_classname
-    if self[0] =='$'
-      self[1..-1]
-    else
-      self.camelize
-    end
-  end
-end
 module ActiveOrient
 require 'cgi'
 require 'rest-client'
@@ -33,6 +24,7 @@ A Sample:
 
 class OrientDB
   mattr_accessor :logger  ## borrowed from active_support
+  include OrientSupport::Support
 
 =begin
 Contructor: OrientDB is conventionally initialized. 
@@ -337,21 +329,20 @@ The parameter o_class can be either a class or a string
 
     def nexus_edge o_class , attributes: {}, from:,  to:, unique: false
       logger.progname = "ActiveOrient::OrientDB#NexusEdge"
-      translate_to_rid = ->(obj){ if obj.is_a?( ActiveOrient::Model ) then obj.link else obj end }
       if unique
-	wwhere = { out: translate_to_rid[from],  in: translate_to_rid[to] }.merge(attributes) 
+	wwhere = { out: from.to_orient,  in: to.to_orient }.merge(attributes.to_orient) 
 	existing_edge = get_documents( o_class, where: wwhere )
 	if  existing_edge.first.is_a?( ActiveOrient::Model )
-	  logger.debug { "reusing  edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
+	  logger.debug { "reusing  edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
 	return existing_edge.first  
 	end
       end
-      logger.debug { "creating edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} " }
+      logger.debug { "creating edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
       response=  execute( o_class, transaction: false) do 
-      #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]}; ")} ]
-      attr_string =  attributes.blank? ? "" : "set #{ generate_sql_list attributes }"
+      #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[m]} to #{to.to_roient}; ")} ]
+      attr_string =  attributes.blank? ? "" : "set #{ generate_sql_list attributes.to_orient }"
       [ { type: "cmd", language: 'sql', 
-	  command:  "create edge #{class_name(o_class)} from #{translate_to_rid[from]} to #{translate_to_rid[to]} #{attr_string}"} ]
+	  command:  "create edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} #{attr_string}"} ]
        end
        if response.is_a?(Array) && response.size == 1
 	 response.pop # RETURN_VALUE
@@ -504,7 +495,7 @@ creates properties which are defined as json in the provided block as
 
     def create_document o_class, attributes: {}
       attributes = yield if attributes.empty? && block_given?
-      post_argument = { '@class' => class_name(o_class) }.merge attributes
+      post_argument = { '@class' => class_name(o_class) }.merge attributes.to_orient
       response = @res[ document_uri ].post post_argument.to_json
       o_class.new JSON.parse( response.body)
     end
@@ -553,10 +544,24 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 	#
 	# a block can be provided to extract the sql-statements prior to their execution
 	yield( select_string + where_string + order_string ) if block_given? #&& !ignore_block
+	i =  0
+	begin
 	url=  query_sql_uri << select_string << where_string  << order_string << "/#{limit}" 
 	response =  @res[URI.encode(url) ].get
       r=JSON.parse( response.body )['result'].map do |document |
 	  if raw then document else  o_class.new( document ) end
+	end
+	rescue RestClient::InternalServerError => e
+	  response = JSON.parse( e.response)['errors'].pop
+	  logger.error { response['content'].split(':').last  }
+	  i=i+1
+	  if i > 1
+	    raise
+	  else
+	    select_string =  'select from ' <<   class_name(o_class).underscore
+	    logger.info { "trying to query using #{o_class}" }
+	    retry
+	  end
 	end
 
     end
@@ -568,6 +573,7 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
       begin
 
 	url=  query_sql_uri << "select COUNT(*) from #{class_name(o_class)} " << compose_where( where ) 
+#	puts "url: #{url}"
 	result =  JSON.parse( @res[URI.encode(url) ].get )['result']
 	result.first['COUNT']
     rescue RestClient::InternalServerError => e
@@ -702,18 +708,19 @@ In the optional block, a subset of properties can be defined (as array of names)
 Lazy Updating of the given Document.
 =end
     def patch_document rid
+      logger.progname =  'Rest#PatchDocument'
       content = yield
-      content.each do | c |
-	key,value = c
-	content[key]= value.link if value.is_a? ActiveOrient::Model
+      if content.is_a? Hash
+      content.each do | key, value |
+#	puts "content: #{key}, #{value.class}"
+#	content[key]= value.to_orient #if value.is_a? ActiveOrient::Model
       end
-      @res[ document_uri { rid } ].patch content.to_json
+      @res[ document_uri { rid } ].patch content.to_orient.to_json
+      else
+	logger.error { "FAILED: The Block must provide an Hash  with properties to be updated"}
+      end
     end
-
-
 =begin
-Updates the database in a oldschool-manner
-
   update_documents classname,
           set: { :symbol => 'TWR' },
           where: { con_id: 340 }
@@ -766,7 +773,7 @@ structure of the provided block:
       batch =  { transaction: transaction, operations: yield }
       unless batch[:operations].blank?
 #	puts "batch_uri: #{@res[batch_uri]}"
- #       puts "post: #{batch.to_json}"
+#        puts "post: #{batch.to_json}"
 	response = @res[ batch_uri ].post batch.to_json 
 	if response.code == 200
 	  if response.body['result'].present?
@@ -778,8 +785,8 @@ structure of the provided block:
 		elsif x.has_key?( 'value' )
 		  x['value']
 		else
-		  puts "ActiveOrient::Execute"
-		  puts "o_class: #{o_class.inspect}"
+#		  puts "ActiveOrient::Execute"
+#		  puts "o_class: #{o_class.inspect}"
 		  ActiveOrient::Model.orientdb_class( name: class_name(o_class)).new x
 		end
 	      end
@@ -792,6 +799,9 @@ structure of the provided block:
 	  nil
 	end
 	end
+    rescue RestClient::InternalServerError => e
+      raise
+
     end
 =begin
 Converts a given name to the camelized database-classname
@@ -808,35 +818,35 @@ Converts a given class-constant to the corresponding database-classname
       end
      name.to_classname # return_value
     end
-    def compose_where arg
-      if arg.blank?
-	   ""
-	 elsif arg.is_a? String
-	   if arg =~ /[w|W]here/
-	     arg
-	   else
-	     "where "+arg
-	   end
-	 elsif arg.is_a? Hash
-	   " where " + generate_sql_list(arg)
-	 end
-    end
+#    def compose_where arg
+#      if arg.blank?
+#	   ""
+#	 elsif arg.is_a? String
+#	   if arg =~ /[w|W]here/
+#	     arg
+#	   else
+#	     "where "+arg
+#	   end
+#	 elsif arg.is_a? Hash
+#	   " where " + generate_sql_list(arg)
+#	 end
+#    end
 private 
 
-def generate_sql_list attributes={}
-  attributes.map do | key, value |
-    case value
-    when Numeric
-      key.to_s << " = " << value.to_s 
-    else #  String, Symbol
-      key.to_s << ' = ' << "\'#{ value }\'"
-      #	else 
-      #	  puts "ERROR, value-> #{value}, class -> #{value.class}"
-    end
-  end.join( ' and ' )
-
-end
-
+#def generate_sql_list attributes={}
+#  attributes.map do | key, value |
+#    case value
+#    when Numeric
+#      key.to_s << " = " << value.to_s 
+#    else #  String, Symbol
+#      key.to_s << ' = ' << "\'#{ value }\'"
+#      #	else 
+#      #	  puts "ERROR, value-> #{value}, class -> #{value.class}"
+#    end
+#  end.join( ' and ' )
+#
+#end
+#
 def property_uri(this_class_name)
   if block_given?
     "property/#{ @database }/#{this_class_name}/" <<  yield

@@ -35,7 +35,7 @@ describe OrientSupport::Array do
   context "add and populate an Array" do
     before(:each){ @record.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
   
-    it "initialize the Object" do
+    it "initialize the Object"  do
       expect( @record.ll ).to be_a OrientSupport::Array
       expect( @record.ll.first ).to eq "test"
       expect( @record.ll[2] ).to eq 8
@@ -87,7 +87,7 @@ describe OrientSupport::Array do
       end 
     end
   end
-  context 'work with subsets of the embedded array', focus: true do
+  context 'work with subsets of the embedded array' do
     before(:all) do 
       @r.delete_class  'Test_link_class'
 
@@ -112,7 +112,8 @@ describe OrientSupport::Array do
 
     it "get one element from the embedded array by condition" do
       expect(  @new_record.ll.where( :att => "30 attribute" ).pop ).to be_a LinkClass
-       linked_element =  @new_record.ll.where( "att like '4\\%'" )
+       linked_element =  @new_record.ll.where( "att matches  '\b3\b'" )
+#       linked_element =  @new_record.ll.where( "att like '3\u0025'" )
        puts linked_element.inspect
       # raises an Error: 505 HTTP Version Not Supported
     end
@@ -136,7 +137,7 @@ describe OrientSupport::Array do
       end
 
       it "verify the datastructure" do
-	puts @new_record.aLinkSet.map{|y| y.is_a?( ActiveOrient::Model )? y.att : y }.join(' ; ')
+#	puts @new_record.aLinkSet.map{|y| y.is_a?( ActiveOrient::Model )? y.att : y }.join(' ; ')
 	expect( @new_record.aLinkSet ).to have(9).items
 	expect( @new_record.aLinkSet.at(0)).to eq LinkClass.first
       end

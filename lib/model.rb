@@ -54,6 +54,13 @@ to_do: fetch for version in the db and load the object if a change is detected
     orientdb.get_classes( 'name', 'superClass').detect{|x| x["name"].downcase ==  new.class.to_s.downcase.split(':')[-1].to_s
     }['superClass']
   end
+
+  def to_orient
+    link
+  end
+  def from_orient
+    self
+  end
 =begin
 Returns just the name of the Class 
 =end
@@ -218,19 +225,20 @@ With the optional :set argument ad-hoc attributes can be defined
   obj.update set: { yesterdays_event: 35 }
 =end
    def update  set: {}
-      attributes.merge! set
+      attributes.merge!( set ) if set.present?
       result= orientdb.patch_document(rid) do
        attributes.merge( { '@version' => @metadata[ :version ], '@class' => @metadata[ :class ] } )
      end
 #     returns a new instance of ActiveOrient::Model
-     #ActiveOrient::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  # instantiate object and update rid_store
-     reload!
+     reload! ActiveOrient::Model.orientdb_class(name: classname).new(  JSON.parse( result ))  
+     # instantiate object, update rid_store and reassign to self
+
    end
 =begin
 Overwrite the attributes with Database-Contents
 =end
-   def reload! 
-     updated_dataset = orientdb.get_document( link)
+   def reload!  updated_dataset=nil
+     updated_dataset = orientdb.get_document( link) if updated_dataset.nil?
      @metadata[:version]= updated_dataset.version
      attributes = updated_dataset.attributes
      self  # return_value  (otherwise only the attributes would be returned)

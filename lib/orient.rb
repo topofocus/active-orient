@@ -16,7 +16,7 @@ Further a list of array-elements is expected, which are forwarded (as Array) to 
       @orient =  modelinstance
       super args
       @name = modelinstance.attributes.key(self)
-
+    
     end
 
     def << arg
@@ -72,12 +72,23 @@ this only works if the hole embedded Array is previosly loaded into the ruby-arr
       @orient.query query
 
     end
-
   end
   class LinkMap < OrientSupport::Array
 
     def []= arg
     end
   end 
+
+#
+#  class Hash < Hash_with_indifferent_access
+#    # additional and overlayed methods for Hash-Objects in OrientDB
+#    def initialize modelinstance, *args
+#      @orient =  modelinstance
+#      super args
+#      @name = modelinstance.attributes.key(self)
+#
+#    end
+#
+#  end
 
 end
