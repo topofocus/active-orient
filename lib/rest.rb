@@ -41,7 +41,8 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
 
   def initialize database: nil,  connect: true
     @res = get_ressource
-    @database = database.presence || YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database] 
+    @database = database.presence || YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database]
+    @database=@database.camelcase
     connect() if connect
     # save existing classes 
     @classes = []
@@ -95,8 +96,8 @@ Types are either 'plocal' or 'memory'
 
 returns the name of the working-database
 =end
-    def create_database type: 'plocal' , database: @database
-          logger.progname = 'OrientDB#CreateDatabase'
+    def create_database type: 'plocal' , database: @database 
+      logger.progname = 'OrientDB#CreateDatabase'
 	  old_d = @database
 	  @classes = []
 	  @database = database
@@ -253,13 +254,16 @@ Otherwise  key/value pairs are assumend to follow this terminology
 
     def create_classes classes
       # rebuild cashed classes-array
+      # first the classes-string is camelized (this is used to allocate the ruby-class)
+      # Then the database is queried for this string or the underscored string-variant 
+      # the name-building process is independend from the method »class_name«
       database_classes requery: true
       consts = Array.new
       execute  transaction: false do 
 	  class_cmd = ->(s,n) do
-	    n = n.to_s.to_classname # capitalize
+	    n = n.to_s.camelize
 	    consts << ActiveOrient::Model.orientdb_class( name: n)
-	    unless database_classes.include? n
+	    unless database_classes.include?(n) || database_classes.include?(n.underscore)
 	    { type: "cmd", language: 'sql', command:  "create class #{n} extends #{s}"  } 
 
 	    end 
@@ -267,17 +271,17 @@ Otherwise  key/value pairs are assumend to follow this terminology
 	  
 	  if classes.is_a?(Array)
 	    classes.map do | n |
-	    n = n.to_s.to_classname # capitalize
+	    n = n.to_s.camelize # capitalize
 	      consts << ActiveOrient::Model.orientdb_class( name: n)
-	      unless database_classes.include? n
+	      unless database_classes.include?( n ) || database_classes.include?(n.underscore)
 		{ type: "cmd", language: 'sql', command:  "create class #{n} " } 
 	      end
 	    end
 	  elsif classes.is_a?(Hash)
 	    classes.keys.map do | superclass | 
 	      items =  Array.new
-	      superClass =  superclass.to_s.to_classname
-	      items <<  { type: "cmd", language: 'sql', command:  "create class #{superClass} abstract" }  unless  database_classes.flatten.include?( superClass ) 
+	      superClass =  superclass.to_s.camelize
+	      items <<  { type: "cmd", language: 'sql', command:  "create class #{superClass} abstract" }  unless  database_classes.flatten.include?( superClass ) || database_classes.flatten.include?( superClass.underscore ) 
 	      items << if classes[superclass].is_a?( String ) || classes[superclass].is_a?( Symbol )
 		class_cmd[superClass, classes[superclass] ]
 	      elsif  classes[superclass].is_a?( Array )  
@@ -331,7 +335,7 @@ The parameter o_class can be either a class or a string
       logger.progname = "ActiveOrient::OrientDB#NexusEdge"
       if unique
 	wwhere = { out: from.to_orient,  in: to.to_orient }.merge(attributes.to_orient) 
-	existing_edge = get_documents( o_class, where: wwhere )
+	existing_edge = get_documents( from: o_class, where: wwhere )
 	if  existing_edge.first.is_a?( ActiveOrient::Model )
 	  logger.debug { "reusing  edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
 	return existing_edge.first  
@@ -525,69 +529,42 @@ If raw is specified, the JSON-Array is returned, eg
   }
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
+def get_documents  limit: -1, raw: false, query: nil, **args 
+  query =  OrientSupport::OrientQuery.new(  args ) if query.nil?
 
-    def get_documents o_class , where: {} , raw: false, limit: -1, order: nil, ignore_block: false
+ begin
+   url =    query_sql_uri << query.compose << "/#{limit}" 
+   response =  @res[URI.encode(url) ].get
+   r=JSON.parse( response.body )['result'].map do |document |
+     if raw 
+       document 
+     else  
+       ActiveOrient::Model.orientdb_class( name: document['@class']).new document
+     end
+   end
+ rescue RestClient::InternalServerError => e
+  response = JSON.parse( e.response)['errors'].pop
+  logger.error { response['content'].split(':').last  }
+  i=i+1
+  if i > 1
+    raise
+  else
+    query.dataset_name = query.datatset_name.underscore
+    logger.info { "trying to query using #{o_class}" }
+    retry
+  end
+end
 
-        select_string =  'select from ' << class_name(o_class) 
-	where_string =  compose_where( where )
-	order_string =  if order.present? 
-			  " order by " << if order.is_a?( Hash )
-					   order.map{ |x,y| "#{x} #{y} " }.join( " " )
-					elsif order.is_a?( Array )
-					    order.map{ |x| "#{x} asc "}.join( " " )
-					else
-					    order.to_s
-					end
-			else
-			  ""
-			end
-	#
-	# a block can be provided to extract the sql-statements prior to their execution
-	yield( select_string + where_string + order_string ) if block_given? #&& !ignore_block
-	i =  0
-	begin
-	url=  query_sql_uri << select_string << where_string  << order_string << "/#{limit}" 
-	response =  @res[URI.encode(url) ].get
-      r=JSON.parse( response.body )['result'].map do |document |
-	  if raw then document else  o_class.new( document ) end
-	end
-	rescue RestClient::InternalServerError => e
-	  response = JSON.parse( e.response)['errors'].pop
-	  logger.error { response['content'].split(':').last  }
-	  i=i+1
-	  if i > 1
-	    raise
-	  else
-	    select_string =  'select from ' <<   class_name(o_class).underscore
-	    logger.info { "trying to query using #{o_class}" }
-	    retry
-	  end
-	end
+end
 
-    end
-
-
-    def count_documents o_class , where: {}
+    def count_documents **args
       logger.progname = 'OrientDB#count_documents'
-      i=0
-      begin
 
-	url=  query_sql_uri << "select COUNT(*) from #{class_name(o_class)} " << compose_where( where ) 
-#	puts "url: #{url}"
-	result =  JSON.parse( @res[URI.encode(url) ].get )['result']
+	query =  OrientSupport::OrientQuery.new args
+	query.projection 'COUNT (*)'
+	result = get_documents raw: true, query: query 
+
 	result.first['COUNT']
-    rescue RestClient::InternalServerError => e
-      response = JSON.parse( e.response)['errors'].pop
-      logger.error { response['content'].split(':').last  }
-      i=i+1
-      if i > 1
-	raise
-      else
-      o_class =  "$"+ class_name(o_class).underscore
-      logger.info { "trying to query using #{o_class}" }
-      retry
-      end
-    end
 
     end
 
@@ -649,7 +626,7 @@ a new dataset is created.
 	[ create_document( o_class, attributes: set ) ]
       else
 	set.extract!( where.keys ) # removes any keys from where in set
-	possible_documents = get_documents( o_class, where: where, ignore_block: true)
+	possible_documents = get_documents from: o_class, where: where
 	if possible_documents.empty?
 	  if block_given?
 	    more_where =   yield   # do Preparations prior to the creation of the dataset
@@ -668,7 +645,7 @@ They are defined by a query. All records which match the attributes are deleted.
 An Array with freed index-values is returned
 =end
     def delete_documents o_class, where: {}
-       get_documents( o_class, where: where).map do |doc|
+       get_documents( from: o_class, where: where).map do |doc|
 	 if doc['@type']=='d'  # document
 	   index = doc['@rid'][1,doc['@rid'].size] # omit the first character ('#')
 	   r=@res[ document_uri{ index  }].delete
@@ -769,7 +746,7 @@ structure of the provided block:
  It's used by ActiveOrient::Query.execute_queries
 
 =end
-    def execute o_class = 'Myquery', transaction: true  
+    def execute classname = 'Myquery', transaction: true  
       batch =  { transaction: transaction, operations: yield }
       unless batch[:operations].blank?
 #	puts "batch_uri: #{@res[batch_uri]}"
@@ -787,7 +764,7 @@ structure of the provided block:
 		else
 #		  puts "ActiveOrient::Execute"
 #		  puts "o_class: #{o_class.inspect}"
-		  ActiveOrient::Model.orientdb_class( name: class_name(o_class)).new x
+		  ActiveOrient::Model.orientdb_class( name: classname).new x
 		end
 	      end
 	    end.compact # return_value
@@ -807,6 +784,8 @@ structure of the provided block:
 Converts a given name to the camelized database-classname
 
 Converts a given class-constant to the corresponding database-classname
+
+returns a valid database-class name, nil if the class not exists
 =end
     def class_name  name_or_class
       name= if name_or_class.is_a? Class
@@ -814,9 +793,15 @@ Converts a given class-constant to the corresponding database-classname
       elsif name_or_class.is_a? ActiveOrient::Model
 	name_or_class.classname
       else
-	name_or_class.to_s
+	name_or_class.to_s.camelize
       end
-     name.to_classname # return_value
+     if database_classes.include?(name) 
+       name
+     elsif database_classes.include?(name.underscore) 
+       name.underscore
+     else
+       nil
+     end
     end
 #    def compose_where arg
 #      if arg.blank?

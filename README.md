@@ -2,7 +2,7 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-The Package ist tested with Ruby 2.2.1 and Orientdb 2.1 (2.0).
+The Package ist tested with Ruby 2.2.1 and Orientdb 2.1.
 
 
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
@@ -26,7 +26,8 @@ then
        @options={:user=>"xx", :password=>"***"}>, @database="First", @classes=[]> 
 ```
 
-»r« is the Database-Instance itself.  The database is empty.
+»r« is the Database-Instance itself.  Obviously the database is  empty.
+
 
 Let's create some classes 
 
@@ -36,7 +37,7 @@ Let's create some classes
     M = r.create_vertex_class 'classname'  # creates or opens a vertex-class 
     M = r.create_edge_class   'classname'  # creates or opens an edge-class, providing bidirectional links between documents
 
-    r.delete_class   M                   # universal removal-class-method
+    r.delete_class   M                   # universal removal-of-the-class-method
  ```
 
 
@@ -78,7 +79,7 @@ As for ActiveRecord-Tables, the Class itself provides methods to inspect and to 
   M.first
   M.last
 ```
-returns an Array containing all Documents/Edges of the Class, the first and the last Record.
+returns an Array containing all Documents/Edges of the Class; the first and the last Record.
 ```ruby
   M.where  town: 'Berlin'
 ```
@@ -87,7 +88,29 @@ performs a query on the class and returns the result as Array
 ```ruby
   M.count where: { town: 'Berlin' }
 ```
-gets the number of datasets fullfilling the search-criteria
+gets the number of datasets fullfilling the search-criteria. Any parameter defining a valid
+SQL-Query in Orientdb can be provided to the count, where, first and last-method.
+
+A »normal« Query is submitted via 
+```ruby
+  M.get_documents projection: { projection-parameter }
+		  distinct: { some parameters }
+		  where: { where-parameter }
+		  order: { sorting-parameters }
+		  group_by: { one grouping-parameter}
+		  unwind:
+		  skip:
+		  limit:
+
+#  or
+ query = OrientSupport::OrientQuery.new {paramter}
+ M.get_documents query: query
+
+```
+
+Basic graph-support:
+
+
 
 ```ruby
   vertex_1 = Vertex.create  color: "blue"
@@ -103,9 +126,8 @@ A record in a database-class is defined by a »rid«. Every Model-Object comes w
 
 In OrientDB links are used to realise unidirectional  1:1 and 1:n relationships.
 
-ActiveOrient autoloads Model-objects.
-
-If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the ActiveOrient::Model object.
+ActiveOrient autoloads Model-objects when they are accessed. As a consequence, 
+if an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the ActiveOrient::Model object.
 
 ```ruby
   TestLinks = r.create_class 'Test_link_class'
@@ -122,14 +144,18 @@ reads the stored content of link_document.
 
 To store a list of links to other Database-Objects a simple Array is allocated
 ``` ruby
+  # predefined linkmap-properties
   base_document =  TestBase.create links: []
   ( 0 .. 20 ).each{ |y|  base_document.links << TestLinks.create  nr: y  }
   end
+  #or in schemaless-mode
+  base_document =  TestBase.create links: (0..20).map{|y|  TestLinks.create  nr: y  }
+
 
 ```
 base_document.links behaves like a ruby-array. 
 
-As a consequence, if you got an undirectional graph
+If you got an undirectional graph
 
    a --> b ---> c --> d
 
@@ -215,7 +241,7 @@ Therefor complex queries can be simplified using database-variables
    result = ach.execute_queries 
 ```
 
-The contract-documents can easily be fetched with 
+The contract-documents are accessible with 
 ```ruby
   r.get_document '21:1'
   --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS 
@@ -223,14 +249,14 @@ The contract-documents can easily be fetched with
 ```
 or
 ```ruby
-    ror_query = ActiveOrient::Query.new
+    my_query = ActiveOrient::Query.new
     ['Contracts', 'Industries', 'Categories', 'Subcategories'].each do |table|
-        ror_query.queries = [ "select count(*) from #{table}"]
+        my_query.queries = [ "select count(*) from #{table}"]
  
-        count = ror_query.execute_queries
+        count = my_query.execute_queries
         # count=> [#<ActiveOrient::Model::Myquery:0x00000003b317c8 
         #		@metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"count=l"},
-        #		@attributes={"count"=>4 } ] --> a Array with one Element, therefor count.pop 
+        #		@attributes={"count"=>4 } ] --> an Array with one Element, therefor count.pop 
         puts "Table #{table} \t #{count.pop.count} Datasets "
     end
     -->Table Contracts 	 	56 Datasets 

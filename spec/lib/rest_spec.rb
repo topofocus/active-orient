@@ -46,8 +46,19 @@ describe ActiveOrient::OrientDB do
       let( :classname ) { "new_class" }
       let( :edgename ) { "new_edge" }
       let( :vertexname ) { "new_vertex" }
-      it 'retrieve the pluralized classname'  do
+      it 'class_name qualifies the classname-parameter'    do
+	expect( @r.class_name classname ).to be_nil
+	@r.open_class classname
 	expect( @r.class_name classname ).to eq classname.camelize
+	@r.delete_class classname
+	expect( @r.class_name classname ).to be_nil
+
+      end
+
+      it "class_name can be invoked with a Klass-Const" do
+	klass=  @r.open_class classname
+	expect( klass ).to eq ActiveOrient::Model::NewClass
+	expect( @r.class_name klass ).to eq classname.camelize
       end
 
     it "get all Classes" do
@@ -165,14 +176,14 @@ describe ActiveOrient::OrientDB do
   context "query-details" do
     it "generates a valid where nery-string" do
       attributes = { uwe: 34 }
-      expect( @r.compose_where( attributes ) ).to eq " where uwe = 34" 
+      expect( @r.compose_where( attributes ) ).to eq "where uwe = 34" 
       attributes = { uwe: 34 , hans: :trz }
-      expect( @r.compose_where( attributes ) ).to eq " where uwe = 34 and hans = 'trz'" 
+      expect( @r.compose_where( attributes ) ).to eq "where uwe = 34 and hans = 'trz'" 
       attributes = { uwe: 34 , hans: 'trzit'}
-      expect( @r.compose_where( attributes ) ).to eq " where uwe = 34 and hans = 'trzit'" 
+      expect( @r.compose_where( attributes ) ).to eq "where uwe = 34 and hans = 'trzit'" 
     end
   end
-  context "document-handling"  do
+  context "document-handling"   do
     before(:all) do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
@@ -198,16 +209,16 @@ describe ActiveOrient::OrientDB do
 
 
     it "create through create_or_update"  do
-      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
+      res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
       expect(res.a_new_property).to eq 34
-      res2= @r.create_or_update_document( @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
+      res2= @r.create_or_update_document(  @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
       expect( res2.a_new_property).to eq 35
       expect( res2.version).to eq res.version+1
     end
 
     it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!
-      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
+      res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
 	{ another_wired_property: "No time for tango" }
       end
 
@@ -216,7 +227,7 @@ describe ActiveOrient::OrientDB do
 
     end
     it   "uses create_or_update and a block on a new document" do  
-      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
+      res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
 	{ another_wired_property: "No time for tango" }
       end
 
@@ -228,7 +239,7 @@ describe ActiveOrient::OrientDB do
     it "update strange text" do  # from the orientdb group
       strange_text = { strange_text: "'@type':'d','a':'some \\ text'"}
 
-      res=  @r.create_or_update_document  @rest_class , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do 
+      res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do 
 	  strange_text
       end
       expect( res.strange_text ).to eq strange_text[:strange_text]
@@ -238,14 +249,14 @@ describe ActiveOrient::OrientDB do
     it "read that document" do
      r=  @r.create_document  @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( r.class ).to eq @rest_class
-     res = @r.get_documents  @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
+     res = @r.get_documents  from: @rest_class, where: { con_id: 343, symbol: 'EWTZ' }
      expect(res.first.symbol).to eq r.symbol
      expect(res.first.version).to eq  r.version
 
     end
 
     it "count datasets in class" do
-      r =  @r.count_documents  @rest_class
+      r =  @r.count_documents  from: @rest_class
       expect( r ).to eq  4
     end
 
@@ -255,7 +266,7 @@ describe ActiveOrient::OrientDB do
 	 set: { :symbol => 'TWR' },
 	 where: { con_id: 340 }
 	
-       res = @r.get_documents   @rest_class, where:{ con_id: 340 }
+       res = @r.get_documents   from: @rest_class, where:{ con_id: 340 }
        puts res.inspect
        expect( res.size ).to eq 1
        expect( res.first['symbol']).to eq 'TWR'
@@ -265,7 +276,7 @@ describe ActiveOrient::OrientDB do
      @r.create_document  @rest_class , attributes: { con_id: 3410, symbol: 'EAZ' }
      r=  @r.delete_documents  @rest_class , where: { con_id: 3410 }
 
-     res = @r.get_documents  @rest_class, where: { con_id: 3410 }
+     res = @r.get_documents  from: @rest_class, where: { con_id: 3410 }
      expect(r.size).to eq 1
 
 
@@ -293,7 +304,7 @@ describe ActiveOrient::OrientDB do
       expect(@query_class.records).to be_empty
     end
 
-    it "get a document through the query-class" do
+    it "get a document through the query-class" , pending: true do
      r=  @r.create_document  @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( @query_class.get_documents @rest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
      expect( @query_class.records ).not_to be_empty

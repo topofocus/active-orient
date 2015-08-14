@@ -20,10 +20,12 @@ stores the query in the query-stack and saves the result in the record-Array
 returns the count of assigned records
 =end
 
-   def get_documents o_class , where:  
+   def get_documents o_class , **args  
 
+	query = OrientSupport::OrientQuery.new class_name(o_class), args
+	self.queries << query.compose 
        count= 0
-       orientdb.get_documents( o_class , where: where ){| q| self.queries << q }.each{|c| records << c; count+=1 }
+       orientdb.get_documents( o_class , query: query.compose ).each{|c| records << c; count+=1 }
        count
    end
 

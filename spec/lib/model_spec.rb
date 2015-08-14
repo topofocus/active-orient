@@ -56,7 +56,7 @@ describe ActiveOrient::Model do
 
   context "Add a document to the class"  do
     it "the database is empty before we start" do
-      @r.get_documents  TestModel
+      expect( @r.get_documents  from: TestModel ).to be_empty
       expect( TestModel.count ).to be_zero
     end
 

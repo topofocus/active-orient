@@ -107,17 +107,20 @@ eg .  update #link set  ...
 
 =begin 
 Queries the database and fetches the count of datasets
+
+Any parameter that qualifies a database-query is suppoerted
+(see method get_documents)
 =end
-   def self.count where: {}
-     orientdb.count_documents( self , where: where)
+   def self.count **args
+     orientdb.count_documents from: self , **args
    end
 =begin
 Creates a new Instance of the Class with the applied attributes
 and returns the freshly instantiated Object
 =end
 
-   def self.create attributes = {}
-      orientdb.create_or_update_document  self, set: attributes
+   def self.create properties = {}
+      orientdb.create_or_update_document  self, set: properties
    end
 
    # historic method
@@ -160,6 +163,68 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
      a.execute_queries
    end
 =begin
+Parameter projection:
+
+   »select« is a method of enumeration, we use  »projection:« to specify anything between »select« and »from«
+   in the query-string.	
+
+   projection:  a_string -->  inserts the sting as it appears
+		an OrientSupport::OrientQuery-Object --> performs a sub-query and uses the result for further querying though the given parameters.
+		
+		[ a, b, c ] -->  "a , b , c " ( inserts a comma-separated list )
+
+		{ a: b, "sum(x) "=>  f } --> "a as b, sum(x) as f"  (renames properties and uses functions )
+Parameter distinct: 
+  
+  Performs a Query like » select distinct( property ) [ as property ] from ...«
+
+  distinct: :property               -->  the result is mapped to the property »distinct«.
+  
+            [ :property ]           -->  the result replaces the property
+	    
+	    { property: :some_name} -->  the result is mapped to ModelInstance.some_name
+
+Parameter Order
+  Sorts the result-set.
+  If new properties are introduced via select:, distinct: etc
+  sorting takes place on these properties
+
+  order: :property
+         { property: asc, property: desc }
+         [property, property, ..  ]  ( orderdirection is 'asc' )
+
+
+Further supported Parameter:
+    group_by
+    skip
+    limit
+    unwind
+
+    see orientdb- documentation (https://orientdb.com/docs/last/SQL-Query.html)
+
+Parameter  query:
+Instead of providing the parameter, the OrientSupport::OrientQuery can build and
+tested before the method-call. The OrientQuery-Object can be provided with the query-parameter
+i.e.
+  q=  OrientSupport::OrientQuery.new
+  TestModel =  r.open_class 'test_model'
+  q.from TestModel
+  q.where { name: 'Thomas' }
+
+  count= TestModel.count query:q
+  q.limit 20
+  0.step(count,10) do |x|
+    q.skip = x
+    puts TestModel.get_documents( query: q ).map{|x| x.adress }.join('\t')
+  end
+prints a Table with 10 columns.
+=end
+
+   def self.get_documents **args , &b
+     orientdb.get_documents from: classname,  **args, &b
+    
+   end
+=begin
 Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
 
 Example:
@@ -171,7 +236,7 @@ Example:
 
 =end
 def self.where attributes =  {}
-  orientdb.get_documents  self, where: attributes
+  orientdb.get_documents  from: self, where: attributes
 end
 =begin
 
@@ -206,15 +271,15 @@ Actually we just check the second term as we trust the constuctor to work proper
      orientdb.get_document rid
    end
    def self.all
-     orientdb.get_documents self
+     orientdb.get_documents from: self 
 end
-   def self.first
-     orientdb.get_documents(  self, limit: 1).pop
+   def self.first where: {}
+     orientdb.get_documents(  from: self, where: where, limit: 1).pop
    end
 
-   def self.last
+   def self.last where: {}
      #  debug:: orientdb.get_documents( self, order: { "@rid" => 'desc' }, limit: 1 ){ |x| puts x }.pop
-     orientdb.get_documents( self, order: { "@rid" => 'desc' }, limit: 1 ).pop
+     orientdb.get_documents( from: self, where: where,  order: { "@rid" => 'desc' }, limit: 1 ).pop
    end
 =begin
 Convient update of the dataset by calling sql-patch
@@ -235,7 +300,7 @@ With the optional :set argument ad-hoc attributes can be defined
 
    end
 =begin
-Overwrite the attributes with Database-Contents
+Overwrite the attributes with Database-Contents (or attributes provided by the updated_dataset.model-instance)
 =end
    def reload!  updated_dataset=nil
      updated_dataset = orientdb.get_document( link) if updated_dataset.nil?
@@ -270,14 +335,10 @@ Overwrite the attributes with Database-Contents
        a= attributes; a.delete item
        self.attributes[array].delete( item )
      end
-#     puts "execute_array => #{execute_array}"
-#    puts "attributes: #{attributes.inspect}"
      orientdb.execute do
        execute_array
      end
      reload!
-    #puts "attributes: #{attributes.inspect}"
-     
 
    rescue RestClient::InternalServerError => e
      logger.error " Could not remove item in #{array} "

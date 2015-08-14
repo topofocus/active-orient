@@ -61,7 +61,7 @@ module  ActiveOrient
 	    att =  att.to_sym if att.is_a?(String)    
 	    unless self.class.instance_methods.detect{|x| x == att }
 	      self.class.define_property att, nil 
-	      logger.debug { "property #{att.to_s} assigned to #{self.class.to_s}" }
+#	      logger.debug { "property #{att.to_s} assigned to #{self.class.to_s}" }
 	    else
 #	      logger.info{ "property #{att.to_s}  NOT assigned " }
 	    end
@@ -89,8 +89,8 @@ module  ActiveOrient
 	      unless self.class.instance_methods.detect{|x| x == base_edge }
 		## define two methods: out_{Edge}/{in_Edge} -> edge. 
 		self.class.define_property base_edge, nil 
-		self.class.send :alias_method, base_edge.downcase, edge  #  
-		logger.debug { "edge #{edge} assigned to #{self.class.to_s} and remaped to #{base_edge.downcase}" }  
+		self.class.send :alias_method, base_edge.underscore, edge  #  
+#		logger.debug { "#{link}:: edge #{edge} assigned to #{self.class.to_s} and remaped to #{base_edge.underscore}" }  
 
 	      end
 	    end

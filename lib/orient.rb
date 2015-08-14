@@ -72,6 +72,10 @@ this only works if the hole embedded Array is previosly loaded into the ruby-arr
       @orient.query query
 
     end
+
+    def method_missing *args
+      map{|x| x.send args.first }
+    end
   end
   class LinkMap < OrientSupport::Array
 
