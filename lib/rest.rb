@@ -33,16 +33,18 @@ Thus several instances pointing to the same or different databases can coexist
 A simple 
  xyz =  ActiveOrient::OrientDB.new
 uses the database specified in the yaml-file »config/connect.yml« and connects 
+ xyz = ActiveOrient::OrientDB.new database: my_fency_database
+accesses the database »my_fency_database«. The database is created if its not existing.
 
 *USECASE*
- xyz =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new
+ xyz =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new 
 initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
 =end
 
   def initialize database: nil,  connect: true
     @res = get_ressource
     @database = database.presence || YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database]
-    @database=@database.camelcase
+#    @database=@database#.camelcase
     connect() if connect
     # save existing classes 
     @classes = []
@@ -58,8 +60,15 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
   def connect 
     i = 0
     begin
+      logger.progname = 'OrientDB#Connect'
       r= @res["/connect/#{ @database }" ].get
-      r.code == 204 ? true : nil 
+      if r.code == 204 
+	logger.info{ "Connected to database #{@database} " }
+	true 
+	else
+	logger.error{ "Connection to database #{@database}  could NOT be established" }
+	 nil 
+	end
     rescue RestClient::Unauthorized => e
       if i.zero?
 	logger.info{ "Database #{@database} NOT present --> creating" }
@@ -206,6 +215,8 @@ to fetch all Vertices
  class_hiearchie( base_class: 'V').flatten
 to fetch all Edges
  class_hierachie( base_class: 'E').flatten
+
+Notice: base_class has to be noted as String! There is no implicit conversion from Symbol or Class
 =end
 
     def class_hierachie base_class: '', requery: false
@@ -446,7 +457,6 @@ creates properties which are defined as json in the provided block as
 
 =end
     def create_properties o_class
-      logger.progname= 'OrientDB#CreateProperty'
 
       begin
 	all_properties_in_a_hash =  yield
@@ -459,8 +469,11 @@ creates properties which are defined as json in the provided block as
 	  end
 	end
       rescue RestClient::InternalServerError => e
-	logger.error { "Properties in #{class_name(o_class)} were NOT created" }
 	response = JSON.parse( e.response)['errors'].pop
+	error_message  = response['content'].split(':').last
+#	if error_message ~= /Missing linked class/
+	logger.progname= 'OrientDB#CreateProperty'
+	logger.error { "Properties in #{class_name(o_class)} were NOT created" }
 	logger.error { "Error-code #{response['code']} --> #{response['content'].split(':').last }" }
 	nil
       end
@@ -482,6 +495,15 @@ creates properties which are defined as json in the provided block as
     def get_class_properties o_class   #  :nodoc:
       JSON.parse( @res[ class_uri{ class_name(o_class) } ].get )
     end
+
+    def print_class_properties o_class
+      puts "Detected Properties for class #{class_name(o_class)}"
+
+      rp = get_class_properties o_class 
+      n=  rp['name']
+      puts rp['properties'].map{|x| [ n+'.'+x['name'], x['type'],x['linkedClass'] ].compact.join(' -> ' )}.join("\n")
+
+    end
     #
 ## -----------------------------------------------------------------------------------------
 ##          
@@ -495,13 +517,49 @@ creates properties which are defined as json in the provided block as
 ##  update_documents
 ##  delete_documents 
 ##  update_or_create_documents
-## -----------------------------------------------------------------------------------------
+    ## -----------------------------------------------------------------------------------------
+
+=begin #nodoc#
+If properties are allocated on class-level, they can be preinitialized using
+this method.
+This is disabled for now, because it does not seem nessesary
+
+=end
+def preallocate_class_properties o_class
+  p= get_class_properties( o_class )['properties']
+  unless p.nil? || p.blank?
+      predefined_attributes = p.map do | property |
+	[ property['name'] ,
+	case property['type']
+	when 'LINKMAP'
+	  Array.new
+	when 'STRING'
+	  ''
+	else
+	  nil
+	end  ]
+      end.to_h
+  else
+    {}
+  end
+end
+
+=begin
+Creates an Object in the Database and returns this as ActuveOrient::Model-Instance
+=end
 
     def create_document o_class, attributes: {}
       attributes = yield if attributes.empty? && block_given?
-      post_argument = { '@class' => class_name(o_class) }.merge attributes.to_orient
+#      preallocated_attributes =  preallocate_class_properties o_class
+#      puts "preallocated_attributes: #{o_class} -->#{preallocated_attributes.inspect }"
+      post_argument = { '@class' => class_name(o_class) }.merge(attributes).to_orient
+#	puts "post_argument: #{post_argument.inspect}"
+	
       response = @res[ document_uri ].post post_argument.to_json
-      o_class.new JSON.parse( response.body)
+      data= JSON.parse( response.body )
+#    data = preallocated_attributes.merge data
+      ActiveOrient::Model.orientdb_class( name: data['@class']).new data
+#      o_class.new JSON.parse( response.body)
     end
 
 
@@ -531,7 +589,7 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
 def get_documents  limit: -1, raw: false, query: nil, **args 
   query =  OrientSupport::OrientQuery.new(  args ) if query.nil?
-
+  i=0
  begin
    url =    query_sql_uri << query.compose << "/#{limit}" 
    response =  @res[URI.encode(url) ].get
@@ -604,9 +662,9 @@ otherwise updating the Database-Entry (if present)
 The optional Block should provide a hash with attributes(properties). These are used if
 a new dataset is created.
 =end
-    def create_or_update_document o_class , set: {}, where:{}, &b
+    def create_or_update_document o_class , **args, &b
       logger.progname =  'Rest#CreateOrUpdateDocument'
-      r= update_or_create_documents o_class, set: set, where:  where, &b
+      r= update_or_create_documents o_class, **args, &b
       if r.size > 1
 	logger.error { "multible documents updated by #{ generate_sql_list( where )}" }
       end
@@ -619,14 +677,17 @@ Returns an Array of updated documents
 
 The optional Block should provide a hash with attributes(properties). These are used if
 a new dataset is created.
+
+### das ist noch nicht rund.
+#
 =end
-    def update_or_create_documents o_class , set: {}, where: {} , &b
+    def update_or_create_documents o_class , set: {}, where: {} , **args , &b
       logger.progname =  'Rest#UpdateOrCreateDocuments'
       if where.blank?
 	[ create_document( o_class, attributes: set ) ]
       else
 	set.extract!( where.keys ) # removes any keys from where in set
-	possible_documents = get_documents from: o_class, where: where
+	possible_documents = get_documents from: class_name( o_class ), where: where,  **args
 	if possible_documents.empty?
 	  if block_given?
 	    more_where =   yield   # do Preparations prior to the creation of the dataset
@@ -800,6 +861,8 @@ returns a valid database-class name, nil if the class not exists
      elsif database_classes.include?(name.underscore) 
        name.underscore
      else
+       logger.progname =  'OrientDB#ClassName'
+       logger.info{ "Classname #{name} not present in active  Database" }
        nil
      end
     end

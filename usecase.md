@@ -7,8 +7,8 @@ topo@gamma:~/new_hctw$ irb
 2.2.1 :001 > require './config/boot'
   Using development-environment
   -------------------- initialize -------------------- => true 
-2.2.1 :002 > REST::Model.orientdb = ror = REST::OrientDB.new
-    => #<REST::OrientDB:0x000000046f1a90 @res=#<RestClient::Resource:0x000000046c0af8 @url="http://localhost:2480", @block=nil, @options={:user=>"hctw", :password=>"**"}>, @database="hc_database", @classes=[]> 
+2.2.1 :002 > ActiveOrient::Model.orientdb = ror = ActiveOrient::OrientDB.new
+    => #<ActiveOrient::OrientDB:0x000000046f1a90 @res=#<RestClient::Resource:0x000000046c0af8 @url="http://localhost:2480", @block=nil, @options={:user=>"hctw", :password=>"**"}>, @database="hc_database", @classes=[]> 
 ```
 #### Object Mapping
 Lets create a class, put some content in it and perform basic oo-steps.
@@ -18,7 +18,7 @@ Attributes(Properties) do not have to be formaly declared. However it is nessess
 
 ``` ruby
   A =  r.create_class 'my_a_class'
-  => REST::Model::Myaclass
+  => ActiveOrient::Model::Myaclass
   a = A.new_document attributes: { test: 45}
   a.update set: { a_array: aa= [ 1,4,'r', :r ]  , 
                   a_hash: { :a => 'b', b: 2 } }
@@ -75,14 +75,14 @@ topo@gamma:~/new_hctw$ irb
 2.2.1 :001 > require './config/boot'
   Using development-environment
   -------------------- initialize -------------------- => true 
-2.2.1 :002 > REST::Model.orientdb = ror = REST::OrientDB.new
- => #<REST::OrientDB:0x000000046f1a90 @res=#<RestClient::Resource:0x000000046c0af8 @url="http://localhost:2480", @block=nil, @options={:user=>"hctw", :password=>"**"}>, @database="hc_database", @classes=[]> 
+2.2.1 :002 > ActiveOrient::Model.orientdb = ror = ActiveOrient::OrientDB.new
+ => #<ActiveOrient::OrientDB:0x000000046f1a90 @res=#<RestClient::Resource:0x000000046c0af8 @url="http://localhost:2480", @block=nil, @options={:user=>"hctw", :password=>"**"}>, @database="hc_database", @classes=[]> 
 2.2.1 :003 > OpenInterest =  ror.open_class 'Openinterest'
- => REST::Model::Openinterest 
+ => ActiveOrient::Model::Openinterest 
 2.2.1 :004 > first_open_interest = OpenInterest.first
- => #<REST::Model::Openinterest:0x0000000443ede8 @metadata={"type"=>"d", "class"=>"Openinterest", "version"=>5, "fieldTypes"=>"fetch_date=t,contracts=z", "cluster"=>13, "record"=>0}, @attributes={"fetch_date"=>"2015-06-02 00:00:00", "contracts"=>["#21:36", "#21:35", "#21:34", "#21:33", "#21:32", "#21:31", "#21:30", "#21:29", "#21:28", "#21:27", "#21:26", "#21:25", "#21:24", "#21:23", "#21:22", "#21:21", "#21:51", "#21:49", "#21:50", "#21:47", "#21:48", "#21:45", "#21:46", "#21:43", "#21:44", "#21:41", "#21:42", "#21:39", "#21:40", "#21:37", "#21:38", "#21:4", "#21:3", "#21:0", "#21:17", "#21:18", "#21:19", "#21:20", "#21:13", "#21:14", "#21:15", "#21:16", "#21:9", "#21:10", "#21:11", "#21:12", "#21:5", "#21:6", "#21:7", "#21:8"], "created_at"=>2015-07-01 15:27:41 +0200, "updated_at"=>2015-07-01 15:27:41 +0200}> 
+ => #<ActiveOrient::Model::Openinterest:0x0000000443ede8 @metadata={"type"=>"d", "class"=>"Openinterest", "version"=>5, "fieldTypes"=>"fetch_date=t,contracts=z", "cluster"=>13, "record"=>0}, @attributes={"fetch_date"=>"2015-06-02 00:00:00", "contracts"=>["#21:36", "#21:35", "#21:34", "#21:33", "#21:32", "#21:31", "#21:30", "#21:29", "#21:28", "#21:27", "#21:26", "#21:25", "#21:24", "#21:23", "#21:22", "#21:21", "#21:51", "#21:49", "#21:50", "#21:47", "#21:48", "#21:45", "#21:46", "#21:43", "#21:44", "#21:41", "#21:42", "#21:39", "#21:40", "#21:37", "#21:38", "#21:4", "#21:3", "#21:0", "#21:17", "#21:18", "#21:19", "#21:20", "#21:13", "#21:14", "#21:15", "#21:16", "#21:9", "#21:10", "#21:11", "#21:12", "#21:5", "#21:6", "#21:7", "#21:8"], "created_at"=>2015-07-01 15:27:41 +0200, "updated_at"=>2015-07-01 15:27:41 +0200}> 
 2.2.1 :005 > first_open_interest.contracts.first.subcategory.category.industry
- => #<REST::Model::Industries:0x00000004af88f0 @metadata={"type"=>"d", "class"=>"Industries", "version"=>8, "fieldTypes"=>"categories=n", "cluster"=>17, "record"=>1}, @attributes={"categories"=>["#15:13", "#15:4", "#15:1"], "name"=>"Basic Materials", "created_at"=>2015-07-01 15:27:58 +0200, "updated_at"=>2015-07-01 15:27:58 +0200}> 
+ => #<ActiveOrient::Model::Industries:0x00000004af88f0 @metadata={"type"=>"d", "class"=>"Industries", "version"=>8, "fieldTypes"=>"categories=n", "cluster"=>17, "record"=>1}, @attributes={"categories"=>["#15:13", "#15:4", "#15:1"], "name"=>"Basic Materials", "created_at"=>2015-07-01 15:27:58 +0200, "updated_at"=>2015-07-01 15:27:58 +0200}> 
 
 2.2.1 :006 > first_open_interest.contracts.first.subcategory.category.industry.name
  => "Basic Materials"

@@ -105,6 +105,20 @@ eg .  update #link set  ...
    end
 
 
+   def method_missing method, *args, &b
+     property=  orientdb.get_class_properties( classname )['properties'].detect{|x| x.has_value?  method.to_s }
+     puts "method_missing::property"
+     puts property.inspect
+     if property.present?
+       if property['type'] == 'LINKSET'
+	 attributes[method] = OrientSupport::Array.new( self )
+       else
+	 attributes[method] = ''
+       end
+     else
+	 raise NoMethodError
+     end
+   end
 =begin 
 Queries the database and fetches the count of datasets
 
@@ -121,6 +135,11 @@ and returns the freshly instantiated Object
 
    def self.create properties = {}
       orientdb.create_or_update_document  self, set: properties
+   end
+
+   def self.update_or_create set: {}, where:{} ,**args, &b
+	orientdb.update_or_create_documents self , set: set,  where: where , **args , &b  
+
    end
 
    # historic method
@@ -165,8 +184,8 @@ Parameter: unique: (true)  In case of an existing Edge just update its Propertie
 =begin
 Parameter projection:
 
-   »select« is a method of enumeration, we use  »projection:« to specify anything between »select« and »from«
-   in the query-string.	
+»select« is a method of enumeration, we use  »projection:« to specify anything between »select« and »from«
+in the query-string.	
 
    projection:  a_string -->  inserts the sting as it appears
 		an OrientSupport::OrientQuery-Object --> performs a sub-query and uses the result for further querying though the given parameters.
@@ -176,7 +195,7 @@ Parameter projection:
 		{ a: b, "sum(x) "=>  f } --> "a as b, sum(x) as f"  (renames properties and uses functions )
 Parameter distinct: 
   
-  Performs a Query like » select distinct( property ) [ as property ] from ...«
+Performs a Query like » select distinct( property ) [ as property ] from ...«
 
   distinct: :property               -->  the result is mapped to the property »distinct«.
   
@@ -185,9 +204,12 @@ Parameter distinct:
 	    { property: :some_name} -->  the result is mapped to ModelInstance.some_name
 
 Parameter Order
-  Sorts the result-set.
-  If new properties are introduced via select:, distinct: etc
-  sorting takes place on these properties
+
+Sorts the result-set.
+
+If new properties are introduced via select:, distinct: etc
+
+Sorting takes place on these properties
 
   order: :property
          { property: asc, property: desc }
@@ -200,7 +222,7 @@ Further supported Parameter:
     limit
     unwind
 
-    see orientdb- documentation (https://orientdb.com/docs/last/SQL-Query.html)
+see orientdb- documentation (https://orientdb.com/docs/last/SQL-Query.html)
 
 Parameter  query:
 Instead of providing the parameter, the OrientSupport::OrientQuery can build and
@@ -212,7 +234,7 @@ i.e.
   q.where { name: 'Thomas' }
 
   count= TestModel.count query:q
-  q.limit 20
+  q.limit 10
   0.step(count,10) do |x|
     q.skip = x
     puts TestModel.get_documents( query: q ).map{|x| x.adress }.join('\t')

@@ -53,6 +53,7 @@ describe OrientSupport::Array do
     it "update the object" do
       expect{ @record.ll[0]  =  "a new Value " }.to change{ @record.version }
       expect( @record.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
+
     end
 
 
@@ -86,6 +87,25 @@ describe OrientSupport::Array do
 	expect{ @new_record.ll.delete_if{|x| x == LinkClass.first.link}}.to change {@new_record.ll.size }.by -1
       end 
     end
+  end
+
+  context 'work with multi dimensional Arrays', focus:true do
+    let( :multi_array ){ a = [1,2,3];  b = [ :a, :b, :c ]; [ a, b ] }
+    it 'intitialize' do
+      new_record = TestModel.create ll: multi_array
+      expect( new_record.ll ).to eq [[1, 2, 3], ["a", "b", "c"]]
+
+    end
+
+    it "use saved dataset for update" do
+      dataset =  TestModel.create ll: []    # create schemaless property type embedded
+      expect{ dataset.update set: {ll: multi_array  } }.to change{ dataset.version }
+      # explicit reread the dataset
+      data_set =  TestModel.last
+      expect( data_set.ll ).to eq [[1, 2, 3], ['a', 'b', 'c']]
+  
+    end
+
   end
   context 'work with subsets of the embedded array' do
     before(:all) do 

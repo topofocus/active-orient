@@ -119,7 +119,7 @@ describe ActiveOrient::Model do
       expect( TestModel.all.size).to eq  47
     end
     it "datasets are unique only  on update" do
-    expect{ @r.update_or_create_documents( TestModel, :where => { test: 45 }) }. not_to change { TestModel.count }
+    expect{ TestModel.update_or_create(  :where => { test: 45 }) }. not_to change { TestModel.count }
      expect{ TestModel.create  test: 45 }.to change { TestModel.count }
     end
 

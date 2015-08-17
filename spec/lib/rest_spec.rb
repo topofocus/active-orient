@@ -149,32 +149,49 @@ describe ActiveOrient::OrientDB do
 
       it "define some Properties"  do
 	Property = @r.open_class 'property'
-	@r.open_class 'contracts'
+	@r.open_class :contract
+	@r.open_class :exchange
 	rp = @r.create_properties( Property ) do
 	  { symbol: { propertyType: 'STRING' },
-	    con_id: { propertyType: 'INTEGER' } ,  
-	    details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+	  con_id: { propertyType: 'INTEGER' } ,  
+	  exchanges: { propertyType: 'LINKMAP', linkedClass: 'Exchange' } ,  
+	    details: { propertyType: 'LINK', linkedClass: 'Contract' }
 	  }
 	end
 
-	expect( rp ).to eq 3
+	expect( rp ).to eq 4
 
 	rp= @r.get_class_properties  Property 
 
-	# has "name"=>"Properties", "superClass"=>"", "superClasses"=>[], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[12], "defaultCluster"=>12, "clusterSelection"=>"round-robin", "records"=>0, "properties"=>[{"name"=>"con_id", "type"=>"INTEGER", "mandatory"=>false, "readonly"=>false, "notNull"=>false, "min"=>nil, "max"=>nil, "regexp"=>nil, "collate"=>"default"
 
 	properties= rp['properties']
-	[ :con_id, :symbol, :details].each do |f|
+	[ :con_id, :symbol, :details, :exchanges ].each do |f|
 	  expect( properties.detect{|x| x['name']== f.to_s}  ).to be_truthy
 	end
+
+	## rp['properties'] --> Array of
+	#  {"name" => "exchanges", "linkedClass" => "Exchange", 
+	#   "type" => "LINKMAP", "mandatory" => false, "readonly" => false, 
+	#   "notNull" => false, "min" => nil, "max" => nil, "regexp" => nil, 
+	#   "collate" => "default"}
+	#
       end
+# disabled for now
+#     it "a new record is initialized with preallocated properties" do
+#	new_record =  Property.create
+#	@r.get_class_properties(  Property )['properties'].each do | property |
+#	  expect( new_record.attributes.keys ).to include property['name'] 
+#
+#	end
+
+#      end
 
 
     end
   end
 
   context "query-details" do
-    it "generates a valid where nery-string" do
+    it "generates a valid where query-string" do
       attributes = { uwe: 34 }
       expect( @r.compose_where( attributes ) ).to eq "where uwe = 34" 
       attributes = { uwe: 34 , hans: :trz }
@@ -191,7 +208,7 @@ describe ActiveOrient::OrientDB do
       @r.create_properties( @rest_class ) do
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
-	  details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+	  details: { propertyType: 'LINK', linkedClass: 'Contract' }
 	}
       end
     end
@@ -200,7 +217,6 @@ describe ActiveOrient::OrientDB do
 
     it "create a single document"  do
       res=  @r.create_document @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
-      puts res.inspect
       expect( res).to be_a ActiveOrient::Model
       expect( res.con_id ).to eq 345
       expect( res.symbol ).to eq 'EWQZ'
@@ -267,7 +283,6 @@ describe ActiveOrient::OrientDB do
 	 where: { con_id: 340 }
 	
        res = @r.get_documents   from: @rest_class, where:{ con_id: 340 }
-       puts res.inspect
        expect( res.size ).to eq 1
        expect( res.first['symbol']).to eq 'TWR'
 

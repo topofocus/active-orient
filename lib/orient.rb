@@ -20,8 +20,8 @@ Further a list of array-elements is expected, which are forwarded (as Array) to 
     end
 
     def << arg
-      super
        @orient.add_item_to_property( @name,  arg ) if @name.present?
+      super
     end
 
 =begin

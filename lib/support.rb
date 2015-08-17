@@ -3,11 +3,12 @@ class String
     if self[0] =='$'
       self[1..-1]
     else
-      self.camelize
+      self.camelize 
     end
   end
   def to_orient
-    self
+    self.gsub /%/, '(percent)'
+
   end
     def rid? 
       self =~  /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/   
@@ -20,7 +21,11 @@ class String
 	end
     end
 end
-
+class NilClass
+  def to_orient
+   self 
+  end
+end
 class Symbol
   def to_orient
     self.to_s.to_orient
