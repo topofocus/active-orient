@@ -22,6 +22,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency "bundler", "~> 1.8"
   s.add_development_dependency "rake", "~> 10.0"
   s.add_dependency 'activesupport', "~> 4.2"
-#  s.add_dependency 'rest-client', :git => 'git://github.com/rest-client/rest-client.git'
+  s.add_dependency 'rest-client', "~> 2.0.0.rc1",  :git => 'git://github.com/rest-client/rest-client.git'
 
 end
