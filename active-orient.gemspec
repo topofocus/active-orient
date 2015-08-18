@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 Gem::Specification.new do |s|
   s.name        = "active-orient"
   s.version	= File.open('VERSION').read.strip
-  s.authors     = [" Hartmut Bischoff"]
+  s.authors     = ["Hartmut Bischoff"]
   s.email       = ["topofocus@gmail.com"]
   s.homepage    = 'https://github.com/topofocus/active-orient'
   s.licenses    = ['MIT']
