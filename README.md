@@ -6,21 +6,23 @@ The Package ist tested with Ruby 2.2.1 and Orientdb 2.1.
 
 
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
-Clone the project and run bundle install/ bundle update,
-then modify »config/connect.yml«. 
-Its adviserable to generate the rdoc-documentation with executing
-```
-rdoc 
-```
-from the source directory of AcitiveOrient and then to load the doc-directory into any browser.
+Install the Gem the usual way
 
 For a quick start, go to the home directory of the package and start an irb-session
 
-then
-
 ```ruby
-  require './config/boot'
+  require 'bundler/setup'
+  require 'active-orient'
+```
+
+First, the Database-Server has to be specified. Then we can connect to a database.
+Assuming, the server is located on localhost, we just define »default-server«
+```ruby
+   ActiveOrient::OrientDB.default_server= { user: 'your user', password: 'your password' }
+
+
   r = ActiveOrient::OrientDB.new  database: 'First'
+   => I, [2015-08-18T09:49:18.858758 #88831]  INFO -- OrientDB#Connect: Connected to database First
    => #<ActiveOrient::OrientDB:0x000000048d0488 @res=#<RestClient::Resource:0x00000004927288 
        @url="http://localhost:2480", @block=nil, 
        @options={:user=>"xx", :password=>"***"}>, @database="First", @classes=[]> 

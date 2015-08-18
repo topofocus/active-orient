@@ -24,6 +24,9 @@ A Sample:
 
 class OrientDB
   mattr_accessor :logger  ## borrowed from active_support
+  mattr_accessor :default_server  ## 
+  ## expected 
+  # ActiveOrient::OrientDB.default_server = { server: 'localhost', port: 2480, user: '**', password: '**', database: 'temp'
   include OrientSupport::Support
 
 =begin
@@ -41,9 +44,13 @@ accesses the database »my_fency_database«. The database is created if its not 
 initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
 =end
 
+
   def initialize database: nil,  connect: true
+    self.default_server = { :server => 'localhost', :port => 2480, :protocol => 'http', 
+			    :user => 'root', :password => 'root', :database => 'temp' }.merge default_server
     @res = get_ressource
-    @database = database.presence || YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][:database]
+    @database = database.presence || default_server[:database]
+    self.logger = Logger.new('/dev/stdout') unless logger.present?
 #    @database=@database#.camelcase
     connect() if connect
     # save existing classes 
@@ -56,6 +63,13 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
     @res
   end
 ## 
+
+# called in the beginning or after a 404-Error
+def get_ressource
+  login = [ default_server[:user].to_s , default_server[:password].to_s ] 
+  server_adress = [ default_server[:protocol] ,"://" , default_server[ :server ],  ":" , default_server[ :port ]].map(&:to_s).join('')
+  RestClient::Resource.new( server_adress, *login )
+end
 
   def connect 
     i = 0
@@ -901,13 +915,6 @@ def property_uri(this_class_name)
   else
     "property/#{ @database }/#{this_class_name}"
   end
-end
-# called in the beginning or after a 404-Error
-def get_ressource
-  read_yml = ->( key ){ YAML::load_file( File.expand_path('../../config/connect.yml',__FILE__))[:orientdb][key] }
-  login = read_yml[ :admin ].values 
-  server_adress = read_yml[ :server ] + ":" + read_yml[ :port ].to_s 
-  RestClient::Resource.new('http://' << server_adress, *login )
 end
 
 def  self.simple_uri *names

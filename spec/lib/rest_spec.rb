@@ -13,7 +13,9 @@ describe ActiveOrient::OrientDB do
   before( :all ) do
 
     # working-database: hc_database
-    ActiveOrient::Model.logger = Logger.new('/dev/stdout')
+     ActiveOrient::OrientDB.logger =  ActiveOrient::Model.logger = Logger.new('/dev/stdout')
+     
+    ActiveOrient::OrientDB.default_server= { user: 'hctw', password: 'hc' }
     @database_name = 'RestTest'
     r = ActiveOrient::OrientDB.new connect: false
     r.delete_database database: @database_name
@@ -34,7 +36,7 @@ describe ActiveOrient::OrientDB do
 
     end
   end
-  context "establish a basic-auth ressource"   do
+  context "establish a basic-auth ressource" , focus: true  do
     it "connect " do
       expect( @r.ressource ).to be_a RestClient::Resource
       expect( @r.connect ).to be_truthy
