@@ -8,7 +8,7 @@ The Package ist tested with Ruby 2.2.1 and Orientdb 2.1.
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
 Install the Gem the usual way
 
-For a quick start, go to the home directory of the package and start an irb-session
+For a quick start, open an irb-session
 
 ```ruby
   require 'bundler/setup'
