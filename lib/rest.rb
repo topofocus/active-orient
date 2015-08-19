@@ -440,15 +440,53 @@ todo: remove all instances of the class
       end
 
     end
+=begin
+create a property on class-level.
 
-    def create_property o_class, field, type: 'string', linked_class: nil
+supported types: https://orientdb.com/docs/last/SQL-Create-Property.html
+
+if index is specified, a hash is used to specify it
+  index: {automatic:  :unique | :notunique }                --> creates an automatic-Index  on the given field
+  index: { »name«  =>  :unique | :notunique | :full_text }  --> creates a manual index  
+
+=end
+
+    def create_property o_class, field, type: 'string', linked_class: nil, index: nil
       logger.progname= 'OrientDB#CreateProperty'
 	js= if linked_class.nil?
 	 { field => { propertyType: type.upcase } }
 	    else
 	 { field => { propertyType: type.upcase,  linkedClass: class_name( linked_class ) } }
 	    end
-	create_properties( o_class ){ js }
+	create_properties o_class , js
+	if index.nil? && block_given?
+	  index = yield
+	end
+	if index.present? 
+	  if index.is_a?( String ) || index.is_a?( Symbol ) 
+	    create_index o_class, name: field, type: index
+	  elsif index.is_a? Hash
+	    bez= index.keys.first
+	    create_index o_class, name: field, type: index[bez], on: bez
+	  end
+	end
+
+    end
+
+
+    def create_index o_class  , name:, on: :automatic, type: :unique 
+
+      execute  transaction: false do 
+	c =  class_name o_class
+	command = if on == :automatic
+		    "create index #{c}.#{name} #{type.to_s.upcase}"
+		  elsif on.is_a? Array
+		    "create index #{name} on #{class_name(o_class)}( #{on.join(', ')}) #{type.to_s.upcase}"
+		  else 
+		    nil
+		  end
+	[	{ type: "cmd", language: 'sql', command:  command  }  ]
+      end
 
     end
 ## -----------------------------------------------------------------------------------------
@@ -458,23 +496,40 @@ todo: remove all instances of the class
 ##  create_properties
 ##  get_class_properties
 ##  delete_properties
+
 ##
 ## -----------------------------------------------------------------------------------------
 =begin
 
-creates properties which are defined as json in the provided block as
-       create_properties( classname or class ) do
-               { symbol: { propertyType: 'STRING' },
-                 con_id: { propertyType: 'INTEGER' } ,
-                details: { propertyType: 'LINK', linkedClass: 'Contracts' }
+creates properties and optional an associated index as defined  in the provided block 
+
+  create_properties( classname or class, properties as hash ) { index }
+
+The default-case
+  
+  create_properties( con_id: { propertyType: 'INTEGER' } ){ con_idx: :unique }
+
+  create_properties( con_id: { propertyType: 'INTEGER' },
+		    details: { propertyType: 'LINK', linkedClass: 'Contracts' } ) do
+										 contract_idx: :notunique 
+										  end
+
+
+  create_properties( con_id: { propertyType: 'INTEGER' },
+		      symbol: { propertyType: 'STRING' } ) do
+		{ name: 'indexname',
+			 on: [ :con_id , :details ]    # default: all specified properties
+			 type: :notunique              # default: :unique
 	        }
+		end
 
 =end
-    def create_properties o_class
+    def create_properties o_class, all_properties_in_a_hash
 
       begin
-	all_properties_in_a_hash =  yield
-	if all_properties_in_a_hash.is_a? Hash
+	index =  block_given? ? yield : {}
+
+	count = if all_properties_in_a_hash.is_a? Hash
 	  response = @res[ property_uri(class_name(o_class)) ].post all_properties_in_a_hash.to_json
 	  if response.code == 201
 	    response.body.to_i
@@ -491,7 +546,18 @@ creates properties which are defined as json in the provided block as
 	logger.error { "Error-code #{response['code']} --> #{response['content'].split(':').last }" }
 	nil
       end
+      ### index
+      if block_given?   && count == all_properties_in_a_hash.size
+	index =  yield
+	if index.size == 1  # standard-index
+	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
+	else
+	  index_hash =  HashWithIndifferentAccess.new( type: :unique, on: all_properties_in_a_hash.keys ).merge index
+	  create_index o_class, index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
+	end
+      end
 
+       count  # return_value
     end
 
     def delete_property o_class, field

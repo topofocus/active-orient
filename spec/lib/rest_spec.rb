@@ -13,15 +13,15 @@ describe ActiveOrient::OrientDB do
   before( :all ) do
 
     # working-database: hc_database
-     ActiveOrient::OrientDB.logger =  ActiveOrient::Model.logger = Logger.new('/dev/stdout')
-     
+    ActiveOrient::OrientDB.logger =  ActiveOrient::Model.logger = Logger.new('/dev/stdout')
+
     ActiveOrient::OrientDB.default_server= { user: 'hctw', password: 'hc' }
     @database_name = 'RestTest'
     r = ActiveOrient::OrientDB.new connect: false
     r.delete_database database: @database_name
     @r= ActiveOrient::OrientDB.new database: @database_name
 
-    end
+  end
 
 
   context "check private methods", :private do
@@ -36,7 +36,7 @@ describe ActiveOrient::OrientDB do
 
     end
   end
-  context "establish a basic-auth ressource" , focus: true  do
+  context "establish a basic-auth ressource"   do
     it "connect " do
       expect( @r.ressource ).to be_a RestClient::Resource
       expect( @r.connect ).to be_truthy
@@ -45,23 +45,24 @@ describe ActiveOrient::OrientDB do
 
 
   context "perform database requests" do
-      let( :classname ) { "new_class" }
-      let( :edgename ) { "new_edge" }
-      let( :vertexname ) { "new_vertex" }
-      it 'class_name qualifies the classname-parameter'    do
-	expect( @r.class_name classname ).to be_nil
-	@r.open_class classname
-	expect( @r.class_name classname ).to eq classname.camelize
-	@r.delete_class classname
-	expect( @r.class_name classname ).to be_nil
+    let( :classname ) { "new_class" }
+    let( :edgename ) { "new_edge" }
+    let( :vertexname ) { "new_vertex" }
 
-      end
+    it 'class_name qualifies the classname-parameter'    do
+      expect( @r.class_name classname ).to be_nil
+      @r.open_class classname
+      expect( @r.class_name classname ).to eq classname.camelize
+      @r.delete_class classname
+      expect( @r.class_name classname ).to be_nil
 
-      it "class_name can be invoked with a Klass-Const" do
-	klass=  @r.open_class classname
-	expect( klass ).to eq ActiveOrient::Model::NewClass
-	expect( @r.class_name klass ).to eq classname.camelize
-      end
+    end
+
+    it "class_name can be invoked with a Klass-Const" do
+      klass=  @r.open_class classname
+      expect( klass ).to eq ActiveOrient::Model::NewClass
+      expect( @r.class_name klass ).to eq classname.camelize
+    end
 
     it "get all Classes" do
       classes = @r.get_classes 'name', 'superClass'
@@ -70,14 +71,13 @@ describe ActiveOrient::OrientDB do
       ["OFunction" , 
        "OIdentity" , "ORIDs" , "ORestricted" ,
        "ORole" , "OSchedule" , "OTriggered" , "OUser" ].each do |c|
-	expect( classes.detect{ |x|  x['name'] == c } ).to be_truthy
-
-      end
+	 expect( classes.detect{ |x|  x['name'] == c } ).to be_truthy
+       end
     end
 
     it "create  and delete a Class  "  do
       re = @r.delete_class  classname
-#      expect( re ).to be_falsy
+      #      expect( re ).to be_falsy
       model = @r.create_class  classname
       expect( model.new  ).to be_a ActiveOrient::Model
       expect( model.to_s ).to eq "ActiveOrient::Model::#{classname.camelize}"
@@ -112,37 +112,36 @@ describe ActiveOrient::OrientDB do
       expect( @r.class_hierachie( base_class: 'V').flatten ).to include @r.class_name( vertexname)
       expect( @r.delete_class vertexname ).to be_truthy
     end
+  end
+  describe "create a bunch of classes"   do
+    before(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
+    after(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
+    let( :classes_simple ) { ["one", "two" , "trhee"] }
+    let( :classes_vertex ) { { v: [ :one_v, :two_v,  :trhee_v] } }
 
-    describe "create a bunch of classes"   do
-      before(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
-      after(:all){ ["one", "two" , "trhee", :one_v, :two_v,  :trhee_v ].each{|x| @r.delete_class x.to_s  }}
-      let( :classes_simple ) { ["one", "two" , "trhee"] }
-      let( :classes_vertex ) { { v: [ :one_v, :two_v,  :trhee_v] } }
 
+    it "init: database does not contain classes" do
 
-      it "init: database does not contain classes" do
+      classes_simple.each{|x| expect( @r.database_classes ).not_to include @r.class_name(x) }
+    end
 
-	classes_simple.each{|x| expect( @r.database_classes ).not_to include @r.class_name(x) }
-      end
-
-      it "create  simple classes" do
-	klasses = @r.create_classes classes_simple 
-	classes_simple.each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
-	klasses.each{|x| expect(x.superclass).to eq ActiveOrient::Model }
-      end
-      it "create Vertex clases"  do
-	klasses = @r.create_classes classes_vertex
-	classes_vertex[:v].each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
-	klasses.each do |x|
-	  expect(x.superclass).to eq ActiveOrient::Model 
-	  expect(x.superClass).to eq 'V' 
-	end
+    it "create  simple classes" do
+      klasses = @r.create_classes classes_simple 
+      classes_simple.each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
+      klasses.each{|x| expect(x.superclass).to eq ActiveOrient::Model }
+    end
+    it "create Vertex clases"  do
+      klasses = @r.create_classes classes_vertex
+      classes_vertex[:v].each{|y| expect( @r.database_classes ).to include @r.class_name(y) }
+      klasses.each do |x|
+	expect(x.superclass).to eq ActiveOrient::Model 
+	expect(x.superClass).to eq 'V' 
       end
     end
 
     describe "handle Properties at Class-Level"   do
       before(:all){ @r.create_class 'property' }
-      after(:all){ @r.delete_class 'property' }
+     after(:all){ @r.delete_class 'property' }
 
 
       it "Class is present" do
@@ -153,13 +152,13 @@ describe ActiveOrient::OrientDB do
 	Property = @r.open_class 'property'
 	@r.open_class :contract
 	@r.open_class :exchange
-	rp = @r.create_properties( Property ) do
+	rp = @r.create_properties( Property ,
 	  { symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
 	  exchanges: { propertyType: 'LINKMAP', linkedClass: 'Exchange' } ,  
 	    details: { propertyType: 'LINK', linkedClass: 'Contract' }
-	  }
-	end
+	  } )
+
 
 	expect( rp ).to eq 4
 
@@ -170,6 +169,37 @@ describe ActiveOrient::OrientDB do
 	[ :con_id, :symbol, :details, :exchanges ].each do |f|
 	  expect( properties.detect{|x| x['name']== f.to_s}  ).to be_truthy
 	end
+	
+
+      end
+	it "define property with automatic index"  do
+	  c = @r.open_class :contract_detail
+	  @r.create_property c, :con_id, type: :integer, index: :unique
+	  expect( @r.get_class_properties(c)['indexes'] ).to have(1).item
+	  expect( @r.get_class_properties(c)['indexes'].first).to eq( 
+							      {	"name"=>"ContractDetail.con_id", 
+								"type"=>"UNIQUE", 
+								"fields"=>["con_id"] } )
+
+
+	end
+
+	it "define a properties with manual index" do
+	  @r.delete_class :contract
+	  contracts = @r.open_class :contract
+	  industries = @r.open_class :industry
+	rp = @r.create_properties( contracts,
+	  { symbol: { propertyType: 'STRING' },
+	  con_id: { propertyType: 'INTEGER' } ,  
+	  industry: { propertyType: 'LINK', linkedClass: 'Industry' }  } ) do
+	    { test_ind: :unique }
+	  end
+	  expect( @r.get_class_properties(contracts)['indexes'] ).to have(1).item
+	  expect( @r.get_class_properties(contracts)['indexes'].first).to eq( 
+							      {	"name"=>"test_ind", 
+								"type"=>"UNIQUE", 
+								"fields"=>["symbol", "con_id", "industry"] } )
+	end
 
 	## rp['properties'] --> Array of
 	#  {"name" => "exchanges", "linkedClass" => "Exchange", 
@@ -177,7 +207,6 @@ describe ActiveOrient::OrientDB do
 	#   "notNull" => false, "min" => nil, "max" => nil, "regexp" => nil, 
 	#   "collate" => "default"}
 	#
-      end
 # disabled for now
 #     it "a new record is initialized with preallocated properties" do
 #	new_record =  Property.create
@@ -207,12 +236,12 @@ describe ActiveOrient::OrientDB do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
       @rest_class = @r.create_class classname 
-      @r.create_properties( @rest_class ) do
+      @r.create_properties( @rest_class,  
 	{ symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
-	  details: { propertyType: 'LINK', linkedClass: 'Contract' }
-	}
-      end
+	  details: { propertyType: 'LINK', linkedClass: 'Contract' } } )
+	
+      
     end
     after(:all){  @r.delete_class @rest_class }
 
@@ -306,11 +335,10 @@ describe ActiveOrient::OrientDB do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
       @rest_class = @r.create_class classname 
-      @r.create_properties(  @rest_class ) do
+      @r.create_properties(  @rest_class, 
 	{ symbol: { propertyType: 'STRING' },
-	  con_id: { propertyType: 'INTEGER' }   
-	}
-      end
+	  con_id: { propertyType: 'INTEGER' }   } )
+	
       @query_class =  ActiveOrient::Query.new
 #      @query_class.orientdb =  @r
     end
