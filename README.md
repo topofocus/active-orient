@@ -48,11 +48,11 @@ Its a shortcut for »ActiveOrient::Model::{Classname} and is reused if defined e
 
 If a schema is used, properties can be created and retrieved as well
  ```ruby
-  r.create_properties( M ) do
+  r.create_properties( M ,
      {	symbol: { propertyType: 'STRING' },
 		con_id: { propertyType: 'INTEGER' },
        	details: { propertyType: 'LINK', linkedClass: 'Contracts' }
-      }
+      } )
 
   r.get_class_properties  M 
  ```
@@ -62,6 +62,22 @@ If a schema is used, properties can be created and retrieved as well
  M.create_property  'con_id', type: 'integer'
  M.create_property  'details', type: 'link', other_class: 'Contracts'
  ```
+
+Indexes depend on schema-based properties. Indexes can boost performance significantly. Therfore its recommended 
+to allocate as many indexes as query's are expected. The CreateProperty/CreateProperties-Methods take a Block to specify common indexes. Usually its sufficiant to specify name and type as
+
+```ruby
+M.create_property( symbol: :string ){ :unique }
+```
+creates a property »symbol« and an automatic index called {class_name}.symbol
+
+```ruby
+M.create_property( symbol: :string , name : string) do 
+     { first_idx: :unique }
+end
+```
+creates the properties  »symbol«  and  »name« and assigned an manual index covering both. 
+
 
 #### Active Model interface
  
