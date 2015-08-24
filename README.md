@@ -112,6 +112,7 @@ SQL-Query in Orientdb can be provided to the count, where, first and last-method
 A »normal« Query is submitted via 
 ```ruby
   M.get_documents projection: { projection-parameter }
+                  from: { ActiveOrient::Model-Class }
 		  distinct: { some parameters }
 		  where: { where-parameter }
 		  order: { sorting-parameters }
