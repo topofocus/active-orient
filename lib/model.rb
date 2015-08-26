@@ -149,11 +149,22 @@ and returns the freshly instantiated Object
 =begin
 Create a Property in the Schema of the Class
  :call-seq: 
-  self.create_property  field (required) , type: 'string', linked_class: nil
+  self.create_property(  field (required) , type: 'string', linked_class: nil, index: nil)  do
+	      index
+	end
 =end
 
-   def self.create_property field, **keyword_arguments 
-     orientdb.create_property  self, field,  **keyword_arguments 
+   def self.get_properties 
+     object =  orientdb.get_class_properties self
+     {:properties => object['properties'] , :indexes => object['indexes'] }
+   end
+
+   def self.create_property field, **keyword_arguments, &b
+     orientdb.create_property  self, field,  **keyword_arguments, &b
+   end
+
+   def self.create_properties argument_hash, &b
+     orientdb.create_properties self, argument_hash, &b
    end
 
    def self.create_link name, class_name
@@ -243,7 +254,7 @@ prints a Table with 10 columns.
 =end
 
    def self.get_documents **args , &b
-     orientdb.get_documents from: classname,  **args, &b
+     orientdb.get_documents from: self,  **args, &b
     
    end
 =begin

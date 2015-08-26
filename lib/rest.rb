@@ -441,33 +441,29 @@ todo: remove all instances of the class
 
     end
 =begin
-create a property on class-level.
+create a single property on class-level.
 
 supported types: https://orientdb.com/docs/last/SQL-Create-Property.html
 
-if index is specified, a hash is used to specify it
-  index: {automatic:  :unique | :notunique }                --> creates an automatic-Index  on the given field
-  index: { »name«  =>  :unique | :notunique | :full_text }  --> creates a manual index  
+if index is to be specified, it's defined in the optional block 
+  create_property(class, field){ :unique | :notunique }	                    --> creates an automatic-Index  on the given field
+  create_property( class, field){ { »name«  =>  :unique | :notunique | :full_text } }  --> creates a manual index  
 
 =end
-
-    def create_property o_class, field, type: 'string', linked_class: nil, index: nil
+    def create_property o_class, field, index: nil,  **args 
       logger.progname= 'OrientDB#CreateProperty'
-	js= if linked_class.nil?
-	 { field => { propertyType: type.upcase } }
-	    else
-	 { field => { propertyType: type.upcase,  linkedClass: class_name( linked_class ) } }
-	    end
-	create_properties o_class , js
+	c= create_properties o_class,   {field =>  args} # translate_property_hash( field, args ) 
 	if index.nil? && block_given?
 	  index = yield
 	end
-	if index.present? 
+	if c==1 && index.present? 
 	  if index.is_a?( String ) || index.is_a?( Symbol ) 
 	    create_index o_class, name: field, type: index
 	  elsif index.is_a? Hash
 	    bez= index.keys.first
-	    create_index o_class, name: field, type: index[bez], on: bez
+#	    puts "index: #{index.inspect}"
+#	    puts "bez: #{bez} ---> #{index.keys.inspect}"
+	    create_index o_class, name: bez, type: index[bez], on: [ field ]
 	  end
 	end
 
@@ -499,6 +495,20 @@ if index is specified, a hash is used to specify it
 
 ##
 ## -----------------------------------------------------------------------------------------
+private
+def translate_property_hash  field, type: nil, linked_class: nil, **args
+	type =  type.presence ||  args[:propertyType].presence || args[:property_type]
+	linked_class = linked_class.presence || args[:linkedClass]
+	if type.present?
+	  if linked_class.nil?
+	    { field => { propertyType: type.to_s.upcase } }
+	  else
+	    { field => { propertyType: type.to_s.upcase,  linkedClass: class_name( linked_class ) } }
+	  end
+	end
+
+end
+public
 =begin
 
 creates properties and optional an associated index as defined  in the provided block 
@@ -507,29 +517,29 @@ creates properties and optional an associated index as defined  in the provided 
 
 The default-case
   
-  create_properties( con_id: { propertyType: 'INTEGER' } ){ con_idx: :unique }
+  create_properties( con_id: { type:  :integer },
+		    details: { type:  :link, linked_class: 'Contracts' } ) do
+						 contract_idx: :notunique 
+									  end
 
-  create_properties( con_id: { propertyType: 'INTEGER' },
-		    details: { propertyType: 'LINK', linkedClass: 'Contracts' } ) do
-										 contract_idx: :notunique 
-										  end
+A composite index
 
-
-  create_properties( con_id: { propertyType: 'INTEGER' },
-		      symbol: { propertyType: 'STRING' } ) do
-		{ name: 'indexname',
+  create_properties( con_id: { type: :integer },
+		      symbol: { type: :string } ) do
+	  		{ name: 'indexname',
 			 on: [ :con_id , :details ]    # default: all specified properties
 			 type: :notunique              # default: :unique
 	        }
 		end
 
 =end
-    def create_properties o_class, all_properties_in_a_hash
+    def create_properties o_class, all_properties, &b
+
+      all_properties_in_a_hash  =  HashWithIndifferentAccess.new
+      all_properties.each{| field, args |  all_properties_in_a_hash.merge! translate_property_hash( field, args ) }
 
       begin
-	index =  block_given? ? yield : {}
-
-	count = if all_properties_in_a_hash.is_a? Hash
+	count = if all_properties_in_a_hash.is_a?( Hash )
 	  response = @res[ property_uri(class_name(o_class)) ].post all_properties_in_a_hash.to_json
 	  if response.code == 201
 	    response.body.to_i
@@ -541,7 +551,7 @@ The default-case
 	response = JSON.parse( e.response)['errors'].pop
 	error_message  = response['content'].split(':').last
 #	if error_message ~= /Missing linked class/
-	logger.progname= 'OrientDB#CreateProperty'
+	logger.progname= 'OrientDB#CreatePropertes'
 	logger.error { "Properties in #{class_name(o_class)} were NOT created" }
 	logger.error { "Error-code #{response['code']} --> #{response['content'].split(':').last }" }
 	nil
@@ -549,15 +559,16 @@ The default-case
       ### index
       if block_given?   && count == all_properties_in_a_hash.size
 	index =  yield
-	if index.size == 1  # standard-index
-	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
-	else
-	  index_hash =  HashWithIndifferentAccess.new( type: :unique, on: all_properties_in_a_hash.keys ).merge index
-	  create_index o_class, index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
+	if index.is_a?( Hash ) 
+	  if index.size == 1
+	    create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
+	  else
+	    index_hash =  HashWithIndifferentAccess.new( type: :unique, on: all_properties_in_a_hash.keys ).merge index
+	    create_index o_class, index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
+	  end
 	end
       end
-
-       count  # return_value
+      count  # return_value
     end
 
     def delete_property o_class, field

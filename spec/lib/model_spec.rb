@@ -13,7 +13,8 @@ end
 describe ActiveOrient::Model do
   before( :all ) do
 
-    # working-database: hc_database
+   ActiveOrient::OrientDB.logger =  ActiveOrient::Model.logger = Logger.new('/dev/stdout')
+   ActiveOrient::OrientDB.default_server= { user: 'hctw', password: 'hc' }
     ActiveOrient::Base.logger = Logger.new('/dev/stdout')
 
     @r= ActiveOrient::OrientDB.new database: 'MyTest'
@@ -54,7 +55,44 @@ describe ActiveOrient::Model do
     end
   end
 
-  context "Add a document to the class"  do
+
+  context "add properties and indexes" , focus:true do
+    it "create a single property" do
+    @r.delete_class 'index_test'
+    TestIndex = @r.open_class "index_test" 
+    TestIndex.create_property( :test, type: 'string' ){ :unique }
+    expect( TestIndex.get_properties[:properties] ).to have(1).item
+    expect( TestIndex.get_properties[:indexes] ).to have(1).item
+    end
+    it "create a single property with a manual index" do
+    @r.delete_class 'index_test'
+    TestIndex = @r.open_class "index_test" 
+    TestIndex.create_property( :test, type: 'string', index: {test_ind: :unique} )
+    expect( TestIndex.get_properties[:properties] ).to have(1).item
+    expect( TestIndex.get_properties[:indexes] ).to have(1).item
+    end
+    it "create several  properties with a composite index" do
+    @r.open_class :industry
+    @r.delete_class 'index_test'
+    TestIndex = @r.open_class "index_test" 
+    count= TestIndex.create_properties(	 test:  {type: :integer},
+      					 symbol: { type: :string },
+				         industries: { type: 'LINKMAP', linked_class: 'Industry' }   ) do
+			              { test_ind: :unique }
+				 end
+    expect( TestIndex.get_properties[:properties] ).to have(3).items
+    expect( TestIndex.get_properties[:indexes] ).to have(1).item
+    end
+
+    it "put some data into the class" do
+
+      (0..45).each{|x| TestIndex.create  test: x  }
+      expect( TestIndex.count ).to eq 46
+      expect( TestIndex.where test: 23 ).to have(1).item
+    end
+  end
+
+  context "Add a document to the class" , focus:true do
     it "the database is empty before we start" do
       expect( @r.get_documents  from: TestModel ).to be_empty
       expect( TestModel.count ).to be_zero
@@ -101,7 +139,7 @@ describe ActiveOrient::Model do
     end
   end
 
-  context "ActiveRecord mimics"    do
+  context "ActiveRecord mimics" , focus:true   do
    before(:all){ (0..45).each{|x| TestModel.create  test: x  }}
    it "fetch all documents into an Array" do
       all_documents = TestModel.all
@@ -112,7 +150,7 @@ describe ActiveOrient::Model do
 
     it "get a set of documents queried by where"  do
       all_documents = TestModel.all  ## all fetches only 20 records
-#      puts all_documents.map( &:test).join(' .. ')
+      #puts all_documents.map( &:test).join(' .. ')
       nr_23=  TestModel.where  test: 23 
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23

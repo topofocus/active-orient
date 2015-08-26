@@ -35,6 +35,37 @@ describe ActiveOrient::OrientDB do
       expect( @r.class_uri {'test'} ).to eq "class/#{@database_name}/test"
 
     end
+
+    context  "translate property_hash"  do
+      it "simple property" do
+	ph= { :type => :string }
+	field = 't'
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"} 
+      end
+      it "simple property with linked_class" do
+	@r.open_class :contract
+	ph= { :type => :link, linked_class: :contract }
+	field = 't'
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"LINK", :linkedClass=>"Contract"} 
+      end
+
+      it 'primitive property definition' do
+	ph= {:propertyType=>"STRING" }
+	field = 't'
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"} 
+	ph= {:propertyType=> :string}
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"} 
+	ph= {:propertyType=> 'string'}
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"} 
+      end
+      it 'primitive property definition with linked_class' do
+	ph= {:propertyType=>"STRING", linked_class: :contract }
+	field = 't'
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>"Contract"} 
+	ph= {:propertyType=> :string, linkedClass: :contract }
+	expect( @r.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>"Contract" } 
+      end
+    end
   end
   context "establish a basic-auth ressource"   do
     it "connect " do
@@ -139,7 +170,7 @@ describe ActiveOrient::OrientDB do
       end
     end
 
-    describe "handle Properties at Class-Level"   do
+    describe "handle Properties at Class-Level"  , focus:true do
       before(:all){ @r.create_class 'property' }
      after(:all){ @r.delete_class 'property' }
 
@@ -153,11 +184,11 @@ describe ActiveOrient::OrientDB do
 	@r.open_class :contract
 	@r.open_class :exchange
 	rp = @r.create_properties( Property ,
-	  { symbol: { propertyType: 'STRING' },
+	   symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
 	  exchanges: { propertyType: 'LINKMAP', linkedClass: 'Exchange' } ,  
 	    details: { propertyType: 'LINK', linkedClass: 'Contract' }
-	  } )
+	   )
 
 
 	expect( rp ).to eq 4
@@ -174,7 +205,7 @@ describe ActiveOrient::OrientDB do
       end
 	it "define property with automatic index"  do
 	  c = @r.open_class :contract_detail
-	  @r.create_property c, :con_id, type: :integer, index: :unique
+	  @r.create_property( c, :con_id, type: :integer) { :unique }
 	  expect( @r.get_class_properties(c)['indexes'] ).to have(1).item
 	  expect( @r.get_class_properties(c)['indexes'].first).to eq( 
 							      {	"name"=>"ContractDetail.con_id", 
@@ -184,14 +215,14 @@ describe ActiveOrient::OrientDB do
 
 	end
 
-	it "define a properties with manual index" do
+	it "define a propertie with manual index" do
 	  @r.delete_class :contract
 	  contracts = @r.open_class :contract
 	  industries = @r.open_class :industry
 	rp = @r.create_properties( contracts,
-	  { symbol: { propertyType: 'STRING' },
-	  con_id: { propertyType: 'INTEGER' } ,  
-	  industry: { propertyType: 'LINK', linkedClass: 'Industry' }  } ) do
+	  { symbol: { type: :string },
+	  con_id: { type: :integer } ,  
+	  industry: { type: :link, linkedClass: 'Industry' }  } ) do
 	    { test_ind: :unique }
 	  end
 	  expect( @r.get_class_properties(contracts)['indexes'] ).to have(1).item
