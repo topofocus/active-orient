@@ -60,23 +60,23 @@ If a schema is used, properties can be created and retrieved as well
  ```ruby
  M.create_property  'symbol'
  M.create_property  'con_id', type: 'integer'
- M.create_property  'details', type: 'link', other_class: 'Contracts'
+ M.create_property  'details', type: 'link', linked_class: 'Contracts'
  ```
 
 Indexes depend on schema-based properties. Indexes can boost performance significantly. Therfore its recommended 
 to allocate as many indexes as query's are expected. The CreateProperty/CreateProperties-Methods take a Block to specify common indexes. Usually its sufficiant to specify name and type as
 
 ```ruby
-M.create_property( symbol: :string ){ :unique }
+M.create_property( :symbol ){ :unique }
 ```
-creates a property »symbol« and an automatic index called {class_name}.symbol
+creates a property »symbol« (of Type String) and an automatic index called {class_name}.symbol
 
 ```ruby
-M.create_property( symbol: :string , name : string) do 
+M.create_properties( symbol:{ type: :string} , name: {type: :string}) do 
      { first_idx: :unique }
 end
 ```
-creates the properties  »symbol«  and  »name« and assigned an manual index covering both. 
+creates the properties  »symbol«  and  »name« and  a manual index assigned to both. 
 
 
 #### Active Model interface
