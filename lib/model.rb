@@ -178,15 +178,23 @@ Only if the Class inherents from »E«
 Instantiate a new Edge betwen two Vertices
 
 Parameter: unique: (true)  In case of an existing Edge just update its Properties. 
+The parameters »from« and »to« can take a list of model-records. Then subsequent edges are created.
  :call-seq: 
   self.create_edge from: , to: , unique: false, attributes:{} 
 =end
    def self.create_edge **keyword_arguments 
       o=orientdb.nexus_edge  self, **keyword_arguments 
-      [:from,:to].each{|y| keyword_arguments[y].reload! }
+      [:from,:to].each{|y| keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ):  keyword_arguments[y].reload! }
       o  # return_value
    end
 
+   def self.query_database query
+     query.from self if query.from == 'from '
+     sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command } }
+     orientdb.execute do
+       [ sql_cmd[ query.compose ] ]
+     end 
+   end
    def query  q 
      a= ActiveOrient::Query.new 
      a.queries << q

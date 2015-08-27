@@ -250,7 +250,8 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 			      ""
 			    end 
 	end
-	@projection.join(' ,')  #return_value
+	#### error? distinct returns projection, what if both are present in a query?
+	@projection.join(',')  #return_value
       end
       def projection s=nil
 	if s.present?
@@ -286,7 +287,7 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 
       def skip n=nil
 	@skip= n if n.present?
-	"skip #{n}" if @skip.present?
+	"skip #{@skip}" if @skip.present?
       end
 
       def order o=nil

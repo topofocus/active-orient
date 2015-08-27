@@ -358,26 +358,33 @@ The parameter o_class can be either a class or a string
 
     def nexus_edge o_class , attributes: {}, from:,  to:, unique: false
       logger.progname = "ActiveOrient::OrientDB#NexusEdge"
-      if unique
-	wwhere = { out: from.to_orient,  in: to.to_orient }.merge(attributes.to_orient) 
-	existing_edge = get_documents( from: o_class, where: wwhere )
-	if  existing_edge.first.is_a?( ActiveOrient::Model )
-	  logger.debug { "reusing  edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
-	return existing_edge.first  
+      if from.is_a? Array
+	from.map{|f| nexus_edge o_class, attributes: attributes, from: f, to: to, unique: unique }
+      elsif to.is_a? Array
+	to.map{|t| nexus_edge o_class, attributes: attributes, from: from, to: t, unique: unique }
+      else
+
+	if unique
+	  wwhere = { out: from.to_orient,  in: to.to_orient }.merge(attributes.to_orient) 
+	  existing_edge = get_documents( from: o_class, where: wwhere )
+	  if  existing_edge.first.is_a?( ActiveOrient::Model )
+	    logger.debug { "reusing  edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
+	    return existing_edge.first  
+	  end
+	end
+	logger.debug { "creating edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
+	response=  execute( o_class, transaction: false) do 
+	  #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[m]} to #{to.to_orient}; ")} ]
+	  attr_string =  attributes.blank? ? "" : "set #{ generate_sql_list attributes.to_orient }"
+	  [ { type: "cmd", language: 'sql', 
+       command:  "create edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} #{attr_string}"} ]
+	end
+	if response.is_a?(Array) && response.size == 1
+	  response.pop # RETURN_VALUE
+	else
+	  response
 	end
       end
-      logger.debug { "creating edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} " }
-      response=  execute( o_class, transaction: false) do 
-      #[ { type: "cmd", language: 'sql', command:  CGI.escapeHTML("create edge #{class_name(o_class)} from #{translate_to_rid[m]} to #{to.to_roient}; ")} ]
-      attr_string =  attributes.blank? ? "" : "set #{ generate_sql_list attributes.to_orient }"
-      [ { type: "cmd", language: 'sql', 
-	  command:  "create edge #{class_name(o_class)} from #{from.to_orient} to #{to.to_orient} #{attr_string}"} ]
-       end
-       if response.is_a?(Array) && response.size == 1
-	 response.pop # RETURN_VALUE
-       else
-	 response
-       end
     end
 
 =begin
@@ -639,19 +646,22 @@ end
 Creates an Object in the Database and returns this as ActuveOrient::Model-Instance
 =end
 
-    def create_document o_class, attributes: {}
-      attributes = yield if attributes.empty? && block_given?
-#      preallocated_attributes =  preallocate_class_properties o_class
-#      puts "preallocated_attributes: #{o_class} -->#{preallocated_attributes.inspect }"
-      post_argument = { '@class' => class_name(o_class) }.merge(attributes).to_orient
-#	puts "post_argument: #{post_argument.inspect}"
-	
-      response = @res[ document_uri ].post post_argument.to_json
-      data= JSON.parse( response.body )
-#    data = preallocated_attributes.merge data
-      ActiveOrient::Model.orientdb_class( name: data['@class']).new data
-#      o_class.new JSON.parse( response.body)
-    end
+def create_document o_class, attributes: {}
+  attributes = yield if attributes.empty? && block_given?
+  post_argument = { '@class' => class_name(o_class) }.merge(attributes).to_orient
+
+  begin
+    logger.progname = 'OrientDB#CreateDocument'
+    response = @res[ document_uri ].post post_argument.to_json
+    data= JSON.parse( response.body )
+    ActiveOrient::Model.orientdb_class( name: data['@class']).new data
+  rescue RestClient::InternalServerError => e
+    response = JSON.parse( e.response)['errors'].pop
+    logger.error { response['content'].split(':')[1..-1].join(':')  }
+    logger.error { "No Object allocated" }
+    nil # return_value
+  end
+end
 
 
     def delete_document record_id
@@ -904,13 +914,14 @@ structure of the provided block:
 #	puts "batch_uri: #{@res[batch_uri]}"
 #        puts "post: #{batch.to_json}"
 	response = @res[ batch_uri ].post batch.to_json 
+#	puts "response: #{JSON.parse(response.body)['result'].inspect}"
 	if response.code == 200
 	  if response.body['result'].present?
 	    result= JSON.parse(response.body)['result']
 	    result.map do |x| 
 	      if x.is_a? Hash 
 		if x.has_key?('@class')
-		  ActiveOrient::Model.orientdb_class( name: x['@class']).new x
+		 ActiveOrient::Model.orientdb_class( name: x['@class']).new x
 		elsif x.has_key?( 'value' )
 		  x['value']
 		else
