@@ -105,20 +105,20 @@ eg .  update #link set  ...
    end
 
 
-   def method_missing method, *args, &b
-     property=  orientdb.get_class_properties( classname )['properties'].detect{|x| x.has_value?  method.to_s }
-     puts "method_missing::property"
-     puts property.inspect
-     if property.present?
-       if property['type'] == 'LINKSET'
-	 attributes[method] = OrientSupport::Array.new( self )
-       else
-	 attributes[method] = ''
-       end
-     else
-	 raise NoMethodError
-     end
-   end
+#   def method_missing method, *args, &b
+#     property=  orientdb.get_class_properties( classname )['properties'].detect{|x| x.has_value?  method.to_s }
+#     puts "method_missing::property"
+#     puts property.inspect
+#     if property.present?
+#       if property['type'] == 'LINKSET'
+#	 attributes[method] = OrientSupport::Array.new( self )
+#       else
+#	 attributes[method] = ''
+#       end
+#     else
+#	 raise NoMethodError
+#     end
+#   end
 =begin 
 Queries the database and fetches the count of datasets
 
@@ -188,11 +188,11 @@ The parameters »from« and »to« can take a list of model-records. Then subseq
       o  # return_value
    end
 
-   def self.query_database query
-     query.from self if query.from == 'from '
+   def self.query_database query, set_from: true
+     query.from self if set_from && query.is_a?( OrientSupport::OrientQuery ) && query.from.nil? 
      sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command } }
      orientdb.execute do
-       [ sql_cmd[ query.compose ] ]
+       [ sql_cmd[ query.to_s ] ]
      end 
    end
    def query  q 

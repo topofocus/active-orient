@@ -152,7 +152,8 @@ Used by update and select
 
       def initialize  **args
 	@projection = []
-	@misc= []
+	@misc = []
+	@let  = []
 	args.each do | k,v|
 	self.send k, v
 	end
@@ -171,8 +172,10 @@ Used by update and select
       end
 
       def compose
-	[ "select", projection,  from, where , subquery,  misc, order , group_by, unwind, skip ].compact.join(' ')
+	[ "select", projection,  from, let, where , subquery,  misc, order , group_by, unwind, skip ].compact.join(' ')
       end
+
+      alias :to_s  :compose
 =begin
 from can either be a Databaseclass to operate on or a Subquery providing data to query further 
 =end
@@ -188,17 +191,14 @@ from can either be a Databaseclass to operate on or a Subquery providing data to
 		      when Symbol
 			arg
 		      when OrientQuery
-			nil # don't set @database
+			arg
 		      end
-	  @from =  arg
+	  compose  # return the complete query
 	else # read from
-	  "from " << if  @from.is_a?( OrientQuery )
-		       "( #{@from.compose} )"
-	  else 
-	    @database.to_s
+	  "from " <<  @database.to_s  unless @database.nil?
 	  end
 	end
-      end
+      alias :from= :from
       def database_class= arg
 	@database =  arg if @database.present?
 	if @from.is_a? OrientQuery
@@ -226,16 +226,33 @@ where: {a: 9, b: 's'}                   --> where a = 9 and b = 's'
 where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 =end
       def where *arg
-	@where= compose_where(*arg) unless arg.empty?
-	@where  # return_value
+	if arg.present?
+	  @where= compose_where(*arg) 	
+	  compose
+	else
+	  @where  # return_value
+	end
       end
+      alias :where= :where
 
-      def let *arg
-#	SELECT FROM Profile
-#	LET $city = address.city
-#	WHERE $city.name like '%Saint%"' AND
-#	    ( $city.country.name = 'Italy' OR $city.country.name = 'France' )
-	puts "OrientSupport::OrientQuery@let is not implementated"
+      def let  s=nil
+	if s.present?
+	  @let << case s
+	  when Hash
+	    s.map{ |x,y| "$#{x} = ( #{y} )"}.join( ', ')
+	  when Array
+	    s.join(',  ')
+	  else
+	    s
+	  end
+	else
+
+	  "let " << @let.join(', ') unless @let.empty?
+	  #	SELECT FROM Profile
+	  #	LET $city = address.city
+	  #	WHERE $city.name like '%Saint%"' AND
+	  #	    ( $city.country.name = 'Italy' OR $city.country.name = 'France' )
+	end
       end
       def distinct d=nil
 	if d.present?
@@ -249,10 +266,14 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 			    else
 			      ""
 			    end 
-	end
+	compose
+	else
 	#### error? distinct returns projection, what if both are present in a query?
+	#### distinct is indentially not included in compose!
 	@projection.join(',')  #return_value
+	end
       end
+      alias :distinct= :distinct
       def projection s=nil
 	if s.present?
 
@@ -264,10 +285,13 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 			  else
 			    s
 			  end
+	  compose
 
 	end
       	@projection.join(', ')
       end
+
+      alias :projection= :projection
 
  #     def where= w
 
@@ -291,16 +315,21 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
       end
 
       def order o=nil
-	@order_string = "order by " << case o
-	when  Hash 
-	  o.map{ |x,y| "#{x} #{y}" }.join( " " )
-	when Array
-	  o.map{ |x| "#{x} asc"}.join( " " )
+	if o.present?
+	  @order_string = "order by " << case o
+	  when  Hash 
+	    o.map{ |x,y| "#{x} #{y}" }.join( " " )
+	  when Array
+	    o.map{ |x| "#{x} asc"}.join( " " )
+	  else
+	    o.to_s
+	  end 
+	  compose
 	else
-	  o.to_s
-	end if o.present?
-	@order_string
+	  @order_string
+	end
       end
+      alias :order= :order
 #	misc_string = if skip > 0 && limit > 0 
 #			" skip: #{skip} "
 #		      else
