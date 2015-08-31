@@ -911,8 +911,7 @@ structure of the provided block:
     def execute classname = 'Myquery', transaction: true  
       batch =  { transaction: transaction, operations: yield }
       unless batch[:operations].blank?
-#	puts "batch_uri: #{@res[batch_uri]}"
-#        puts "post: #{batch.to_json}"
+#       puts "post: #{batch.to_json}"
 	response = @res[ batch_uri ].post batch.to_json 
 #	puts "response: #{JSON.parse(response.body)['result'].inspect}"
 	if response.code == 200

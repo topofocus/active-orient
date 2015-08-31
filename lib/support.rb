@@ -20,6 +20,8 @@ class String
 	  self
 	end
     end
+    ## this enables the universal use of an rid-string as pseudonym for a ActiveOrient::Model
+    alias :reload! from_orient
 end
 class NilClass
   def to_orient
