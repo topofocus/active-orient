@@ -116,14 +116,29 @@ describe OrientSupport::OrientQuery do
 	 end
        end
 
-       it "printout the connected cities" do
-	  Street.all.each do | street |
-	   puts street.name + " verbindet " + street.connects.in.map( &:name ).join('; ')
+#       it "printout the connected cities" do
+#	  Street.all.each do | street |
+#	   puts street.name + " verbindet " + street.connects.in.map( &:name ).join('; ')
+#
+#	 end
+#
+#       end
 
-	 end
-
+       it "select only cities from a selected state " do
+	 State.all.each do |state|
+	   streets= Street.all.map do |street |
+	     if street.connects.in.detect{|x| x.state == state }
+	       street.name + " verbindet " + street.connects.in.map( &:name ).join('; ')
+	     end
+	   end.compact
+	   unless streets.empty?
+	     puts "..................................."
+	     puts state.name
+	     puts "..................................."
+	     puts streets.join("\n")
+	   end
+	end
        end
-
 
 
 end  # describe
