@@ -46,10 +46,11 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
       intersects = Array.new
       desired_words.each_with_index do | word, i |
 	       symbol = ( i+97 ).chr   #  convert 1 -> 'a' 
-               q.let symbol =>  query.where(  item: word  )
-          intersects << "$#{symbol}"		 
+	       query.where = { item: word  }
+               q.let << { symbol =>  query }
+	       intersects << "$#{symbol}"		 
       end
-      q.let   "$z = Intersect(#{intersects.join(', ')}) "
+      q.let <<  "$z = Intersect(#{intersects.join(', ')}) "
       puts "generated Query:"
       puts q.to_s
       result = Keyword.query_database  q, set_from: false
@@ -71,7 +72,7 @@ require '../config/boot'
     Book = r.open_class :book
     Keyword = r.open_class :keyword
     HC = r.open_class :has_content
-    
+   
     b.read_samples if Keyword.count.zero?
     b.display_books_with 'Land', 'Quartal'
 end

@@ -720,7 +720,7 @@ end
       logger.progname = 'OrientDB#count_documents'
 
 	query =  OrientSupport::OrientQuery.new args
-	query.projection 'COUNT (*)'
+	query.projection << 'COUNT (*)'
 	result = get_documents raw: true, query: query 
 
 	result.first['COUNT']

@@ -6,9 +6,9 @@ The Package ist tested with Ruby 2.2.1 and Orientdb 2.1.
 
 
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
-Install the Gem the usual way  ( http://bundler.io )
+Install the Gem the usual way
 
-For a quick start, open an irb-session
+For a quick start, go to the home directory of the package and start an irb-session
 
 ```ruby
   require 'bundler/setup'
@@ -48,11 +48,11 @@ Its a shortcut for »ActiveOrient::Model::{Classname} and is reused if defined e
 
 If a schema is used, properties can be created and retrieved as well
  ```ruby
-  r.create_properties( M ,
+  r.create_properties( M ) do
      {	symbol: { propertyType: 'STRING' },
 		con_id: { propertyType: 'INTEGER' },
        	details: { propertyType: 'LINK', linkedClass: 'Contracts' }
-      } )
+      }
 
   r.get_class_properties  M 
  ```
@@ -60,24 +60,8 @@ If a schema is used, properties can be created and retrieved as well
  ```ruby
  M.create_property  'symbol'
  M.create_property  'con_id', type: 'integer'
- M.create_property  'details', type: 'link', linked_class: 'Contracts'
+ M.create_property  'details', type: 'link', other_class: 'Contracts'
  ```
-
-Indexes depend on schema-based properties. Indexes can boost performance significantly. Therfore its recommended 
-to allocate as many indexes as query's are expected. The CreateProperty/CreateProperties-Methods take a Block to specify common indexes. Usually its sufficiant to specify name and type as
-
-```ruby
-M.create_property( :symbol ){ :unique }
-```
-creates a property »symbol« (of Type String) and an automatic index called {class_name}.symbol
-
-```ruby
-M.create_properties( symbol:{ type: :string} , name: {type: :string}) do 
-     { first_idx: :unique }
-end
-```
-creates the properties  »symbol«  and  »name« and  a manual index assigned to both. 
-
 
 #### Active Model interface
  
@@ -112,7 +96,6 @@ SQL-Query in Orientdb can be provided to the count, where, first and last-method
 A »normal« Query is submitted via 
 ```ruby
   M.get_documents projection: { projection-parameter }
-                  from: { ActiveOrient::Model-Class }
 		  distinct: { some parameters }
 		  where: { where-parameter }
 		  order: { sorting-parameters }
@@ -214,9 +197,57 @@ The Attributes "in" and "out" can be used to move across the graph
    start.e1[0].in.something 
    ---> "nice
 ```
+#### Queries
+Contrary to traditional SQL-based Databases OrientDB handles  subqueries very efficient. 
+In addition, OrientDB supports precompiled statements (let-Blocks).
+
+ActiveOrient is equipped with a simple QueryGenerator: ActiveSupport::OrientQuery. 
+It works in two modi: a comprehensive and a subsequent one
+```ruby
+  
+  q =  OrientSupport::OrientQuery.new
+  q.from = Vertex  
+  q.where << a: 2
+  q.where << 'b > 3 '
+  q.distinct = :profession
+  q.order =  { :name => :asc }
+
+```
+is equivalent to
+```ruby
+  q =  OrientSupport::OrientQuery.new :from  Vertex , 
+				      :where [{ a: 2 }, 'b > 3 '],
+				      :distinct  :profession,
+				      :order  { :name => :asc }
+  q.to_s
+  => select distinct( profession ) from Vertex where a = 2 and b > 3  order by name asc
+```
+Both modes can be mixed.
+
+If subqueries are nessesary, they can be introduced as OrientSupport::OrientQuery or as »let-block«.
+```ruby
+  q =  OrientSupport::OrientQuery.new from: 'ModelQuery'
+  q.let << "$city = adress.city"
+  q.where = "$city.country.name = 'Italy' OR $city.country.name = 'France'"
+  q.to_s
+  => select from ModelQuery let $city = adress.city where $city.country.name = 'Italy' OR $city.country.name = 'France' 
+```
+or
+```ruby
+  q =  OrientSupport::OrientQuery.new
+  q.let << { a:  OrientSupport::OrientQuery.new( from: '#5:0' ) }
+  q.let << { b:  OrientSupport::OrientQuery.new( from: '#5:1' ) }
+  q.let << '$c= UNIONALL($a,$b) '
+  q.projection << 'expand( $c )'
+  q.to_s
+  => select expand( $c ) let $a = ( select from #5:0 ), $b = ( select from #5:1 ), $c= UNIONALL($a,$b)
+```
+
+
+
 
 #### Execute SQL-Commands
-At least - sql-commands can be executed as batch
+Sql-commands can be executed as batch
 
 The ActiveOrient::Query-Class provides a Query-Stack and an Records-Array which keeps the results.
 The ActiveOrient::Query-Class acts as Parent-Class for aggregated Records (without a @rid), which are ActiveOrient::Model::Myquery Objects. If a Query returns a database-record, the correct ActiveOrient::Model-Class is instantiated.

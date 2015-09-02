@@ -56,7 +56,7 @@ describe ActiveOrient::Model do
   end
 
 
-  context "add properties and indexes" , focus:true do
+  context "add properties and indexes" do
     it "create a single property" do
     @r.delete_class 'index_test'
     TestIndex = @r.open_class "index_test" 
@@ -88,11 +88,10 @@ describe ActiveOrient::Model do
 
       (0..45).each{|x| TestIndex.create  test: x  }
       expect( TestIndex.count ).to eq 46
-      expect( TestIndex.where test: 23 ).to have(1).item
     end
   end
 
-  context "Add a document to the class" , focus:true do
+  context "Add a document to the class"  do
     it "the database is empty before we start" do
       expect( @r.get_documents  from: TestModel ).to be_empty
       expect( TestModel.count ).to be_zero
@@ -133,13 +132,20 @@ describe ActiveOrient::Model do
       expect{ obj.reload! }.not_to change{ obj.attributes }
     end
 
+    it "a value can be added to the array" do
+      obj =  TestModel.first
+      obj.add_item_to_property 'a_array', 56 
+      expect(obj.a_array).to eq [ 1,4,'r', 'r', 56 ]
+
+    end
+
     it "the document can be deleted"  do
       obj =  TestModel.first
       expect{ obj.delete }.to change { TestModel.count }.by -1
     end
   end
 
-  context "ActiveRecord mimics" , focus:true   do
+  context "ActiveRecord mimics"    do
    before(:all){ (0..45).each{|x| TestModel.create  test: x  }}
    it "fetch all documents into an Array" do
       all_documents = TestModel.all
@@ -150,7 +156,6 @@ describe ActiveOrient::Model do
 
     it "get a set of documents queried by where"  do
       all_documents = TestModel.all  ## all fetches only 20 records
-      #puts all_documents.map( &:test).join(' .. ')
       nr_23=  TestModel.where  test: 23 
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23

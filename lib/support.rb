@@ -156,8 +156,21 @@ Used by update and select
 	@projection = []
 	@misc = []
 	@let  = []
+	@where = []
+	@order = []
 	args.each do | k,v|
-	self.send k, v
+	  case k
+	   when :projection
+	    @projection << v
+	   when :let
+	    @let << v
+	   when :order
+	    @order << v
+	   when :where
+	    @where << v
+	  else
+	    self.send k, v
+	  end
 	end
       end
 
@@ -174,7 +187,7 @@ Used by update and select
       end
 
       def compose
-	[ "select", projection,  from, let, where , subquery,  misc, order , group_by, unwind, skip ].compact.join(' ')
+	[ "select", projection_s,  from, let_s, where_s , subquery,  misc, order_s , group_by, unwind, skip ].compact.join(' ')
       end
 
       alias :to_s  :compose
@@ -227,19 +240,17 @@ where: "r > 9"                          --> where r > 9
 where: {a: 9, b: 's'}                   --> where a = 9 and b = 's'
 where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 =end
-      def where *arg
-	if arg.present?
-	  @where= compose_where(*arg) 	
-	  compose
-	else
-	  @where  # return_value
-	end
+      attr_accessor :where
+      def where_s
+	compose_where @where
       end
-      alias :where= :where
 
-      def let  s=nil
-	if s.present?
-	  @let << case s
+
+      attr_accessor :let
+      def let_s
+	unless @let.empty?
+	  "let " << @let.map do |s|
+	   case s
 	  when Hash
 	    s.map{ |x,y| "$#{x} = ( #{y} )"}.join( ', ')
 	  when Array
@@ -247,20 +258,14 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 	  else
 	    s
 	  end
-	else
-
-	  "let " << @let.join(', ') unless @let.empty?
-	  #	SELECT FROM Profile
-	  #	LET $city = address.city
-	  #	WHERE $city.name like '%Saint%"' AND
-	  #	    ( $city.country.name = 'Italy' OR $city.country.name = 'France' )
+	  end.join(', ')
 	end
       end
-      def distinct d=nil
-	if d.present?
+
+      def distinct d
 	@projection << case d
-			    when String
-			        "distinct( #{d} )"  
+			    when String, Symbol
+			        "distinct( #{d.to_s} )"  
 			    when Array
 			        "distinct( #{d.first} ) as #{d.last}"
 			    when Hash
@@ -268,18 +273,15 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 			    else
 			      ""
 			    end 
-	compose
-	else
-	#### error? distinct returns projection, what if both are present in a query?
-	#### distinct is indentially not included in compose!
-	@projection.join(',')  #return_value
-	end
+	compose  # return the hole query
       end
       alias :distinct= :distinct
-      def projection s=nil
-	if s.present?
 
-	  @projection <<  case s
+      attr_accessor :projection
+      def projection_s
+
+	  @projection.map do | s |
+		case s
 			  when Hash
 			    s.map{ |x,y| "#{x} as #{y}"}.join( ', ')
 			  when Array
@@ -287,13 +289,10 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 			  else
 			    s
 			  end
-	  compose
+	  end.join( ', ' )
 
-	end
-      	@projection.join(', ')
       end
 
-      alias :projection= :projection
 
  #     def where= w
 
@@ -316,22 +315,23 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 	"skip #{@skip}" if @skip.present?
       end
 
-      def order o=nil
-	if o.present?
-	  @order_string = "order by " << case o
-	  when  Hash 
-	    o.map{ |x,y| "#{x} #{y}" }.join( " " )
-	  when Array
-	    o.map{ |x| "#{x} asc"}.join( " " )
-	  else
-	    o.to_s
-	  end 
-	  compose
+      attr_accessor :order
+
+      def order_s 
+	unless @order.empty?
+	 # the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }  
+	  "order by " << [@order].flatten.map do | o |
+	    case o
+	    when  Hash 
+	      o.map{ |x,y| "#{x} #{y}" }.join( " " )
+	    else
+	      o.to_s
+	    end  # case
+	  end.join(', ')
 	else
-	  @order_string
+	  ''
 	end
       end
-      alias :order= :order
 #	misc_string = if skip > 0 && limit > 0 
 #			" skip: #{skip} "
 #		      else

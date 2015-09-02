@@ -277,7 +277,8 @@ Example:
 
 =end
 def self.where attributes =  {}
-  orientdb.get_documents  from: self, where: attributes
+  q = OrientSupport::OrientQuery.new where: attributes
+  query_database q 
 end
 =begin
 
