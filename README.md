@@ -215,10 +215,10 @@ It works in two modi: a comprehensive and a subsequent one
 ```
 is equivalent to
 ```ruby
-  q =  OrientSupport::OrientQuery.new :from  Vertex , 
-				      :where [{ a: 2 }, 'b > 3 '],
-				      :distinct  :profession,
-				      :order  { :name => :asc }
+  q =  OrientSupport::OrientQuery.new from:  Vertex , 
+				      where: [{ a: 2 }, 'b > 3 '],
+				      distinct:  :profession,
+				      order:  { :name => :asc }
   q.to_s
   => select distinct( profession ) from Vertex where a = 2 and b > 3  order by name asc
 ```
