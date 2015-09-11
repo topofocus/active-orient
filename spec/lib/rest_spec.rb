@@ -170,7 +170,7 @@ describe ActiveOrient::OrientDB do
       end
     end
 
-    describe "handle Properties at Class-Level"  , focus:true do
+    describe "handle Properties at Class-Level"   do
       before(:all){ @r.create_class 'property' }
      after(:all){ @r.delete_class 'property' }
 
