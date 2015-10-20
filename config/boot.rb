@@ -1,9 +1,15 @@
 require 'bundler/setup'
 require 'yaml'
 project_root = File.expand_path('../..', __FILE__)
+require "#{project_root}/lib/constants.rb"
 require "#{project_root}/lib/support.rb"
 require "#{project_root}/lib/base.rb"
 require "#{project_root}/lib/base_properties.rb"
+
+require "#{project_root}/lib/socket.rb"
+require "#{project_root}/lib/messages.rb"
+require "#{project_root}/lib/messages/outgoing/abstract.rb"
+require "#{project_root}/lib/messages/outgoing.rb"
 
 require "#{project_root}/lib/model.rb"
 require "#{project_root}/lib/orient.rb"
@@ -18,6 +24,7 @@ logger =  Logger.new '/dev/stdout'
 #REST::Graph.logger =  logger
 ActiveOrient::Model.logger =  logger
 ActiveOrient::OrientDB.logger =  logger
+OrientSupport::Connection.logger =  logger
 
 
 
