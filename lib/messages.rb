@@ -3,9 +3,10 @@ module OrientSupport
 
     class AbstractMessage
 
-#      mattr_accessor :message_id
+      mattr_accessor :logger
       attr_accessor  :session_id
       attr_accessor  :data
+
 
       # Class methods
       def self.data_map # Map for converting between structured message and raw data

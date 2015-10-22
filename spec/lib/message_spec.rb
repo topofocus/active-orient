@@ -38,18 +38,15 @@ describe OrientSupport::Messages do
       expect( m.to_human ).to eq "<RequestConnect: >"
       expect( m.message_type ).to eq :RequestConnect
       expect( m.session_id ).to eq -1
- #     expect( m.encode ).to eq [2, -1, "ActiveOrient", "1.0", 30, "0", "ORecordSerializerBinary", false, nil, nil]
+      expect( m.encode ).to eq [2, -1, 12, "ActiveOrient", 3, "1.0", 30, 1, "0", 23, "ORecordSerializerBinary", 0, -1, -1]
  #     expect( m.to_s ).to eq '2--1-ActiveOrient-1.0-30-0-ORecordSerializerBinary-false--'
     end
 
     it "allocate message class with parameters", focus:true do
 
-      m = OrientSupport::Messages::Outgoing::RequestConnect.new  user: 'hctw', password: 'hc'
-
-#      expect( m.encode ).to eq [2, -1, "ActiveOrient", "1.0", 30, "0", "ORecordSerializerBinary", false, "hctw", "hc"]a
-      puts m.encode.inspect
-      expect( m.serialize).to eq "cl>Na12Na3nNa1Na23nNa4Na2"
-     puts  m.encode.pack(m.serialize).inspect
+      m = OrientSupport::Messages::Outgoing::RequestConnect.new  user: 'root', password: 'tute'
+      expect( m.encode ).to eq [2, -1, 12, "ActiveOrient", 3, "1.0", 30, 1, "0", 23, "ORecordSerializerBinary", 0, 4, "root", 4, "tute"]
+      expect( m.serialize).to eq "cl>Na12Na3nNa1Na23cNa4Na4"
 
 
     end
@@ -60,7 +57,7 @@ describe OrientSupport::Messages do
       expect( m.message_type ).to eq :RequestConnect
       expect( m.message_id ).to eq 2
 #      expect( m.encode ).to eq [2, -1, ["ActiveOrient", "1.0", 30, "", "ORecordSerializerBinary", false, "hctw", "hc"]]
- ä     expect( m.to_s ).to eq '2-30-ActiveOrient-1.0-30--ORecordSerializerBinary-false-hctw-hc'
+     expect( m.to_s ).to eq '2-30-ActiveOrient-1.0-30--ORecordSerializerBinary-false-hctw-hc'
   
 
     end

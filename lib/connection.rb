@@ -12,8 +12,6 @@ module OrientSupport
   ## public methods:  connect (alias open), disconnect, connected?
   ##		      subscribe, unsubscribe
   ##		      send_message (alias dispatch)
-  ##		      place_order, modify_order, cancel_order
-  ## public data-queue: received,  received?, wait_for, clear_received
   ## misc:	      reader_running? 
 
 
@@ -25,12 +23,11 @@ module OrientSupport
 
 
     attr_accessor  :socket #   Socket to  server 
-    attr_accessor  :client_id 
+    attr_accessor  :sessions
 
     #def initialize opts = {}
     def initialize host: '127.0.0.1',
                    port: '2424', 
-                   connect: true, # Connect at initialization
                    logger: Logger.new('/dev/stdout'),
 		   user: 'guest',
 		   password: 'guest' ,
@@ -39,76 +36,67 @@ module OrientSupport
                    server_version: OrientSupport::VERSION,  # from constants.rb
 		   **any_other_parameters_which_are_ignored
 
-    # convert parameters into instance-variables and assign them
-    method(__method__).parameters.each do |type, k|
-      next unless type == :key
-      case k
-      when :logger
-	self.logger = logger  unless self.logger.is_a? Logger
-      else
-	v = eval(k.to_s)
-	instance_variable_set("@#{k}", v) unless v.nil?
+
+      # convert parameters into instance-variables and assign them
+      method(__method__).parameters.each do |type, k|
+	next unless type == :key
+	case k
+	when :logger
+	  self.logger = logger  unless self.logger.is_a? Logger
+	else
+	  v = eval(k.to_s)
+	  instance_variable_set("@#{k}", v) if v.present?
+	end
       end
-    end
+      @message_lock = Mutex.new
+      @sessions =   Hash.new
+      @message_stack =  []
+      @object_stack = []
+      @proc_stack = Hash.new
       @connected = false
-      open() if connect
-  #    Connection.current = self
-    end
-
-    ### Working with connection
-    def to_human
-      msg=  "Host/Port: #{@host}:#{@port} \nUser:#{@user}\nServerVersion:#{@server}"
-      if @connected
-	msg
-      else
-	nil
-      end
-    end
-
-    def connect
-      logger.progname='Connection#connect' 
-      logger.error { "Already connected!"} if connected?
-
 
       @socket = AOSocket.open(@host, @port)
-
       @server = @socket.read_short
-      if @server_version < @server
+      if server_version < @server
 	logger.info { "Server version #{@server} available, compatibatility.modus  #{@server_version} used." }
       end
-      if @server_version > @server
+      if server_version > @server
 	logger.fatal { "Server version #{@server_version} not supported. Max ServerVersion: #{@server}" }
 	Kernel.exit
       end
 
 
-      @connected = true
       logger.info { "Connected to  OrientDB server, ver: #{@server_version} "}
 
-      request_connect
-      #start_reader 
-      #request_open_database if not @database.blank?
+      start_reader 
+ #     request_connect if connect
+	send_message :RequestConnect , user: @user, password: @password
+	send_message :RequestDBOpen , user: @user, password: @password, database: @database if @database.present?
+#      end
+  #    Connection.current = self
     end
-    alias open connect # Legacy alias
 
-    def request_connect
-      connect = OrientSupport::Messages::Outgoing::RequestConnect.new  user: @user, password: @password
-      puts connect.encode.inspect
-      @socket.write_data connect.encode.pack(connect.serialize)
-      status =  @socket.read_byte
-      puts "Status: #{status}"
-      session_id  = @socket.read_int
-      @session_id  = @socket.read_int
-      puts "session_id: #{@session_id.inspect}"
-      @tocken = @socket.read_string
-      puts "Tocken: #{@tocken.inspect}"
-      
+    ### Working with connection
+    def to_human
+        "Host/Port: #{@host}:#{@port} \nUser:#{@user}\nServerVersion:#{@server}"
+    end
+
+=begin
+Close session by its number or its db
+ close_session 12234  
+ close_session :temp
+=end
+
+    def close_session ida
+      id = ida.is_a?(Numeric) ? ida : @sessions[ida.to_s]
+      if id.present? && @sessions.has_value?( id )
+	send_message :RequestDBClose, session: id
+      end
+    end
   
-    end
-
-
-    def request_open_database
-
+    def close_sessions 
+      @sessions.values.each{|x| close_session x }
+      @sessions = Hash.new
     end
 
     def disconnect
@@ -118,114 +106,40 @@ module OrientSupport
       end
       if connected?
         @socket.close
-        @connected = false
+	@session = Hash.new
       end
     end
 
     alias close disconnect # Legacy alias
 
     def connected?
-      @connected
-    end
-
-    ### Working with message subscribers
-
-    # Subscribe Proc or block to specific type(s) of incoming message events.
-    # Listener will be called later with received message instance as its argument.
-    # Returns subscriber id to allow unsubscribing
-    def subscribe *args, &block
-      @subscribe_lock.synchronize do
-        subscriber = args.last.respond_to?(:call) ? args.pop : block
-        id = random_id
-
-        error  "Need subscriber proc or block ", :args  unless subscriber.is_a? Proc
-
-        args.each do |what|
-          message_classes =
-          case
-          when what.is_a?(Class) && what < Messages::Incoming::AbstractMessage
-            [what]
-          when what.is_a?(Symbol)
-            [Messages::Incoming.const_get(what)]
-          when what.is_a?(Regexp)
-            Messages::Incoming::Classes.values.find_all { |klass| klass.to_s =~ what }
-          else
-            error  "#{what} must represent incoming IB message class", :args 
-          end
-     # @subscribers_lock.synchronize do
-          message_classes.flatten.each do |message_class|
-            # TODO: Fix: RuntimeError: can't add a new key into hash during iteration
-            subscribers[message_class][id] = subscriber
-          end
-     # end  # lock
-        end
-
-        id
-      end
-    end
-
-    # Remove all subscribers with specific subscriber id
-    def unsubscribe *ids
-      @subscribe_lock.synchronize do
-	ids.collect do |id|
-	  removed_at_id = subscribers.map { |_, subscribers| subscribers.delete id }.compact
-	  logger.error  "No subscribers with id #{id}"   if removed_at_id.empty?
-	  removed_at_id # return_value
-	end.flatten
-      end
-    end
-    ### Working with received messages Hash
-
-    # Clear received messages Hash
-    def clear_received *message_types
-      @receive_lock.synchronize do
-        if message_types.empty?
-          received.each { |message_type, container| container.clear }
-        else
-          message_types.each { |message_type| received[message_type].clear }
-        end
-      end
-    end
-
-    # Hash of received messages, keyed by message type
-    def received
-      @received_hash ||= Hash.new { |hash, message_type| hash[message_type] = Array.new }
-    end
-
-    # Check if messages of given type were received at_least n times
-    def received? message_type, times=1
-      @receive_lock.synchronize do
-        received[message_type].size >= times
-      end
+      @session[:db].present? || ( @database.present? && @session[@database].present? )
     end
 
 
-    # Wait for specific condition(s) - given as callable/block, or
-    # message type(s) - given as Symbol or [Symbol, times] pair.
-    # Timeout after given time or 1 second.
-    def wait_for *args, &block
-      timeout = args.find { |arg| arg.is_a? Numeric } # extract timeout from args
-      end_time = Time.now + (timeout || 1) # default timeout 1 sec
-      conditions = args.delete_if { |arg| arg.is_a? Numeric }.push(block).compact
 
-      until end_time < Time.now || satisfied?(*conditions)
-        if @reader
-          sleep 0.05
-        else
-          process_messages 50
-        end
-      end
-    end
 
     ### Working with Incoming messages 
 
+    def wait_for what , timeout: 1, &b
+      end_time = Time.now + timeout 
+      until end_time < Time.now || processed= message_processed?(what, &b)
+          sleep 0.05
+      end
+
+#      yield if block_given? && processed
+
+      processed
+
+
+    end
 
     def reader_running?
       @reader_running && @reader_thread && @reader_thread.alive?
     end
 
     # Process incoming messages during *poll_time* (200) msecs, nonblocking
-    def process_messages poll_time = 200 # in msec
+    def process_messages poll_time = 20 # in msec
       time_out = Time.now + poll_time/1000.0
       while (time_left = time_out - Time.now) > 0
         # If socket is readable, process single incoming message
@@ -237,21 +151,23 @@ module OrientSupport
     ### Sending Outgoing messages to IB
 
     # Send an outgoing message.
-    def send_message what, *args
+    def send_message what, *args, &b
       message =
       case
       when what.is_a?(Messages::Outgoing::AbstractMessage)
-        what
+        what 
       when what.is_a?(Class) && what < Messages::Outgoing::AbstractMessage
-        what.new *args
+        what.new *args, &b
       when what.is_a?(Symbol)
-        Messages::Outgoing.const_get(what).new *args
+        Messages::Outgoing.const_get(what).new *args, &b
       else
         error "Only able to send outgoing messages", :args
       end
-      logger.error  { "Not able to send messages, not connected!" } unless connected?
+      
+      logger.error  { "Not able to send messages, not connected!" } if @socket.nil?
       @message_lock.synchronize do
-      message.send_to @socket
+	@message_stack <<  message.encode.first
+	message.send_to @socket
       end
     end
 
@@ -260,26 +176,59 @@ module OrientSupport
 
 
     protected
-    # Message subscribers. Key is the message class to listen for.
-    # Value is a Hash of subscriber Procs, keyed by their subscription id.
-    # All subscriber Procs will be called with the message instance
-    # as an argument when a message of that type is received.
-    def subscribers
-      @subscribers ||= Hash.new { |hash, subs| hash[subs] = Hash.new }
+
+    def message_processed? what, &b
+      massage_id = case 
+      when what.is_a?(Class) && what < Messages::Outgoing::AbstractMessage
+        what.message_id
+      when what.is_a?(Symbol)
+        Messages::Outgoing.const_get(what).message_id
+      when what.is_a?( Numeric )
+	what
+      end
+      mp,da=false
+      @message_lock.synchronize do
+	mp= @message_stack.blank? ||( @message_stack.first != what) 
+	da = !@object_stack.blank? && @object_stack.first.data_available?
+	yield @object_stack.last if block_given? && mp && da
+      end
+      mp & da
     end
 
     # Process single incoming message (blocking!)
     def process_message
       logger.progname='OrientSupport::Connection#process_message' 
-#      status = @socket.read_short # This read blocks!
-      session_id = @socket.read_long # This read blocks!
-      token = @socket.read_string
-      request =  0 ### hier muss die abzufragende Message adressiert werden
+
+      status =  @socket.read_byte
+      if status.zero?  #  Status OK, Not Asynchronous Mode
+	session_id  = @socket.read_int
+	session_id  = @socket.read_int if session_id < 0 
+	token = @socket.read_string
+	data_cage = Messages::Incoming::Classes[@message_stack.first].new(@socket)
+	# Initialize the objecta
+	data_cage.read_data
+	#Thread.new(data_cage){ |dc|  dc.load }.join
+	# do other stuff here
+	case @message_stack.first
+	when 2
+	  @sessions[:db] = session_id
+	when 3
+	  @sessions[@database] = session_id
+	end
+	#      puts "Token: #{token.inspect}"
 
 
-      # Debug:
-      logger.debug { "Got message #{msg_id} (#{Messages::Incoming::Classes[msg_id]})"}
-
+	# Debug:
+	logger.debug { "[#{session_id}]:: Processed #{Messages::Outgoing::Classes[@message_stack.first].to_s.split('::').last}"}
+	@message_lock.synchronize do
+	  @message_stack.shift  # remove Proc from message_stack
+	  @object_stack << data_cage  # add Instance to object_stack
+	end
+      elsif status== 1
+	## Error
+      elsif status == 3
+	## Asynchronous Mode
+      end
     end
     # Start reader thread that continuously reads messages from @socket in background.
     # If you don't start reader, you should manually poll @socket for messages
@@ -296,20 +245,5 @@ module OrientSupport
       rand 999999999
     end
 
-    # Check if all given conditions are satisfied
-    def satisfied? *conditions
-      !conditions.empty? &&
-      conditions.inject(true) do |result, condition|
-        result && if condition.is_a?(Symbol)
-        received?(condition)
-        elsif condition.is_a?(Array)
-          received?(*condition)
-        elsif condition.respond_to?(:call)
-          condition.call
-        else
-          logger.error { "Unknown wait condition #{condition}" }
-        end
-      end
-    end
   end # class Connection
 end # module IB

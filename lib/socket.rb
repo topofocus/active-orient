@@ -45,7 +45,8 @@ module OrientSupport
 
     # Sends null terminated data string into socket
     def write_data data
-      self.syswrite(data.to_s + EOL)
+#      puts data.inspect
+      self.syswrite data
     end
 
     # returns the Charater(s) for array#pack 
@@ -98,15 +99,8 @@ def read_byte
 
 
     def read_string
-      string = self.gets(EOL)
-
-      until string
-        # Silently ignores nils
-        string = self.gets(EOL)
-        sleep 0.1
-      end
-
-      string.chop
+      length = read_int
+      length>0 ?  self.read(length) : '' # we are just returning the contents of the stream 
     end
 
 

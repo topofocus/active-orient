@@ -12,46 +12,43 @@ module OrientSupport
 
       class AbstractMessage < OrientSupport::Messages::AbstractMessage
 
-        def initialize session_id:-1, **data
+        def initialize session_id:-1, **data, &b
 	  @session_id =  session_id
           @data = data
+	  @block = b 
         end
         # This causes the message to send itself over the server socket in server[:socket].
-        # "server" is the @server instance variable from the IB object.
-        # You can also use this to e.g. get the server version number.
         #
         # Subclasses can either override this method for precise control over how
         # stuff gets sent to the server, or else define a method encode() that returns
-        # an Array of elements that ought to be sent to the server by calling to_s on
-        # each one and postpending a '\0'.
+        # an Array of elements that ought to be sent to the server after serialisation
         #
         def send_to socket
-	  
-          self.encode.to_soc do |data|
-	     socket.write_data data
-	  end
+	   socket.syswrite   encode.pack(serialize)
         end
 
+	def execute **args
+	   @block.call( args )
+	end
+
 	def serialize
-	  "cl>" << self.class.data_map.map{|name,format,default| AOSocket.socket_format(data_or_default(name,default), format) }.join
+	  "cl>" << self.class.data_map.map{|name,format,default| AOSocket.socket_format(data_or_default(name,default), format) }.join << EOL
 	end
 
 	def data_or_default field, default_value=''
 	  @data[field].present?? @data[field] : default_value
 	end
+	
+
 
  
         # Same message representation as logged by TWS into API messages log file
         def to_s
           self.encode.map{ |x| x.to_s }.join('-')
-        end
+	end 
 
 
-        # Pre-process encoded message Array before sending into socket, such as
-        # changing booleans into 0/1 and stuff
-        def preprocess
-          self.encode.map {|data| data == true ? 1 : data == false ? 0 : data }
-        end
+
 
         # Encode message content into (possibly, nested) Array of values.
         # At minimum, encoded Outgoing message contains message_id and version.
