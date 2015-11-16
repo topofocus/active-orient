@@ -78,6 +78,7 @@ module  ActiveOrient
 	    cluster, record = rid[1,rid.size].split(':') 
 	    @metadata[ :cluster ] =  cluster.to_i
 	    @metadata[ :record ] = record.to_i
+
 	  end
 
 	  #### edges -- remove in_ and out_ and de-capitalize the remaining edge
@@ -120,6 +121,8 @@ module  ActiveOrient
       iv= attributes[key.to_sym]
   #    iv.from_orient unless iv.nil?
       if  iv.is_a?(String) && iv.rid? #&& @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=x" )
+
+
      # puts "autoload: #{iv}"
 	ActiveOrient::Model.autoload_object  iv
       elsif iv.is_a?(Array) # && @metadata[:fieldTypes].present? && @metadata[:fieldTypes].match( key.to_s+"=[znmgx]" )
@@ -127,7 +130,12 @@ module  ActiveOrient
 	OrientSupport::Array.new self, *iv.map{|y| (y.is_a?(String) && y.rid?) ? ActiveOrient::Model.autoload_object(  y ) : y  }
       else
 
+	if  @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?( key.to_s+"=t" ) # time
+	  # switch between date and datetime representation of the date-object  
+	  iv =~ /00:00:00/ ? Date.parse( iv ) :   DateTime.parse( iv )
+	else
 	iv
+	end
       end
     end
 
