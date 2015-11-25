@@ -19,6 +19,7 @@ describe OrientSupport::OrientQuery do
  q =  OrientSupport::OrientQuery.new from: TestQuery, where:{ a: 2 , c: 'ufz' }, kind: 'traverse'
  expect(q.to_s).to eq "traverse  from ModelQuery where a = 2 and c = 'ufz' "
     end
+
     it "Initialisation with a Parameter" do
       q =  OrientSupport::OrientQuery.new from: TestQuery, where:{ a: 2 , c: 'ufz' }
       expect(q.where_s).to eq "where a = 2 and c = 'ufz'"
@@ -69,8 +70,17 @@ describe OrientSupport::OrientQuery do
 	q.let << { b:  OrientSupport::OrientQuery.new( from: '#5:1' ) }
 	q.let << '$c= UNIONALL($a,$b) '
 	q.projection << 'expand( $c )'
-	puts q.to_s
+	expect( q.to_s ).to eq 'select expand( $c ) let $a = ( select  from #5:0   ), $b = ( select  from #5:1   ), $c= UNIONALL($a,$b)   '
       end
+    it "Use a subquery" do
+      q =  OrientSupport::OrientQuery.new from: TestQuery, where:{ a: 2 , c: 'ufz' }
+      r =  OrientSupport::OrientQuery.new from: q , kind: 'traverse', projection: :day
+      expect( r.to_s ).to eq "traverse day from  ( select  from ModelQuery where a = 2 and c = 'ufz'  )   "
+      s = OrientSupport::OrientQuery.new from: r, projection: 'unionall( logs ) AS logs '
+      t = OrientSupport::OrientQuery.new from: s, projection: 'expand( logs ) '
+expect( t.to_s ).to eq "select expand( logs )  from  ( select unionall( logs ) AS logs  from  ( traverse day from  ( select  from ModelQuery where a = 2 and c = 'ufz'  )    )    )   "
+
+    end
     end
   end
 end  # describe

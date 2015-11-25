@@ -209,7 +209,7 @@ from can either be a Databaseclass to operate on or a Subquery providing data to
 		      when Symbol
 			arg
 		      when OrientQuery
-			arg
+			' ( '+ arg.to_s + ' ) '
 		      end
 	  compose  # return the complete query
 	else # read from
