@@ -158,6 +158,7 @@ Used by update and select
 	@let  = []
 	@where = []
 	@order = []
+	@kind = 'select'
 	args.each do | k,v|
 	  case k
 	   when :projection
@@ -168,6 +169,8 @@ Used by update and select
 	    @order << v
 	   when :where
 	    @where << v
+	   when :kind
+	     @kind = v
 	  else
 	    self.send k, v
 	  end
@@ -187,7 +190,7 @@ Used by update and select
       end
 
       def compose
-	[ "select", projection_s,  from, let_s, where_s , subquery,  misc, order_s , group_by, unwind, skip ].compact.join(' ')
+	[ @kind, projection_s,  from, let_s, where_s , subquery,  misc, order_s , group_by, unwind, skip ].compact.join(' ')
       end
 
       alias :to_s  :compose

@@ -15,6 +15,10 @@ describe OrientSupport::OrientQuery do
       expect(q).to be_a OrientSupport::OrientQuery
     end
 
+    it "Initialize a traverse query" do
+ q =  OrientSupport::OrientQuery.new from: TestQuery, where:{ a: 2 , c: 'ufz' }, kind: 'traverse'
+ expect(q.to_s).to eq "traverse  from ModelQuery where a = 2 and c = 'ufz' "
+    end
     it "Initialisation with a Parameter" do
       q =  OrientSupport::OrientQuery.new from: TestQuery, where:{ a: 2 , c: 'ufz' }
       expect(q.where_s).to eq "where a = 2 and c = 'ufz'"
@@ -48,7 +52,7 @@ describe OrientSupport::OrientQuery do
       expect(q.compose). to eq "select distinct( name ), eval( 'amount * 120 / 100 - discount' ) as finalPrice from ModelQuery where a = 2 and b > 3 and c = 'ufz' order by name asc, vorname asc"
     end 
 
-
+    
     context "use the let block "  do
       it "prefetch a link-query " do
 	q =  OrientSupport::OrientQuery.new from: 'ModelQuery'

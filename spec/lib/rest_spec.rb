@@ -171,39 +171,38 @@ describe ActiveOrient::OrientDB do
     end
 
     describe "handle Properties at Class-Level"   do
-      before(:all){ @r.create_class 'property' }
-     after(:all){ @r.delete_class 'property' }
+      before(:all){ @r.create_class 'property'; 	Property = @r.open_class 'property' }
+    # after(:all){ @r.delete_class 'property' }
 
 
       it "Class is present" do
 	expect( ActiveOrient::Model::Property.new_document ).to be_a ActiveOrient::Model
       end
 
-      it "define some Properties"  do
-	Property = @r.open_class 'property'
+      it "define some Properties on class Property" do
 	@r.open_class :contract
 	@r.open_class :exchange
 	rp = @r.create_properties( Property ,
 	   symbol: { propertyType: 'STRING' },
 	  con_id: { propertyType: 'INTEGER' } ,  
-	  exchanges: { propertyType: 'LINKMAP', linkedClass: 'Exchange' } ,  
-	    details: { propertyType: 'LINK', linkedClass: 'Contract' }
+	  exchanges: { propertyType: 'LINKLIST', linkedClass: 'Exchange' } ,  
+	    details: { propertyType: 'LINK', linkedClass: 'Contract' },
+	    date: { propertyType: 'DATE' }
 	   )
 
 
-	expect( rp ).to eq 4
+	expect( rp ).to eq 5
 
-	rp= @r.get_class_properties  Property 
+	rp= @r.get_class_properties(  Property )['properties']
 
-
-	properties= rp['properties']
-	[ :con_id, :symbol, :details, :exchanges ].each do |f|
-	  expect( properties.detect{|x| x['name']== f.to_s}  ).to be_truthy
+	[ :con_id, :symbol, :details, :exchanges, :date ].each do |f|
+	  expect( rp.detect{|x| x['name']== f.to_s}  ).to be_truthy
 	end
+	  expect( rp.detect{|x| x['name']== 'property'} ).to be_falsy
 	
 
       end
-	it "define property with automatic index"  do
+	it "define property with automatic index"   do
 	  c = @r.open_class :contract_detail
 	  @r.create_property( c, :con_id, type: :integer) { :unique }
 	  expect( @r.get_class_properties(c)['indexes'] ).to have(1).item
@@ -215,7 +214,7 @@ describe ActiveOrient::OrientDB do
 
 	end
 
-	it "define a propertie with manual index" do
+	it "define a property with manual index" do
 	  @r.delete_class :contract
 	  contracts = @r.open_class :contract
 	  industries = @r.open_class :industry
@@ -230,6 +229,59 @@ describe ActiveOrient::OrientDB do
 							      {	"name"=>"test_ind", 
 								"type"=>"UNIQUE", 
 								"fields"=>["symbol", "con_id", "industry"] } )
+	end
+
+	it "add a dataset"   do
+	 linked_record = ActiveOrient::Model::Industry.create label: 'TestIndustry'
+	 expect{ Property.update_or_create where: { con_id: 12345 }, set: { industry: linked_record.link, date: Date.parse( "2011-04-04") } }.to change{ Property.count }.by 1
+
+	 ds = Property.where con_id: 12345
+	 expect( ds ).to be_a Array
+	 expect( ds.first ).to be_a Property
+	 expect( ds.first.con_id ).to eq 12345
+	 expect( ds.first.industry ).to eq linked_record 
+	 expect( ds.first.date ).to be_a Date
+
+	end
+
+
+	it "manage  exchanges in a linklist " do
+	  f = ActiveOrient::Model::Exchange.create :label => 'Frankfurt'
+	  b = ActiveOrient::Model::Exchange.create :label => 'Berlin'
+	  s = ActiveOrient::Model::Exchange.create :label => 'Stuttgart'
+	 ds = Property.create con_id: 12355
+	  ds.add_item_to_property :exchanges, f 
+	  ds.add_item_to_property :exchanges, b 
+	  ds.add_item_to_property :exchanges, s 
+
+	  expect( ds.exchanges ).to have(3).items
+	  ds.remove_item_from_property :exchanges, b 
+	  expect( ds.exchanges ).to have(2).item
+	end
+
+	it "add  an embedded linkmap- entry " do
+	 @r.open_class :industry
+	 property_record=  Property.create  con_id: 12346
+	 ['Construction','HealthCare','Bevarage'].each do | industry |
+	   property_record.add_item_to_property :property, ActiveOrient::Model::Industry.create( label: industry)
+	 end
+	   # to query: select * from Property where 'Stuttgart' in exchanges.label
+	   # or select * from Property where exchanges contains ( label = 'Stuttgart' )
+	   #
+	pr =  Property.where( "'Stuttgart' in exchanges.label").first
+	 expect( pr.con_id ).to eq 12355
+	pr =  Property.where( "'HealthCare' in property.label").first
+	expect( pr ).to eq property_record
+
+	 expect( property_record.con_id ).to eq 12346
+	 expect( property_record.property ).to be_a Array
+	 expect( property_record.property ).to have(3).records
+	 expect( property_record.property.last ).to eq ActiveOrient::Model::Industry.last
+
+	 expect( property_record.property[2].label ).to eq 'Bevarage'
+	 expect( property_record.property.find{|x| x.label == 'HealthCare'}).to be_a ActiveOrient::Model::Industry
+	 
+
 	end
 
 	## rp['properties'] --> Array of
@@ -252,6 +304,65 @@ describe ActiveOrient::OrientDB do
     end
   end
 
+  context "create and manage a 2 layer 1:n relation" , focus: true do
+    before(:all) do
+      @r.create_vertex_class :base
+      @r.create_vertex_class :first_list
+      @r.create_vertex_class :second_list
+      @r.create_properties :base,  first_list: { type: :linklist, linkedClass: :first_list }
+      @r.create_properties :first_list,  second_list: { type: :linklist, linkedClass: :second_list }
+      @r.create_vertex_class :log
+      (0 .. 9).each do | b | 
+	base= ActiveOrient::Model::Base.create label: b
+
+	(0 .. 9).each do | f |
+	  first = ActiveOrient::Model::FirstList.create label: f
+	  base.add_item_to_property :first_list , first
+
+	  (0 .. 9).each do | s | 
+	    second=  ActiveOrient::Model::SecondList.create label: s 
+	    first.add_item_to_property :second_list, second
+	  end
+	end
+      end
+    end
+
+    it "check base" do
+      (0..9).each do | b |
+	base =  ActiveOrient::Model::Base.where( label: b).first
+	expect( base.first_list ).to be_a Array
+	expect( base.first_list ).to have(10).items
+	base.first_list.each{|fl| expect( fl.second_list ).to have(10).items }
+      end
+    end
+
+    it "query local structure" do
+      ActiveOrient::Model::Base.all.each do | base |
+	(0 .. 9).each do | c |
+	  (0 .. 9).each do | d |
+	  expect( base.first_list[c].second_list[d].label ).to eq d 
+	  end
+	end
+      end
+
+      q =  OrientSupport::OrientQuery.new  from: :base
+      q.projection << 'expand( first_list[5].second_list[9] )'
+      q.where << { label: 9 }
+      expect( q.to_s ).to eq 'select expand( first_list[5].second_list[9] ) from base where label = 9 '
+     result=  ActiveOrient::Model::Base.query_database q
+     expect( result.first ).to eq ActiveOrient::Model::Base[9].first_list[5].second_list[9]
+
+    end
+
+
+#    it "add a log entry to second list " do
+#    (0 .. 9 ).each do |y| 
+#      log_entry = ActiveOrient::Model::Log.create :item => 'Entry no. #{y}' 
+#	entry = base =  ActiveOrient::Model::Base.where( label: b)[y]
+#      
+#
+
+    end
   context "query-details" do
     it "generates a valid where query-string" do
       attributes = { uwe: 34 }
@@ -279,7 +390,7 @@ describe ActiveOrient::OrientDB do
 
     it "create a single document"  do
       res=  @r.create_document @rest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
-      expect( res).to be_a ActiveOrient::Model
+      expect( res ).to be_a ActiveOrient::Model
       expect( res.con_id ).to eq 345
       expect( res.symbol ).to eq 'EWQZ'
       expect( res.version).to eq 1
@@ -290,27 +401,35 @@ describe ActiveOrient::OrientDB do
       res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a @rest_class
       expect(res.a_new_property).to eq 34
-      res2= @r.create_or_update_document(  @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 } ) 
+      res2= @r.create_or_update_document  @rest_class , set: { a_new_property: 35 } , where: {con_id: 345 }  
       expect( res2.a_new_property).to eq 35
       expect( res2.version).to eq res.version+1
     end
 
     it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!
-      res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQZ' } do 
+      expect do 
+	@res=  @r.create_or_update_document( @rest_class , 
+					     set: { a_new_property: 36 } , 
+					     where: {con_id: 345, symbol: 'EWQZ' } ) do 
 	{ another_wired_property: "No time for tango" }
-      end
+					     end
+      end.not_to change{ @rest_class.count }
 
-      expect( res.a_new_property).to eq 36
-      expect( res.attributes.keys ).not_to include 'another_wired_property'  ## block is not executed, because its not a new document
+      expect( @res.a_new_property).to eq 36
+      expect( @res.attributes.keys ).not_to include 'another_wired_property'  ## block is not executed, because its not a new document
 
     end
     it   "uses create_or_update and a block on a new document" do  
-      res=  @r.create_or_update_document   @rest_class , set: { a_new_property: 36 } , where: {con_id: 345, symbol: 'EWQrGZ' } do 
+      expect do
+	@res=  @r.create_or_update_document( @rest_class , 
+					    set: { a_new_property: 37 } , 
+					    where: {con_id: 345, symbol: 'EWQrGZ' }) do 
 	{ another_wired_property: "No time for tango" }
-      end
+					    end
+      end.to change{ @rest_class.count }.by 1
 
-      expect( res.a_new_property).to eq 36
-      expect( res.attributes.keys ).to include 'another_wired_property'  ## block is executed, because its a new document
+      expect( @res.a_new_property).to eq 37
+      expect( @res.attributes.keys ).to include 'another_wired_property'  ## block is executed, because its a new document
 
     end
 
