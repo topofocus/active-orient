@@ -33,6 +33,11 @@ todo: implement object-inherence
 	new_class.orientdb =  orientdb
 	new_class # return_value
      end
+   rescue NameError => e
+    logger.error "Model:: Class name cannot be initialized"
+    puts "klass: #{klass.inspect}"
+    puts "name : #{name.inspect}" 
+    puts e.inspect
    end
 
 =begin
@@ -187,11 +192,15 @@ The parameters »from« and »to« can take a list of model-records. Then subseq
       [:from,:to].each{|y| keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ):  keyword_arguments[y].reload! }
       o  # return_value
    end
-
+=begin
+QueryDatabase sends the Query, direct to the database.
+The result is not nessessary a Object of self. 
+However, if the query does not return an array of Active::Model-Objects, then the entries become self
+=end
    def self.query_database query, set_from: true
      query.from self if set_from && query.is_a?( OrientSupport::OrientQuery ) && query.from.nil? 
      sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command } }
-     orientdb.execute do
+     orientdb.execute( self.to_s.split(':')[-1] ) do
        [ sql_cmd[ query.to_s ] ]
      end 
    end
@@ -261,8 +270,8 @@ i.e.
 prints a Table with 10 columns.
 =end
 
-   def self.get_documents **args , &b
-     orientdb.get_documents from: self,  **args, &b
+   def self.get_documents **args 
+     orientdb.get_documents( from: self,  **args ){ self }
     
    end
 =begin

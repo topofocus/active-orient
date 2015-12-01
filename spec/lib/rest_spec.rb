@@ -178,7 +178,21 @@ describe ActiveOrient::OrientDB do
       it "Class is present" do
 	expect( ActiveOrient::Model::Property.new_document ).to be_a ActiveOrient::Model
       end
+  
+      it "define Properties in several ways"  do
+	@r.open_class :t1
+	@r.open_class :t2
+	@r.open_class :t3
+	@r.open_class :exchange_class
 
+	r1 = @r.create_properties :t1, symbol: { propertyType: 'LINKLIST', linkedClass: 'ExchangeClass' }
+	r2 = @r.create_properties :t2, symbol: { propertyType: 'LINKLIST', linkedClass: :exchange_class }
+	r3 = @r.create_properties :t3, symbol: { propertyType: 'LINKLIST', linkedClass: :ExchangeClass }
+
+	expect( r1 ). to eq r2
+	expect( r1 ). to eq r3
+	expect( r3 ). to eq r2
+      end
       it "define some Properties on class Property" do
 	@r.open_class :contract
 	@r.open_class :exchange
@@ -304,7 +318,7 @@ describe ActiveOrient::OrientDB do
     end
   end
 
-  context "create and manage a 2 layer 1:n relation" , focus: true do
+  context "create and manage a 2 layer 1:n relation"  do
     before(:all) do
       @r.create_vertex_class :base
       @r.create_vertex_class :first_list
@@ -349,8 +363,11 @@ describe ActiveOrient::OrientDB do
       q.projection << 'expand( first_list[5].second_list[9] )'
       q.where << { label: 9 }
       expect( q.to_s ).to eq 'select expand( first_list[5].second_list[9] ) from base where label = 9 '
-     result=  ActiveOrient::Model::Base.query_database q
-     expect( result.first ).to eq ActiveOrient::Model::Base[9].first_list[5].second_list[9]
+     result1=  @r.get_documents( query: q).first
+      result2 = ActiveOrient::Model::Base.query_database( q ).first
+     expect( result2).to be_a ActiveOrient::Model::SecondList
+     expect( result1 ).to eq result2
+#     expect( result.first ).to eq ActiveOrient::Model::Base[9].first_list[5].second_list[9]
 
     end
 
@@ -479,8 +496,8 @@ describe ActiveOrient::OrientDB do
 
     end
   end
-
-  context "Use the Query-Class" do 
+=begin ---> deprecated
+  context "Use the Query-Class", focus: false do 
     before(:all) do
       classname = "Documebntklasse10" 
 #      @r.delete_class @classname 
@@ -499,7 +516,7 @@ describe ActiveOrient::OrientDB do
       expect(@query_class.records).to be_empty
     end
 
-    it "get a document through the query-class" , pending: true do
+    it "get a document through the query-class" , focus: true do
      r=  @r.create_document  @rest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
      expect( @query_class.get_documents @rest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
      expect( @query_class.records ).not_to be_empty
@@ -584,7 +601,7 @@ describe ActiveOrient::OrientDB do
     end
   end
 
-
+=end
 
 end
 

@@ -524,14 +524,16 @@ creates properties and optional an associated index as defined  in the provided 
 
 The default-case
   
-  create_properties( con_id: { type:  :integer },
+  create_properties( :my_high_sophisticated_database_class,
+		    con_id: { type:  :integer },
 		    details: { type:  :link, linked_class: 'Contracts' } ) do
 						 contract_idx: :notunique 
 									  end
 
 A composite index
 
-  create_properties( con_id: { type: :integer },
+  create_properties( :my_high_sophisticated_database_class,
+		      con_id: { type: :integer },
 		      symbol: { type: :string } ) do
 	  		{ name: 'indexname',
 			 on: [ :con_id , :details ]    # default: all specified properties
@@ -688,31 +690,44 @@ If raw is specified, the JSON-Array is returned, eg
   }
 otherwise a ActiveModel-Instance of o_class  is created and returned
 =end
-def get_documents  limit: -1, raw: false, query: nil, **args 
-  query =  OrientSupport::OrientQuery.new(  args ) if query.nil?
-  i=0
- begin
-   url =    query_sql_uri << query.compose << "/#{limit}" 
-   response =  @res[URI.encode(url) ].get
-   r=JSON.parse( response.body )['result'].map do |document |
-     if raw 
-       document 
-     else  
-       ActiveOrient::Model.orientdb_class( name: document['@class']).new document
-     end
-   end
- rescue RestClient::InternalServerError => e
-  response = JSON.parse( e.response)['errors'].pop
-  logger.error { response['content'].split(':').last  }
-  i=i+1
-  if i > 1
-    raise
-  else
-    query.dataset_name = query.datatset_name.underscore
-    logger.info { "trying to query using #{o_class}" }
-    retry
-  end
-end
+    def get_documents  limit: -1, raw: false, query: nil, **args 
+      query =  OrientSupport::OrientQuery.new(  args ) if query.nil?
+      i=0
+      begin
+        logger.progname = 'OrientDB#GetDocuments'
+	url =    query_sql_uri << query.compose << "/#{limit}" 
+	response =  @res[URI.encode(url) ].get
+	r=JSON.parse( response.body )['result'].map do |document |
+	  # parameter: raw is set --> don't initilize a model object
+	  if raw 
+	    document 
+	    # query returns an anonymus class: Use the provided Block or the Dummy-Model MyQuery
+	  elsif document['@class'].blank?  
+	    block_given? ? yield.new( document ) : ActiveOrient::Model::MyQuery.new( document )
+	  else 
+	    ActiveOrient::Model.orientdb_class( name: document['@class']).new document
+	  end
+	end
+      rescue RestClient::InternalServerError => e
+	response = JSON.parse( e.response)['errors'].pop
+	logger.error { response['content'].split(':').last  }
+	i=i+1
+	if i > 1
+	  raise
+	else
+	  query.dataset_name = query.database_class.underscore
+	  logger.info { "trying to query using #{o_class}" }
+	  retry
+	end
+      rescue URI::InvalidURIError => e
+	logger.error "Invalid URI detected"
+	logger.error query.to_s
+	logger.info "trying batch processing "
+	sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command } }
+	response= execute { [ sql_cmd[ query.to_s ] ] }
+	logger.info "success: to avoid this delay use ActiveOrient::Model#query_database insteed"
+        response
+      end
 
 end
 
@@ -905,10 +920,16 @@ structure of the provided block:
    (...)
  ]
 
- It's used by ActiveOrient::Query.execute_queries
+ It  was first used by ActiveOrient::Query.execute_queries
+ Later I discovered that some Queries are not interpretated correctly by #GetDocuments
+ but are submitted without Error via batch-processing.
+ For Instance,  this valid query 
+ > 'select expand( first_list[5].second_list[9] ) from base where label = 9 ' <
+ can only be submitted via batch
 
 =end
     def execute classname = 'Myquery', transaction: true  
+      #puts "classname##execute:: #{classname}"
       batch =  { transaction: transaction, operations: yield }
       unless batch[:operations].blank?
 #       puts "post: #{batch.to_json}"
