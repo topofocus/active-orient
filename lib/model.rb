@@ -95,11 +95,9 @@ If a Rest::Model-Object is included in a HashWidhtIndifferentAccess-Object, only
 rid is used in the where-part of sql-queries
 =end
    def rid
-     if @metadata.has_key?( 'cluster')
        "#{@metadata[ :cluster ]}:#{@metadata[ :record ]}"
-     else
+   rescue 
        "0:0"
-     end
    end
 =begin
 link is used in any sql-commands 

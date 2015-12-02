@@ -20,7 +20,7 @@ module ActiveOrient
     # Comparison support
     def content_attributes
       HashWithIndifferentAccess[attributes.reject do |(attr, _)|
-                                  attr.to_s =~ /(_count)\z/ ||
+                                  attr.to_s =~ /(_count)\z/  ||
                                     [:created_at, :updated_at, :type,
                                      :id, :order_id, :contract_id].include?(attr.to_sym)
       end]
@@ -39,6 +39,8 @@ module ActiveOrient
       case other
       when String # Probably a link or a rid
         link == other || rid == other
+      when  ActiveOrient::Model
+	link == other.link
       else
         content_attributes.keys.inject(true) { |res, key|
           res && other.respond_to?(key) && (send(key) == other.send(key)) }
