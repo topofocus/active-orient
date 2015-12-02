@@ -188,11 +188,18 @@ Used by update and select
       def subquery
 	nil
       end
-
-      def compose
+=begin
+Output the compiled query
+parmeter: destination (rest, batch )
+If the query is submitted via the REST-Interface (as get-command), the limit parameter is extracted.
+=end
+      def compose( destination: :batch )
+	if destination == :rest
 	[ @kind, projection_s,  from, let_s, where_s , subquery,  misc, order_s , group_by, unwind, skip ].compact.join(' ')
+      else
+	[ @kind, projection_s,  from, let_s, where_s , subquery,  misc, order_s , group_by, limit, unwind, skip ].compact.join(' ')
       end
-
+      end
       alias :to_s  :compose
 =begin
 from can either be a Databaseclass to operate on or a Subquery providing data to query further 
@@ -302,8 +309,23 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
  #     end
 #        select_string = ("select " + select_string + distinct_string + ' from ' + class_name(o_class) ).squeeze(' ')
 #	where_string =  compose_where( where )
+
+      def limit l=nil
+	@limit = "limit by  #{l.to_s}" if l.present?
+	# only a string is allowed
+	@limit  # return_value
+      end
+      alias :limit= :limit
+=begin :nodoc
+The Rest-Interface needs to separate the limit-value.
+This Method extracts the number,  usage in  REST::get_documents
+
+=end
+      def get_limit
+	@limit.nil? ? -1 : @limit.split(' ').last.to_i
+      end
       def group_by g=nil
-	@group = "group_by  #{g.to_s}" if g.present?
+	@group = "group by  #{g.to_s}" if g.present?
 	# only a string is allowed
 	@group  # return_value
       end

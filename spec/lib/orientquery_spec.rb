@@ -37,6 +37,21 @@ describe OrientSupport::OrientQuery do
 
     end
 
+    it "usage of limit" do
+      q =  OrientSupport::OrientQuery.new  from: TestQuery
+      expect(q.compose).to eq 'select  from ModelQuery  '
+      expect( q.get_limit).to eq -1
+
+      q =  OrientSupport::OrientQuery.new  from: TestQuery, limit: 23
+      expect(q.to_s).to eq 'select  from ModelQuery   limit by  23'
+      expect(q.compose( destination: :rest )).to eq 'select  from ModelQuery  '
+      expect( q.get_limit).to eq 23
+
+      q.limit = 15
+      expect( q.get_limit).to eq 15 
+
+
+    end
     it "subsequent Initialisation"  do
       q =  OrientSupport::OrientQuery.new 
       q.from = 'ModelQuery'
