@@ -695,7 +695,7 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
       i=0
       begin
         logger.progname = 'OrientDB#GetDocuments'
-	url =    query_sql_uri << query.compose( destination: :rest) << "/#{query.get_limit}" 
+	url =    query_sql_uri + query.compose( destination: :rest) + "/#{query.get_limit}" 
 	response =  @res[URI.encode(url) ].get
 	r=JSON.parse( response.body )['result'].map do |document |
 	  # parameter: raw is set --> don't initilize a model object

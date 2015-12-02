@@ -311,7 +311,7 @@ where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 #	where_string =  compose_where( where )
 
       def limit l=nil
-	@limit = "limit by  #{l.to_s}" if l.present?
+	@limit = "limit  #{l.to_s}" if l.present?
 	# only a string is allowed
 	@limit  # return_value
       end

@@ -78,6 +78,13 @@ describe OrientSupport::OrientQuery do
 	expect( q.compose ).to eq "select  from ModelQuery let $city = adress.city where $city.country.name = 'Italy' OR $city.country.name = 'France' "
 
       end
+      it "subqurey and expand" do
+	oi_query =  OrientSupport::OrientQuery.new from: 'Openinterest', limit: 10, projection: 'expand( contracts )'
+	contracts_query = OrientSupport::OrientQuery.new from: oi_query, projection: 'expand( distinct(@rid) )'
+	expect( contracts_query.to_s ).to eq 'select expand( distinct(@rid) ) from  ( select expand( contracts ) from Openinterest   limit by  10 )   '
+	expect( contracts_query.to_s ).to eq 'select expand( distinct(@rid) ) from  ( select expand( contracts ) from Openinterest   limit by  10 )   '
+
+      end
       it "subquery and subsequent unionall" do
 
 	q =  OrientSupport::OrientQuery.new 
