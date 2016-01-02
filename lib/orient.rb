@@ -4,7 +4,7 @@ This Module fences specialized ruby objects
 =end
 
   class Array < Array
-    include Support
+    include OrientSupport::Support
 =begin
 Initialisation method stores the modelinstance in @orient.
 
