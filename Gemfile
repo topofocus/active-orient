@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 gemspec
 gem 'activesupport' ,  "~>4.2"
-gem 'activemodel'
+gem 'activemodel',   "~>4.2"
 gem 'rest-client' # , :git => 'git://github.com/rest-client/rest-client.git'
 gem 'nokogiri', '~> 1.6.6' #, :git => 'git://github.com/sparklemotion/nokogiri.git'
 group :development, :test do

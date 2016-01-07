@@ -206,7 +206,8 @@ It works in two modi: a comprehensive and a subsequent one
 ```ruby
   
   q =  OrientSupport::OrientQuery.new
-  q.from = Vertex  
+  q.from = Vertex     # If a constant is used, then the correspending
+		      # ActiveOrient::Model-class is refered
   q.where << a: 2
   q.where << 'b > 3 '
   q.distinct = :profession
@@ -226,7 +227,8 @@ Both modes can be mixed.
 
 If subqueries are nessesary, they can be introduced as OrientSupport::OrientQuery or as »let-block«.
 ```ruby
-  q =  OrientSupport::OrientQuery.new from: 'ModelQuery'
+  OQ = OrientSupport::OrientQuery
+  q =  OQ.new from: 'ModelQuery'
   q.let << "$city = adress.city"
   q.where = "$city.country.name = 'Italy' OR $city.country.name = 'France'"
   q.to_s
@@ -234,7 +236,7 @@ If subqueries are nessesary, they can be introduced as OrientSupport::OrientQuer
 ```
 or
 ```ruby
-  q =  OrientSupport::OrientQuery.new
+  q =  OQ.new
   q.let << { a:  OrientSupport::OrientQuery.new( from: '#5:0' ) }
   q.let << { b:  OrientSupport::OrientQuery.new( from: '#5:1' ) }
   q.let << '$c= UNIONALL($a,$b) '
@@ -243,7 +245,18 @@ or
   => select expand( $c ) let $a = ( select from #5:0 ), $b = ( select from #5:1 ), $c= UNIONALL($a,$b)
 ```
 
+or 
+  
+```ruby
+  OpenInterest = db.open_class 'Openinterest'
+  oi = OQ.new from: OpenInterest,  order: { fetch_date: :desc } , limit: 12
+  oi_query =  OQ.new from: oi, projection: 'expand( contracts )'
+  contracts_query = OQ.new from: oi_query, projection: 'expand( distinct(@rid) )'
 
+  contracts_query.to_s
+   => "select expand( distinct(@rid) ) from  ( select expand( contracts ) from  ( select  from Openinterest  order by fetch_date desc limit 12 )    )   " 
+  
+  cq = r.get_documents query: contracts_query
 
 
 #### Execute SQL-Commands

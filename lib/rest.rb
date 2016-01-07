@@ -2,7 +2,6 @@ module ActiveOrient
 require 'cgi'
 require 'rest-client'
 require 'active_support/core_ext/string'  # provides blank?, present?, presence etc
-#require 'model'
 =begin
 OrientDB performs queries to a OrientDB-Database
 
@@ -199,6 +198,7 @@ returns an Array with (unmodified) Class-attribute-hash-Elements
     def get_classes *attributes
       i = 0
       begin
+	#puts "database_uri #{database_uri}"
 	response =   @res[database_uri].get
 	if response.code == 200
 	  classes=  JSON.parse( response.body )['classes' ]
@@ -716,7 +716,7 @@ otherwise a ActiveModel-Instance of o_class  is created and returned
 	  raise
 	else
 	  query.dataset_name = query.database_class.underscore
-	  logger.info { "trying to query using #{o_class}" }
+	  logger.info { "trying to query using #{query.dataset_name}" }
 	  retry
 	end
       rescue URI::InvalidURIError => e
