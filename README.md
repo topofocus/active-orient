@@ -248,7 +248,7 @@ or
 or 
   
 ```ruby
-  OpenInterest = db.open_class 'Openinterest'
+  OpenInterest = r.open_class 'Openinterest'
   oi = OQ.new from: OpenInterest,  order: { fetch_date: :desc } , limit: 12
   oi_query =  OQ.new from: oi, projection: 'expand( contracts )'
   contracts_query = OQ.new from: oi_query, projection: 'expand( distinct(@rid) )'
@@ -257,7 +257,7 @@ or
    => "select expand( distinct(@rid) ) from  ( select expand( contracts ) from  ( select  from Openinterest  order by fetch_date desc limit 12 )    )   " 
   
   cq = r.get_documents query: contracts_query
-
+```
 
 #### Execute SQL-Commands
 Sql-commands can be executed as batch
