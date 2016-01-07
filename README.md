@@ -249,14 +249,14 @@ or
   
 ```ruby
   OpenInterest = r.open_class 'Openinterest'
-  oi = OQ.new from: OpenInterest,  order: { fetch_date: :desc } , limit: 12
-  oi_query =  OQ.new from: oi, projection: 'expand( contracts )'
-  contracts_query = OQ.new from: oi_query, projection: 'expand( distinct(@rid) )'
+  last_12_open_interest_records = OQ.new from: OpenInterest,  order: { fetch_date: :desc } , limit: 12
+  bunch_of_contracts =  OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
+  distinct_contracts = OQ.new from: bunch_of_contracts, projection: 'expand( distinct(@rid) )'
 
-  contracts_query.to_s
+  distinct_contracts.to_s
    => "select expand( distinct(@rid) ) from  ( select expand( contracts ) from  ( select  from Openinterest  order by fetch_date desc limit 12 )    )   " 
   
-  cq = r.get_documents query: contracts_query
+  cq = r.get_documents query: distinct_contracts
 ```
 
 #### Execute SQL-Commands
