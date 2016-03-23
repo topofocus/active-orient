@@ -1,3 +1,5 @@
+# Class create to manage to_orient and from_orient
+
 class Array
   def to_orient
     map &:to_orient

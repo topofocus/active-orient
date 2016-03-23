@@ -1,5 +1,7 @@
 module RestOperations
 
+# Execute a predefined Function
+
   def call_function *args
   #     puts "uri:#{function_uri { args.join('/') } }"
     begin
@@ -8,6 +10,8 @@ module RestOperations
   	  puts  JSON.parse(e.http_body)
     end
   end
+
+# Used to count the Records in relation of the arguments
 
   def count_records **args
     logger.progname = 'RestOperations#CountRecords'
@@ -22,6 +26,18 @@ module RestOperations
   end
   alias count_documents count_records
   alias count count_records
+
+=begin
+  Executes a list of commands and returns the result-array (if present)
+  structure of the provided block:
+  [{type: "cmd", language: "sql",  command: "create class Person extends V"}, (...)]
+
+  It was first used by ActiveOrient::Query.execute_queries
+  Later I (topofocus) discovered that some Queries are not interpretated correctly by #GetRecords but are submitted without Error via batch-processing.
+  For instance, this valid query
+   select expand(first_list[5].second_list[9]) from base where label = 9
+  can only be submitted via batch
+=end
 
   def execute classname = 'Myquery', transaction: true # Set up for classes
     batch = {transaction: transaction, operations: yield}

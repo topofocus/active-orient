@@ -2,6 +2,11 @@ module RestDelete
 
   ######### DATABASE ##########
 
+=begin
+  Deletes the database and returns true on success
+  After the removal of the database, the working-database might be empty
+=end
+
   def delete_database database:
     @classes = []
     logger.progname = 'OrientDB#DropDatabase'
@@ -25,6 +30,11 @@ module RestDelete
 
   ######### CLASS ##########
 
+=begin
+  Deletes the specified class and returns true on success
+  todo: remove all instances of the class
+=end
+
   def delete_class o_class
     cl = classname(o_class)
     logger.progname = 'OrientDB#DeleteClass'
@@ -47,6 +57,12 @@ module RestDelete
   end
 
   ############## RECORD #############
+
+=begin
+  Deletes a single Record when providing a single rid-link (#00:00) or a record
+  Deletes multible Records when providing a list of rid-links or a record
+  Todo: implement delete_edges after querying the database in one statement
+=end
 
   def delete_record *rid
     logger.progname = "ActiveOrient::OrientDB#DeleteRecord"
@@ -85,6 +101,11 @@ module RestDelete
   end
   alias delete_document delete_record
   alias delete_edge delete_record
+
+=begin
+  Deletes records. They are defined by a query. All records which match the attributes are deleted.
+  An Array with freed index-values is returned
+=end
 
   def delete_records o_class, where: {}
     logger.progname = 'OrientDB#DeleteRecords'

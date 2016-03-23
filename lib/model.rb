@@ -5,8 +5,16 @@ module ActiveOrient
   class Model < ActiveOrient::Base
 
     include BaseProperties
-    include ModelRecord
-    extend ModelClass
+    include ModelRecord # For objects
+    extend ModelClass # For classes
+
+=begin
+  ActiveOrient::Model.autoload_object "#00:00"
+  either retrieves the object from the rid_store or loads it from the DB
+  The rid_store is updated!
+  To_do: fetch for version in the db and load the object if a change is detected
+  Note: This function is not in ModelClass since I need to use @@rid_store
+=end
 
     def self.autoload_object rid
       if rid.rid?

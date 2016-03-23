@@ -2,9 +2,17 @@ module RestRead
 
   ############# DATABASE #############
 
+# Returns an Array with available Database-Names as Elements
+
   def get_databases
     JSON.parse(@res["/listDatabases"].get.body)['databases']
   end
+
+=begin
+  Returns an array with all names of the classes of the database
+  caches the result.
+  Parameters: include_system_classes: false|true, requery: false|true
+=end
 
   def get_database_classes include_system_classes: false, requery: false
     requery = true if @classes.empty?
@@ -19,10 +27,20 @@ module RestRead
   alias inspect_classes get_database_classes
   alias database_classes get_database_classes
 
+=begin
+  Returns an Array with (unmodified) Class-attribute-hash-Elements
+
+  get_classes 'name', 'superClass' returns
+      [ {"name"=>"E", "superClass"=>""},
+      {"name"=>"OFunction", "superClass"=>""},
+      {"name"=>"ORole", "superClass"=>"OIdentity"}
+      (...)    ]
+=end
+
   def get_classes *attributes
     begin
       logger.progname = 'RestRead#GetClasses'
-    	response =  @res[database_uri].get
+    	response = @res[database_uri].get
     	if response.code == 200
     	  classes = JSON.parse(response.body)['classes']
     	  unless attributes.empty?
@@ -38,6 +56,17 @@ module RestRead
     end
   end
 
+=begin
+  Returns the class_hierachie
+
+  To fetch all Vertices uses:
+   class_hiearchie(base_class: 'V').flatten
+  To fetch all Edges uses:
+   class_hierachie(base_class: 'E').flatten
+
+  Notice: base_class has to be noted as String! There is no implicit conversion from Symbol or Class
+=end
+
   def get_class_hierarchy base_class: '', requery: false
     @all_classes = get_classes('name', 'superClass') if requery || @all_classes.blank?
     def fv s   # :nodoc:
@@ -52,6 +81,10 @@ module RestRead
   alias class_hierarchy get_class_hierarchy
 
   ############### CLASS ################
+
+=begin
+  Returns a valid database-class name, nil if the class does not exists
+=end
 
   def classname name_or_class
     name= if name_or_class.is_a? Class
@@ -70,9 +103,13 @@ module RestRead
     end
   end
 
-  def get_class_properties o_class   #  :nodoc:
+# Return a JSON of the property of a class
+
+  def get_class_properties o_class
     JSON.parse(@res[class_uri{classname(o_class)}].get)
   end
+
+# Print the property of a class
 
   def print_class_properties o_class
     puts "Detected Properties for class #{classname(o_class)}"
@@ -86,6 +123,13 @@ module RestRead
   end
 
   ############## OBJECT #################
+
+=begin
+  Retrieves a Record from the Database as ActiveOrient::Model::{class}
+  The argument can either be a rid (#[x}:{y}) or a link({x}:{y})
+  If no Record is found, nil is returned
+  In the optional block, a subset of properties can be defined (as array of names)
+=end
 
   def get_record rid
     begin
@@ -109,6 +153,13 @@ module RestRead
   end
   alias get_document get_record
 
+=begin
+  Retrieves Records from a query
+  If raw is specified, the JSON-Array is returned, e.g.
+    {"@type"=>"d", "@rid"=>"#15:1", "@version"=>1,    "@class"=>"DocumebntKlasse10", "con_id"=>343, "symbol"=>"EWTZ"}
+  Otherwise a ActiveModel-Instance of o_class is created and returned
+=end
+
   def get_records raw: false, query: nil, **args
     query = OrientSupport::OrientQuery.new(args) if query.nil?
     begin
@@ -117,7 +168,6 @@ module RestRead
 
   	  response = @res[URI.encode(url)].get
   	  r = JSON.parse(response.body)['result'].map do |record|
-  # parameter: raw is set --> don't initilize a model object
       	if raw
       	  record
     # query returns an anonymus class: Use the provided Block or the Dummy-Model MyQuery

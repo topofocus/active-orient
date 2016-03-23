@@ -2,6 +2,8 @@ module RestChange
 
   ############### DATABASE ####################
 
+# Changes the working-database to {name}
+
   def change_database name
     @classes = []
     @database = name
@@ -9,11 +11,20 @@ module RestChange
 
   ############# OBJECTS #################
 
+=begin
+  update_documents classname, set: {:symbol => 'TWR'}, where: {con_id: 340}
+  Replaces the symbol to TWR in each record where the con_id is 340
+  Both set and where take multiple attributes
+  Returns the JSON-Response.
+=end
+
   def update_records o_class, set:, where: {}
     url = "update #{classname(o_class)} set #{generate_sql_list(set)} #{compose_where(where)}"
     response = @res[URI.encode(command_sql_uri << url)].post ''
   end
   alias update_documents update_records
+
+# Lazy Updating of the given Record.
 
   def patch_record rid
     logger.progname = 'Rest#PatchRecord'

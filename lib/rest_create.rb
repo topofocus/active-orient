@@ -2,6 +2,11 @@ module RestCreate
 
   ######### DATABASE ##########
 
+=begin
+  Creates a database with the given name and switches to this database as working-database. Types are either 'plocal' or 'memory'
+  Returns the name of the working-database
+=end
+
   def create_database type: 'plocal', database: @database
     logger.progname = 'OrientDB#CreateDatabase'
   	old_d = @database
@@ -24,11 +29,19 @@ module RestCreate
 
   ######### CLASS ##########
 
+=begin
+  Creates classes and class-hierachies in OrientDB and in Ruby.
+  Takes an Array or a Hash as argument and returns an Array of
+  successfull allocated Ruby-Classes
+  If the argument is an array, Basic-Classes are build.
+  Otherwise key/value pairs are assumend to follow this terminology
+   {SuperClass => [class, class, ...], SuperClass => [] , ... }
+=end
+
   def create_general_class classes
     database_classes requery: true
     consts = Array.new
     execute transaction: false do
-
       class_cmd = -> (s,n) do
     	  n = n.to_s
     	  consts << ActiveOrient::Model.orientdb_class(name: n)
@@ -36,8 +49,6 @@ module RestCreate
     	    {type: "cmd", language: 'sql', command: "create class #{n} extends #{s}"}
         end
   	  end  ## class_cmd
-
-
 
   	  if classes.is_a?(Array)
   	    classes.map do |n|
@@ -69,12 +80,16 @@ module RestCreate
   # returns an array of allocated Constants/Classes
     consts
   end
+  alias create_classes create_general_class
+
+# Creates a class and returns the a ActiveOrient::Model:{Newclass}-Class- (Constant) which is designed to take any documents stored in this class
 
   def create_record_class newclass
     create_general_class([newclass]).first
   end
   alias open_class create_record_class
   alias create_class create_record_class
+  alias create_document_class create_record_class
 
   def create_vertex_class name, superclass: 'V'
     create_general_class({superclass => name}).first
@@ -85,6 +100,11 @@ module RestCreate
   end
 
   ############## OBJECT #############
+
+=begin
+  create_edge connects two vertexes
+  The parameter o_class can be either a class or a string
+=end
 
   def create_edge o_class, attributes: {}, from:, to:, unique: false
     logger.progname = "ActiveOrient::OrientDB#CreateEdge"
@@ -116,6 +136,31 @@ module RestCreate
     end
   end
 
+=begin
+  Creates a Record (NOT edge) in the Database and returns this as ActiveOrient::Model-Instance
+  Creates a Record with the attributes provided in the attributes-hash e.g.
+   create_record @classname, attributes: {con_id: 343, symbol: 'EWTZ'}
+
+  untested: for hybrid and schema-less documents the following syntax is supported
+   create_document Account, attributes: {date: 1350426789, amount: 100.34,		       "@fieldTypes" => "date = t, amount = c"}
+
+  The supported special types are:
+   'f' for float
+   'c' for decimal
+   'l' for long
+   'd' for double
+   'b' for byte and binary
+   'a' for date
+   't' for datetime
+   's' for short
+   'e' for Set, because arrays and List are serialized as arrays like [3,4,5]
+   'x' for links
+   'n' for linksets
+   'z' for linklist
+   'm' for linkmap
+   'g' for linkbag
+=end
+
   def create_record o_class, attributes: {}
     logger.progname = 'OrientDB#CreateRecord'
     attributes = yield if attributes.empty? && block_given?
@@ -134,8 +179,19 @@ module RestCreate
   end
   alias create_document create_record
 
+=begin
+  Creating a new Database-Entry (where is omitted)
+  Or updating the Database-Entry (if present)
+
+  The optional Block should provide a hash with attributes (properties). These are used if a new dataset is created.
+
+  Based on the query specified in :where records are updated according to :set
+
+  Returns an Array of updated documents
+=end
+
   def update_or_create_records o_class, set: {}, where: {}, **args, &b
-    logger.progname = 'Rest#UpdateOrCreateRecords'
+    logger.progname = 'RestCreate#UpdateOrCreateRecords'
     if where.blank?
       r = create_record(o_class, attributes: set)
     else
@@ -144,7 +200,7 @@ module RestCreate
     	if possible_records.empty?
     	  if block_given?
     	    more_where = yield   # do Preparations prior to the creation of the dataset
-          # if the block returns a Hash , it is merged into the insert_query.
+          # if the block returns a Hash, it is merged into the insert_query.
     	    where.merge! more_where if more_where.is_a?(Hash)
     	  end
     	  r = create_record(o_class, attributes: set.merge(where))
@@ -158,6 +214,28 @@ module RestCreate
   alias update_or_create_documents update_or_create_records
 
   ############### PROPERTIES #############
+
+=begin
+  Creates properties and optional an associated index as defined  in the provided block
+    create_properties(classname or class, properties as hash){index}
+
+  The default-case
+    create_properties(:my_high_sophisticated_database_class,
+  		con_id: {type: :integer},
+  		details: {type: :link, linked_class: 'Contracts'}) do
+  		  contract_idx: :notunique
+  		end
+
+  A composite index
+    create_properties(:my_high_sophisticated_database_class,
+  		con_id: {type: :integer},
+  		symbol: {type: :string}) do
+  	    {name: 'indexname',
+  			 on: [:con_id, :details]    # default: all specified properties
+  			 type: :notunique            # default: :unique
+  	    }
+  		end
+=end
 
   def create_properties o_class, all_properties, &b
     logger.progname = 'OrientDB#CreatePropertes'
@@ -194,9 +272,17 @@ module RestCreate
     count  # return_value
   end
 
+=begin
+  Create a single property on class-level.
+  Supported types: https://orientdb.com/docs/last/SQL-Create-Property.html
+  If index is to be specified, it's defined in the optional block
+      create_property(class, field){:unique | :notunique}	                    --> creates an automatic-Index on the given field
+      create_property(class, field){{»name« => :unique | :notunique | :full_text}} --> creates a manual index
+=end
+
   def create_property o_class, field, index: nil, **args
     logger.progname = 'OrientDB#CreateProperty'
-  	c = create_properties o_class, {field =>  args} # translate_property_hash( field, args )
+  	c = create_properties o_class, {field => args}
   	if index.nil? && block_given?
   	  index = yield
   	end
@@ -211,6 +297,8 @@ module RestCreate
   end
 
   ################# INDEX ###################
+
+# Used to create an index
 
   def create_index o_class, name:, on: :automatic, type: :unique
     logger.progname = 'OrientDB#CreateIndex'

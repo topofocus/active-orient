@@ -1,5 +1,14 @@
 module OrientSupport
   module Support
+
+=begin
+  supports
+  where: 'string'
+  where: { property: 'value', property: value, ... }
+  where: ['string, { property: value, ... }, ... ]
+  Used by update and select
+=end
+
     def compose_where *arg
       arg=arg.flatten
       return "" if arg.blank? || arg.size == 1 && arg.first.blank?
@@ -27,6 +36,15 @@ module OrientSupport
 
   class OrientQuery
     include Support
+
+=begin
+  Call where without a parameter to request the saved where-string
+  To create the where-part of the query a string, a hash or an Array is supported
+
+  where: "r > 9"                          --> where r > 9
+  where: {a: 9, b: 's'}                   --> where a = 9 and b = 's'
+  where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
+=end
 
     attr_accessor :where
     attr_accessor :let
@@ -70,6 +88,12 @@ module OrientSupport
       nil
     end
 
+=begin
+  Output the compiled query
+  Parameter: destination (rest, batch )
+  If the query is submitted via the REST-Interface (as get-command), the limit parameter is extracted.
+=end
+
     def compose(destination: :batch)
       if destination == :rest
         [@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, unwind, skip].compact.join(' ')
@@ -78,6 +102,10 @@ module OrientSupport
       end
     end
     alias :to_s  :compose
+
+=begin
+  from can either be a Databaseclass to operate on or a Subquery providing data to query further
+=end
 
     def from arg = nil
     	if arg.present?
@@ -116,6 +144,8 @@ module OrientSupport
   	    @from.database_class= arg
   	  end
     end
+
+
 
     def where_s
   	  compose_where @where

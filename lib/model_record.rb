@@ -2,10 +2,6 @@ module ModelRecord
 
   ############### RECORD FUNCTIONS ###############
 
-  def each
-    self
-  end
-
   ############# GET #############
 
   def to_orient
@@ -16,9 +12,13 @@ module ModelRecord
     self
   end
 
+# Returns just the name of the Class
+
   def classname
     self.class.to_s.split(':')[-1]
   end
+
+# Obtain the RID of the Record
 
   def rid
     begin
@@ -28,17 +28,34 @@ module ModelRecord
     end
   end
 
+# Create a query
+
   def query q
     a = ActiveOrient::Query.new
     a.queries << q
     a.execute_queries
   end
 
+# Get the version of the object
+
   def version
     @metadata[:version]
   end
 
   ########### CREATE ############
+
+=begin
+  Convient method for populating embedded- or linkset-properties
+  In both cases an array/a collection is stored in the database.
+  Its called via
+    model.add_item_to_property(linkset- or embedded property, Object_to_be_linked_to\)
+  or
+    mode.add_items_to_property( linkset- or embedded property ) do
+      Array_of_Objects_to_be_linked_to
+      #(actually, the objects must inherent from ActiveOrient::Model, Numeric, String)
+    end
+  to_do: use "<<" to add the item to the property
+=end
 
   def add_item_to_property array, item = nil
     begin
@@ -79,13 +96,20 @@ module ModelRecord
     end
   end
   alias add_items_to_property add_item_to_property
+  ## historical aliases
+  alias update_linkset  add_item_to_property
+  alias update_embedded  add_item_to_property
 
   ############# DELETE ###########
+
+#  Removes the Model-Instance from the database
 
   def delete
     orientdb.delete_record rid
     ActiveOrient::Base.remove_rid self if is_edge? # removes the obj from the rid_store
   end
+
+# Remove item from property
 
   def remove_item_from_property array, item = nil
     begin
@@ -129,15 +153,28 @@ module ModelRecord
 
   ########### UPDATE ############
 
+=begin
+  Convient update of the dataset by calling sql-patch
+  The attributes are saved to the database.
+  With the optional :set argument ad-hoc attributes can be defined
+    obj = ActiveOrient::Model::Contracts.first
+    obj.name =  'new_name'
+    obj.update set: { yesterdays_event: 35 }
+=end
+
   def update set: {}
     attributes.merge!(set) if set.present?
     result = orientdb.patch_record(rid) do
       attributes.merge({'@version' => @metadata[:version], '@class' => @metadata[:class]})
     end
-    #     returns a new instance of ActiveOrient::Model
+    # returns a new instance of ActiveOrient::Model
     reload! ActiveOrient::Model.orientdb_class(name:  classname).new(JSON.parse(result))
     # instantiate object, update rid_store and reassign to self
   end
+
+=begin
+  Overwrite the attributes with Database-Contents (or attributes provided by the updated_dataset.model-instance)
+=end
 
   def reload! updated_dataset = nil
     updated_dataset = orientdb.get_record(rid) if updated_dataset.nil?
@@ -147,6 +184,14 @@ module ModelRecord
   end
 
   ########## CHECK PROPERTY ########
+
+=begin
+  An Edge is defined
+  * when inherented from the superclass »E» (formal definition)
+  * if it has an in- and an out property
+
+  Actually we just check the second term as we trust the constuctor to work properly
+=end
 
   def is_edge?
     attributes.keys.include?('in') && attributes.keys.include?('out')

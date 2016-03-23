@@ -6,11 +6,15 @@ module ActiveOrient
   module BaseProperties
     extend ActiveSupport::Concern
 
+# Default presentation
+
     def to_human
       "<#{self.class.to_s.demodulize}: " + content_attributes.map do |attr, value|
         "#{attr}: #{value}" unless value.nil?
       end.compact.sort.join(' ') + ">"
     end
+
+# Comparison support
 
     def content_attributes
       HashWithIndifferentAccess[attributes.reject do |(attr, _)|
@@ -18,11 +22,15 @@ module ActiveOrient
       end]
     end
 
+# Update nil attributes from given Hash or model
+
     def update_missing attrs
       attrs = attrs.content_attributes unless attrs.kind_of?(Hash)
-      attrs.each{ |attr, val| send "#{attr}=", val if send(attr).blank? }
+      attrs.each{|attr, val| send "#{attr}=", val if send(attr).blank?}
       self # for chaining
     end
+
+# Default Model comparison
 
     def == other
       case other
@@ -37,6 +45,8 @@ module ActiveOrient
       end
     end
 
+# Default attributes support
+
     def default_attributes
       {:created_at => Time.now,
        :updated_at => Time.now}
@@ -50,6 +60,8 @@ module ActiveOrient
 
     included do
       after_initialize :set_attribute_defaults
+
+# Class macros
 
       def self.prop *properties
         prop_hash = properties.last.is_a?(Hash) ? properties.pop : {}
@@ -110,7 +122,7 @@ module ActiveOrient
             end
           end
 
-          # todo define self[:name] accessors for :virtual and :flag properties
+# todo define self[:name] accessors for :virtual and :flag properties
 
         else # setter given
           define_property_methods name, :set => body, :get => body

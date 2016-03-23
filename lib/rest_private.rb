@@ -13,11 +13,11 @@ module RestPrivate
 		end
 	end
 
-	def property_uri(this_classname)
+	def property_uri this_classname
 	  if block_given?
-	    "property/#{ @database }/#{this_classname}/" << yield
+	    "property/#{@database}/#{this_classname}/" << yield
 	  else
-	    "property/#{ @database }/#{this_classname}"
+	    "property/#{@database}/#{this_classname}"
 	  end
 	end
 

@@ -13,6 +13,13 @@ module ActiveOrient
       self.queries = []
     end
 
+=begin
+  Calls ActiveOrient::ActiveOrient#GetRecords
+  Stores the query in the query-stack and saves the result in the record-Array
+
+  Returns the count of assigned records
+=end
+
     def get_records o_class , **args
       query = OrientSupport::OrientQuery.new classname(o_class), args
 	    self.queries << query.compose
@@ -20,6 +27,32 @@ module ActiveOrient
       orientdb.get_records(o_class , query: query.compose).each{|c| records << c; count+=1 }
       count
     end
+    alias get_documents get_records
+
+=begin
+  All predefined queries are send to the database.
+  The result is stored in the records.
+  Unknown Records are of Type ActiveOrient::Model::Myquery, uses ActiveOrient::Orientdb.execute which tries to autosuggest the ActiveOrient::Model::{Class}
+
+  example: Multible Records
+    ach = ActiveOrient::Query.new
+    ach.queries << 'create class Contracts ABSTRACT'
+    ach.queries << 'create property Contracts.details link'
+    ach.queries << 'create class Stocks extends Contracts'
+    result = ach.execute_queries transaction: false
+
+  example: Batch
+    q = ActiveOrient::Query.new
+    q.queries << [
+    "select expand( contracts ) from Openinterest"
+    "let con = select expand( contracts ) from Openinterest;",
+    "let sub = select from Subcategories where contracts in $con;",
+    "let cat = select from Categories where subcategories in $sub;",
+    "let ind = select from Industries where categories in $cat;",
+    "SELECT expand(unionall) FROM (SELECT unionall( $con, $cat))"
+    ]
+    q.execute_queries.each{|x| puts "X #{x.inspect}" }
+=end
 
     def execute_queries reset: true, transaction: true
       reset_records if reset

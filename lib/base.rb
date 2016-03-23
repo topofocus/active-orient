@@ -1,6 +1,8 @@
 module  ActiveOrient
   require 'active_model'
 
+# Base class for tableless IB data Models, extends ActiveModel API
+
   class Base
     extend ActiveModel::Naming
     extend ActiveModel::Callbacks
@@ -10,10 +12,20 @@ module  ActiveOrient
     include ActiveModel::Serializers::JSON
 
     define_model_callbacks :initialize
+
+# ActiveRecord::Base callback API mocks
     define_model_callbacks :initialize, :only => :after
+
     mattr_accessor :logger
+
+# Used to read the metadata
     attr_reader :metadata
 
+=begin
+  Every Rest::Base-Object is stored in the @@rid_store
+  The Objects are just references to the @@rid_store.
+  Any Change of the Object is thus synchonized to any allocated variable.
+=end
     @@rid_store = Hash.new
 
     def self.display_rid
@@ -30,9 +42,9 @@ module  ActiveOrient
     def self.store_rid obj
       if obj.rid.present? && obj.rid.split(":").all?{|x| x.present? && x.to_i >=  0}
     # only positive values are stored
-	  ## return the presence of a stored object as true by the block
-	  ## the block is only executed if the presence is confirmed
-	  ## Nothing is returned from the class-method
+	  # return the presence of a stored object as true by the block
+	  # the block is only executed if the presence is confirmed
+	  # Nothing is returned from the class-method
 	      if @@rid_store[obj.rid].present?
 	        yield if block_given?
 	      end
@@ -42,6 +54,11 @@ module  ActiveOrient
 	      obj # no rid-value: just return the obj
       end
     end
+
+=begin
+If a opts hash is given, keys are taken as attribute names, values as data.
+The model instance fields are then set automatically from the opts Hash.
+=end
 
     def initialize attributes = {}, opts = {}
       logger.progname = "ActiveOrient::Base#initialize"
@@ -76,6 +93,7 @@ module  ActiveOrient
 	            operator, *base_edge = edge.split('_')
 	            base_edge = base_edge.join('_')
 	            unless self.class.instance_methods.detect{|x| x == base_edge}
+                ## define two methods: out_{Edge}/{in_Edge} -> edge.
                 self.class.define_property base_edge, nil
                 self.class.send :alias_method, base_edge.underscore, edge
               end
@@ -88,6 +106,8 @@ module  ActiveOrient
       ActiveOrient::Base.store_rid self
     end
 
+# ActiveModel API (for serialization)
+
     def attributes
       @attributes ||= HashWithIndifferentAccess.new
     end
@@ -95,6 +115,11 @@ module  ActiveOrient
     def attributes= attrs
       attrs.keys.each{|key| self.send("#{key}=", attrs[key])}
     end
+
+=begin
+  ActiveModel-style read/write_attribute accessors
+  Here we define the autoload mechanism
+=end
 
     def [] key
       iv = attributes[key.to_sym]
@@ -142,11 +167,15 @@ module  ActiveOrient
       self
     end
 
+# Noop methods mocking ActiveRecord::Base macros
+
     def self.attr_protected *args
     end
 
     def self.attr_accessible *args
     end
+
+# ActiveRecord::Base association API mocks
 
     def self.belongs_to model, *args
       attr_accessor model
@@ -166,6 +195,8 @@ module  ActiveOrient
     def self.find *args
       []
     end
+
+# ActiveRecord::Base misc
 
     def self.serialize *properties
     end

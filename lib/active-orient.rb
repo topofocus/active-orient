@@ -1,11 +1,11 @@
-require "other.rb"
-require "support.rb"
-require "base.rb"
-require "base_properties.rb"
-require "orient.rb"
-require "model.rb"
-require "query.rb"
-require "rest.rb"
+require "other"
+require "support"
+require "base"
+require "base_properties"
+require "orient"
+require "model"
+require "query"
+require "rest"
 
 logger =  Logger.new '/dev/stdout'
 ActiveOrient::Model.logger =  logger
