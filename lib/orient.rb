@@ -4,6 +4,7 @@ module OrientSupport
 
   class Array < Array
     include OrientSupport::Support
+    mattr_accessor :logger
 
 =begin
   Initialisation method stores the modelinstance in @orient.
@@ -64,7 +65,12 @@ module OrientSupport
     end
 
     def method_missing *args
-      map{|x| x.send args.first }
+      begin
+        map{|x| x.send args.first}
+      rescue NoMethodError => e
+        logger.progname = "OrientSupport::Array#MethodMissing"
+        logger.error{"Undefined method: #{e.message}"}
+      end
     end
 
   end #Class

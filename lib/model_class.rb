@@ -65,7 +65,7 @@ module ModelClass
   alias update_or_create_documents update_or_create_records
   alias create_or_update_document update_or_create_records
 
-  def create attributes: {}
+  def create attributes = {}
     self.update_or_create_records set: attributes
   end
 
@@ -134,6 +134,7 @@ module ModelClass
     object = orientdb.get_class_properties self
     {:properties => object['properties'], :indexes => object['indexes']}
   end
+  alias get_class_properties get_properties
 
 # Print the properties of the class
 

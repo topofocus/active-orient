@@ -1,14 +1,14 @@
-require "rest_private.rb" # manage private functions
-require "rest_read.rb" # manage get
-require "rest_create.rb" # manage create
-require "rest_change.rb" # manage update
-require "rest_operations.rb" # manage count, functions and execute
-require "rest_delete.rb" # manage delete
+require_relative "rest_private.rb" # manage private functions
+require_relative "rest_read.rb" # manage get
+require_relative "rest_create.rb" # manage create
+require_relative "rest_change.rb" # manage update
+require_relative "rest_operations.rb" # manage count, functions and execute
+require_relative "rest_delete.rb" # manage delete
+require 'cgi'
+require 'rest-client'
+require 'active_support/core_ext/string' # provides blank?, present?, presence etc
 
 module ActiveOrient
-  require 'cgi'
-  require 'rest-client'
-  require 'active_support/core_ext/string' # provides blank?, present?, presence etc
 
 =begin
 OrientDB performs queries to a OrientDB-Database

@@ -117,11 +117,11 @@ module RestCreate
     	  wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
     	  existing_edge = get_records(from: o_class, where: wwhere)
     	  if existing_edge.first.is_a?(ActiveOrient::Model)
-    	    logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+    	    #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
     	    return existing_edge.first
     	  end
     	end
-    	logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+    	#logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
     	response = execute(o_class, transaction: false) do
     	  attr_string =  attributes.blank? ? "" : "set #{generate_sql_list attributes.to_orient}"
     	  [{ type: "cmd",
