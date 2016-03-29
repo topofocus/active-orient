@@ -8,7 +8,7 @@ module RestCreate
 =end
 
   def create_database type: 'plocal', database: @database
-    logger.progname = 'OrientDB#CreateDatabase'
+    logger.progname = 'RestCreate#CreateDatabase'
   	old_d = @database
   	@classes = []
   	@database = database
@@ -39,11 +39,11 @@ module RestCreate
 =end
 
   def create_general_class classes
-    database_classes requery: true
+    get_database_classes requery: true
     consts = Array.new
     execute transaction: false do
       class_cmd = -> (s,n) do
-    	  n = n.to_s
+    	  n = n.to_s.camelize
     	  consts << ActiveOrient::Model.orientdb_class(name: n)
     	  unless get_database_classes.include?(n)
     	    {type: "cmd", language: 'sql', command: "create class #{n} extends #{s}"}
@@ -52,7 +52,7 @@ module RestCreate
 
   	  if classes.is_a?(Array)
   	    classes.map do |n|
-  	      n = n.to_s
+  	      n = n.to_s.camelize
   	      consts << ActiveOrient::Model.orientdb_class(name: n)
   	      unless get_database_classes.include?(n)
   		      {type: "cmd", language: 'sql', command: "create class #{n}"}
@@ -61,10 +61,9 @@ module RestCreate
   	  elsif classes.is_a?(Hash)
   	    classes.keys.map do |superclass|
   	      items = Array.new
-  	      superClass = superclass.to_s
+  	      superClass = superclass.to_s.camelize
           unless get_database_classes.flatten.include?(superClass)
-  	        items << {
-              type: "cmd", language: 'sql', command:  "create class #{superClass} abstract" }
+  	        items << {type: "cmd", language: 'sql', command:  "create class #{superClass} abstract"}
           end
   	      items << if classes[superclass].is_a?(String) || classes[superclass].is_a?(Symbol)
   		      class_cmd[superClass, classes[superclass]]
@@ -107,7 +106,7 @@ module RestCreate
 =end
 
   def create_edge o_class, attributes: {}, from:, to:, unique: false
-    logger.progname = "ActiveOrient::OrientDB#CreateEdge"
+    logger.progname = "ActiveOrient::RestCreate#CreateEdge"
     if from.is_a? Array
   	  from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique}
     elsif to.is_a? Array
@@ -162,7 +161,7 @@ module RestCreate
 =end
 
   def create_record o_class, attributes: {}
-    logger.progname = 'OrientDB#CreateRecord'
+    logger.progname = 'RestCreate#CreateRecord'
     attributes = yield if attributes.empty? && block_given?
     post_argument = {'@class' => classname(o_class)}.merge(attributes).to_orient
 
@@ -238,7 +237,7 @@ module RestCreate
 =end
 
   def create_properties o_class, all_properties, &b
-    logger.progname = 'OrientDB#CreatePropertes'
+    logger.progname = 'RestCreate#CreatePropertes'
     all_properties_in_a_hash = HashWithIndifferentAccess.new
     all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
     begin
@@ -281,7 +280,7 @@ module RestCreate
 =end
 
   def create_property o_class, field, index: nil, **args
-    logger.progname = 'OrientDB#CreateProperty'
+    logger.progname = 'RestCreate#CreateProperty'
   	c = create_properties o_class, {field => args}
   	if index.nil? && block_given?
   	  index = yield

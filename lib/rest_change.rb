@@ -27,7 +27,7 @@ module RestChange
 # Lazy Updating of the given Record.
 
   def patch_record rid
-    logger.progname = 'Rest#PatchRecord'
+    logger.progname = 'RestChange#PatchRecord'
     content = yield
     if content.is_a? Hash
       begin

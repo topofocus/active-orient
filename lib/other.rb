@@ -8,6 +8,15 @@ class Array
   def from_orient
     map &:from_orient
   end
+
+  def method_missing(method)
+    if self.empty?
+      logger.progname = 'Array#MethodMissing'
+      logger.error{"Array is empty."}
+    else
+      return self.map{|x| x[method]}
+    end
+  end
 end
 
 class Date
@@ -91,7 +100,7 @@ class String
     if self[0] == '$'
       self[1..-1]
     else
-      self
+      self.camelize
     end
   end
 

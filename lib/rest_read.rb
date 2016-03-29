@@ -39,7 +39,6 @@ module RestRead
 
   def get_classes *attributes
     begin
-      logger.progname = 'RestRead#GetClasses'
     	response = @res[database_uri].get
     	if response.code == 200
     	  classes = JSON.parse(response.body)['classes']
@@ -52,6 +51,7 @@ module RestRead
         []
       end
     rescue Exception => e
+      logger.progname = 'RestRead#GetClasses'
       logger.error{e.message}
     end
   end
@@ -92,12 +92,14 @@ module RestRead
     elsif name_or_class.is_a? ActiveOrient::Model
       name_or_class.classname
     else
-      name_or_class.to_s
+      name_or_class.to_s.camelize
     end
     if database_classes.include?(name)
       name
+    elsif database_classes.include?(name.underscore)
+      name.underscore
     else
-      logger.progname = 'OrientDB#ClassName'
+      logger.progname = 'RestRead#ClassName'
       logger.info{"Classname #{name} not present in active Database"}
       nil
     end

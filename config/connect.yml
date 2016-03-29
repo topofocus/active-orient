@@ -4,10 +4,10 @@
  :port: 2480
  :database: hc_database
  :admin:
-   :user: hctw
-   :pass: ++++
+   :user: root
+   :pass: tretretre
  :auth:
-   :user: topo
-   :pass: ++++
+   :user: root
+   :pass: tretretre
 
 # hfx: 101

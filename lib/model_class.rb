@@ -13,7 +13,7 @@ module ModelClass
   def orientdb_class name:
     begin
       klass = Class.new(self)
-      name = name.to_s
+      name = name.to_s.camelize
       if self.send :const_defined?, name
         retrieved_class = self.send :const_get, name
       else
@@ -22,10 +22,11 @@ module ModelClass
         new_class # return_value
       end
     rescue NameError => e
-      logger.error "ActiveOrient::Model::Class name cannot be initialized"
-      puts "class: #{klass.inspect}"
-      puts "name: #{name.inspect}"
-      puts e.inspect
+      logger.progname = "ModelClass#OrientDBClass"
+      logger.error "ActiveOrient::Model::Class #{name} cannot be initialized."
+      logger.error "class: #{klass.inspect}"
+      logger.error "name: #{name.inspect}"
+      logger.error "#{e.inspect}"
     end
   end
 
@@ -64,6 +65,7 @@ module ModelClass
   end
   alias update_or_create_documents update_or_create_records
   alias create_or_update_document update_or_create_records
+  alias update_or_create update_or_create_records
 
   def create attributes = {}
     self.update_or_create_records set: attributes
@@ -267,7 +269,34 @@ module ModelClass
   end
   alias update_documents update_records
 
-  ##################### EXPERIMENT #################à
+  ##################### EXPERIMENT #################
+
+=begin
+  Suppose that you created a graph where a vertex month is connected with
+  the vertexes days by the edge TIMEOF.
+  Suppose we want to find all the days in the first month and in the third month..
+
+  Usually we can do in the following way.
+
+  month = r.open_class "Month"
+  firstmonth = month.first
+  thirdmonth = month.all[2]
+  days_firstmonth = firstmonth.out_TIMEOF.map{|x| x.in}
+  days_thirdmonth = thirdmonth.out_TIMEOF.map{|x| x.in}
+
+  However we can obtain the same result with the following command
+
+  month = r.open_class "Month"
+  month.add_edge_link name: "days", direction: "out", edge: "TIMEOF"
+  firstmonth = month.first
+  thirdmonth = month.all[2]
+  days_firstmonth = firstmonth.days
+  days_thirdmonth = thirdmonth.days
+
+  To get their value you can do:
+  thirdmonth.days.value
+=end
+
 
   def add_edge_link name:, direction: "out", edge:
     logger.progname = 'RestEdge#AddEdgeLink'

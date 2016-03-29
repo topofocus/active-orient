@@ -53,3 +53,5 @@ print "7 #{test2} \n \n"
 
 mon.add_edge_link name: "days", direction: "out", edge: "TIMEOF"
 print "8 #{firstmonth.days.map{|x| x.value}} \n \n"
+
+print "9 #{firstmonth.days.value} \n \n"

@@ -9,7 +9,7 @@ module RestDelete
 
   def delete_database database:
     @classes = []
-    logger.progname = 'OrientDB#DropDatabase'
+    logger.progname = 'RestDelete#DropDatabase'
     old_ds = @database
     change_database database
     begin
@@ -37,7 +37,7 @@ module RestDelete
 
   def delete_class o_class
     cl = classname(o_class)
-    logger.progname = 'OrientDB#DeleteClass'
+    logger.progname = 'RestDelete#DeleteClass'
     if get_database_classes.include? cl
       begin
   	    response = @res[class_uri{cl}].delete
@@ -52,7 +52,7 @@ module RestDelete
   	    end
       end
     else
-  	  logger.info{"Class #{cl} not present."}
+      cl.nil? ? logger.info{"Class #{o_class} not present."} : logger.info{"Class #{cl} not present."} 
     end
   end
 
@@ -65,7 +65,7 @@ module RestDelete
 =end
 
   def delete_record *rid
-    logger.progname = "ActiveOrient::OrientDB#DeleteRecord"
+    logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
     ridvec = []
     rid.each do |mm|
       if mm.is_a?(String)
@@ -108,7 +108,7 @@ module RestDelete
 =end
 
   def delete_records o_class, where: {}
-    logger.progname = 'OrientDB#DeleteRecords'
+    logger.progname = 'RestDelete#DeleteRecords'
     records_to_delete = get_records(from: o_class, where: where)
     if records_to_delete.empty?
       logger.info{"No record found"}
@@ -121,7 +121,7 @@ module RestDelete
   ################ PROPERTY #############
 
   def delete_property o_class, field
-    logger.progname = 'OrientDB#DeleteProperty'
+    logger.progname = 'RestDelete#DeleteProperty'
     begin
   	  response = @res[property_uri(classname(o_class)){field}].delete
   	  true if response.code == 204

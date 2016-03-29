@@ -10,7 +10,7 @@ module OrientSupport
 =end
 
     def compose_where *arg
-      arg=arg.flatten
+      arg = arg.flatten
       return "" if arg.blank? || arg.size == 1 && arg.first.blank?
       "where " + arg.map do |issue|
         case issue
@@ -101,7 +101,7 @@ module OrientSupport
         [@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, limit, unwind, skip].compact.join(' ')
       end
     end
-    alias :to_s  :compose
+    alias :to_s :compose
 
 =begin
   from can either be a Databaseclass to operate on or a Subquery providing data to query further
@@ -154,7 +154,7 @@ module OrientSupport
   	    "let " << @let.map do |s|
   	      case s
   	      when Hash
-  	        s.map{|x,y| "$#{x} = ( #{y} )"}.join( ', ')
+  	        s.map{|x,y| "$#{x} = (#{y})"}.join(', ')
   	      when Array
   	        s.join(',  ')
   	      else

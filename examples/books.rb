@@ -24,11 +24,11 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
 
 
       def read_samples
-	fill_database = ->(sentence, this_book ) do 
-	  sentence.split(' ').each do |x| 
+	fill_database = ->(sentence, this_book ) do
+	  sentence.split(' ').each do |x|
 	    this_word = Keyword.update_or_create where: { item: x }
 	    this_edge = HC.create_edge from: this_book, to: this_word  if this_word.present?
-	  end 
+	  end
 	end
 	words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heut mit Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
 	this_book =  Book.create title: 'first'
@@ -38,24 +38,24 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
 	this_book =  Book.create title: 'second'
 	fill_database[ words2, this_book ]
       end
-  
+
     def display_books_with *desired_words
       query = OrientSupport::OrientQuery.new  from: Keyword, projection: "expand(in('HasContent'))"
       q =  OrientSupport::OrientQuery.new projection: 'expand( $z )'
 
       intersects = Array.new
       desired_words.each_with_index do | word, i |
-	       symbol = ( i+97 ).chr   #  convert 1 -> 'a' 
+	       symbol = ( i+97 ).chr   #  convert 1 -> 'a'
 	       query.where = { item: word  }
                q.let << { symbol =>  query }
-	       intersects << "$#{symbol}"		 
+	       intersects << "$#{symbol}"
       end
       q.let <<  "$z = Intersect(#{intersects.join(', ')}) "
       puts "generated Query:"
       puts q.to_s
       result = Keyword.query_database  q, set_from: false
       puts "found books: "
-      puts result.map( &:title ).join("; ") 
+      puts result.map( &:title ).join("; ")
       puts " -- None -- " if result.empty?
     end
  end
@@ -64,15 +64,15 @@ if $0 == __FILE__
 
 require '../config/boot'
 
-    ActiveOrient::OrientDB.default_server = { user: 'hctw', password: 'hc' }
+    ActiveOrient::OrientDB.default_server = { user: 'root', password: 'tretretre' }
     ActiveOrient::OrientDB.logger.level = Logger::WARN
     r = ActiveOrient::OrientDB.new database: 'BookTest'
-    b= BooksExample.new r, rebuild:  true 
-      
+    b= BooksExample.new r, rebuild:  true
+
     Book = r.open_class :book
     Keyword = r.open_class :keyword
     HC = r.open_class :has_content
-   
+
     b.read_samples if Keyword.count.zero?
     b.display_books_with 'Land', 'Quartal'
 end
