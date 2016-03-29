@@ -7,45 +7,42 @@ ActiveOrient::OrientDB.default_server= { user: 'root', password: 'tretretre' }
 # Select database
 r = ActiveOrient::OrientDB.new database: 'NewTest'
 
-# SELF <--- Class
-# NO SELF <--- Object
-
-doc1 = r.create_class "Document_Test"
-ver1 = r.create_vertex_class "Vertex_Test"
+doc1 = r.create_class "DocumentTest"
+ver1 = r.create_vertex_class "VertexTest"
 a = doc1.create name: "Doc1"
 v = ver1.create name: "Ver"
 
 out = doc1.orientdb_class name: "Doc2345" # Used to instantiate an ActiveOrient Model
-print "#{out} \n"
+print "1 #{out} \n"
 
 out = ver1.autoload_object "16:35" # Used to get a record by rid
-print "#{out} \n"
+print "2 #{out} \n"
 
-print "#{ver1.superClass} \n" # Check superClass of the class
+print "3 #{ver1.superClass} \n" # Check superClass of the class
 
-print "#{v.class} <--- \n"
+print "4 #{v.class} \n"
 
-print "#{doc1} <--- \n"
+print "5 #{doc1}  \n"
 
-print "#{a} <--- \n"
+print "6 #{a}  \n"
 
-print "#{v} <--- \n"
+print "7 #{v}  \n"
 
 a = v.classname # Class of v
-print "#{a} \n"
+print "8 #{a} \n"
 
 a = v.rid
-print "#{a} \n" # RID of v
+print "9 #{a} \n" # RID of v
 
 a = ver1.count where: {name: "Ver"}
-print "#{a} \n"
+print "10 #{a} \n"
 
-print "1 #{v.to_human} \n" # Human version
+print "11 #{v.to_human} \n" # Human version
 
-print "2 #{v.content_attributes} \n" # Return attributes
+print "12 #{v.content_attributes} \n" # Return attributes
 
-print "3 #{v.default_attributes} \n" # Return created and updated
+print "13 #{v.default_attributes} \n" # Return created and updated
 
-print "4 #{v.set_attribute_defaults} \n" # Set up
+print "14 #{v.set_attribute_defaults} \n" # Set up
 
-print "5 #{v.metadata} \n" # Set up
+print "15 #{v.metadata} \n" # Set up

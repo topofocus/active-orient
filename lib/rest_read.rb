@@ -94,9 +94,9 @@ module RestRead
     else
       name_or_class.to_s.camelize
     end
-    if database_classes.include?(name)
+    if get_database_classes.include?(name)
       name
-    elsif database_classes.include?(name.underscore)
+    elsif get_database_classes.include?(name.underscore)
       name.underscore
     else
       logger.progname = 'RestRead#ClassName'

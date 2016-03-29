@@ -27,5 +27,8 @@ module ActiveOrient
 
     mattr_accessor :orientdb
     mattr_accessor :logger
+    
+    # Used to read the metadata
+    attr_reader :metadata
   end
 end

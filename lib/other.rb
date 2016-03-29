@@ -10,10 +10,7 @@ class Array
   end
 
   def method_missing(method)
-    if self.empty?
-      logger.progname = 'Array#MethodMissing'
-      logger.error{"Array is empty."}
-    else
+    unless self.empty? || method != "to_hash"
       return self.map{|x| x[method]}
     end
   end

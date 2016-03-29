@@ -39,45 +39,54 @@ module RestCreate
 =end
 
   def create_general_class classes
-    get_database_classes requery: true
-    consts = Array.new
-    execute transaction: false do
-      class_cmd = -> (s,n) do
-    	  n = n.to_s.camelize
-    	  consts << ActiveOrient::Model.orientdb_class(name: n)
-    	  unless get_database_classes.include?(n)
-    	    {type: "cmd", language: 'sql', command: "create class #{n} extends #{s}"}
-        end
-  	  end  ## class_cmd
-
-  	  if classes.is_a?(Array)
-  	    classes.map do |n|
-  	      n = n.to_s.camelize
-  	      consts << ActiveOrient::Model.orientdb_class(name: n)
-  	      unless get_database_classes.include?(n)
-  		      {type: "cmd", language: 'sql', command: "create class #{n}"}
-  	      end
-  	    end
-  	  elsif classes.is_a?(Hash)
-  	    classes.keys.map do |superclass|
-  	      items = Array.new
-  	      superClass = superclass.to_s.camelize
-          unless get_database_classes.flatten.include?(superClass)
-  	        items << {type: "cmd", language: 'sql', command:  "create class #{superClass} abstract"}
+    begin
+      get_database_classes requery: true
+      consts = Array.new
+      execute transaction: false do
+        class_cmd = -> (s,n) do
+      	  n = n.to_s.camelize
+      	  consts << ActiveOrient::Model.orientdb_class(name: n)
+          classes_available = get_database_classes.map{|x| x.downcase}
+      	  unless classes_available.include?(n.downcase)
+      	    {type: "cmd", language: 'sql', command: "create class #{n} extends #{s}"}
           end
-  	      items << if classes[superclass].is_a?(String) || classes[superclass].is_a?(Symbol)
-  		      class_cmd[superClass, classes[superclass]]
-  	      elsif classes[superclass].is_a?(Array)
-  		      classes[superclass].map{|n| class_cmd[superClass, n]}
-  	      end
-          items  # returnvalue
-  	    end.flatten
-  	  end.compact # erase nil-entries, in case the class is already allocated
+    	  end  ## class_cmd
+
+    	  if classes.is_a?(Array)
+    	    classes.map do |n|
+    	      n = n.to_s.camelize
+    	      consts << ActiveOrient::Model.orientdb_class(name: n)
+            classes_available = get_database_classes.map{|x| x.downcase}
+        	  unless classes_available.include?(n.downcase)
+    		      {type: "cmd", language: 'sql', command: "create class #{n}"}
+    	      end
+    	    end
+    	  elsif classes.is_a?(Hash)
+    	    classes.keys.map do |superclass|
+    	      items = Array.new
+    	      superClass = superclass.to_s.camelize
+            unless get_database_classes.flatten.include?(superClass)
+    	        items << {type: "cmd", language: 'sql', command:  "create class #{superClass} abstract"}
+            end
+    	      items << if classes[superclass].is_a?(String) || classes[superclass].is_a?(Symbol)
+    		      class_cmd[superClass, classes[superclass]]
+    	      elsif classes[superclass].is_a?(Array)
+    		      classes[superclass].map{|n| class_cmd[superClass, n]}
+    	      end
+            items  # returnvalue
+    	    end.flatten
+    	  end.compact # erase nil-entries, in case the class is already allocated
+      end
+    # refresh cached class-informations
+      get_database_classes requery: true
+    # returns an array of allocated Constants/Classes
+      consts
+    rescue RestClient::InternalServerError => e
+      logger.progname = 'RestCreate#CreateGeneralClass'
+      response = JSON.parse(e.response)['errors'].pop
+      logger.error{"#{response['content'].split(':').last }"}
+      nil
     end
-  # refresh cached class-informations
-    get_database_classes requery: true
-  # returns an array of allocated Constants/Classes
-    consts
   end
   alias create_classes create_general_class
 
