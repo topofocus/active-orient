@@ -1,3 +1,0 @@
-module RestEdge
-
-end

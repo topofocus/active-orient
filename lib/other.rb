@@ -10,8 +10,8 @@ class Array
   end
 
   def method_missing(method)
-    unless self.empty? || method != "to_hash"
-      return self.map{|x| x[method]}
+    unless method == :to_hash || method == :to_str
+      return self.map{|x| x.public_send(method)}
     end
   end
 end

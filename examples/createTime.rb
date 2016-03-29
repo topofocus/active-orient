@@ -3,7 +3,7 @@ require 'time'
 
 ActiveOrient::OrientDB.default_server = {user: 'root', password: 'tretretre'}
 r = ActiveOrient::OrientDB.new database: 'NewTest'
-# r.delete_database database: "NewTest"
+r.delete_database database: "NewTest"
 
 def create1month
   r = ActiveOrient::OrientDB.new database: 'NewTest'
@@ -27,9 +27,9 @@ def create1month
   end
 end
 
-# r = ActiveOrient::OrientDB.new database: 'NewTest'
-#
-# create1month
+ r = ActiveOrient::OrientDB.new database: 'NewTest'
+
+create1month
 
 mon = r.open_class "Month"
 print "1 #{mon.all} \n \n"

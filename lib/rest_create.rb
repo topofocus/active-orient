@@ -201,7 +201,7 @@ module RestCreate
   def update_or_create_records o_class, set: {}, where: {}, **args, &b
     logger.progname = 'RestCreate#UpdateOrCreateRecords'
     if where.blank?
-      r = create_record(o_class, attributes: set)
+      [create_record(o_class, attributes: set)]
     else
   	  set.extract!(where.keys) # removes any keys from where in set
   	  possible_records = get_records from: classname(o_class), where: where, **args
@@ -211,15 +211,16 @@ module RestCreate
           # if the block returns a Hash, it is merged into the insert_query.
     	    where.merge! more_where if more_where.is_a?(Hash)
     	  end
-    	  r = create_record(o_class, attributes: set.merge(where))
+    	  [create_record(o_class, attributes: set.merge(where))]
     	else
-    	  r = possible_records.map{|doc| doc.update(set: set)}
+    	  possible_records.map{|doc| doc.update(set: set)}
     	end
     end
   end
   alias create_or_update_record update_or_create_records
   alias create_or_update_document update_or_create_records
   alias update_or_create_documents update_or_create_records
+  alias update_or_create update_or_create_records
 
   ############### PROPERTIES #############
 
