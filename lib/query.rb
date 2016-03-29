@@ -23,8 +23,8 @@ module ActiveOrient
     def get_records o_class , **args
       query = OrientSupport::OrientQuery.new classname(o_class), args
 	    self.queries << query.compose
-      count= 0
-      orientdb.get_records(o_class , query: query.compose).each{|c| records << c; count+=1 }
+      count = 0
+      orientdb.get_records(o_class, query: query.compose).each{|c| records << c; count += 1}
       count
     end
     alias get_documents get_records

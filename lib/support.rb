@@ -145,8 +145,6 @@ module OrientSupport
   	  end
     end
 
-
-
     def where_s
   	  compose_where @where
     end

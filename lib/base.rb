@@ -93,7 +93,7 @@ The model instance fields are then set automatically from the opts Hash.
 	            operator, *base_edge = edge.split('_')
 	            base_edge = base_edge.join('_')
 	            unless self.class.instance_methods.detect{|x| x == base_edge}
-                ## define two methods: out_{Edge}/{in_Edge} -> edge.
+                ## define two methods: out_{Edge}/in_{Edge} -> edge.
                 self.class.define_property base_edge, nil
                 self.class.send :alias_method, base_edge.underscore, edge
               end

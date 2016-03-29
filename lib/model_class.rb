@@ -267,4 +267,21 @@ module ModelClass
   end
   alias update_documents update_records
 
+  ##################### EXPERIMENT #################à
+
+  def add_edge_link name:, direction: "out", edge:
+    logger.progname = 'RestEdge#AddEdgeLink'
+    if direction == "out"
+      dir = "in"
+    elsif direction == "in"
+      dir = "out"
+    else
+      logger.error{"Direction should be in or out."}
+      return 0
+    end
+    define_method(name.to_sym) do
+      return self["#{direction}_#{edge}"].map{|x| x["in"]}
+    end
+  end
+
 end

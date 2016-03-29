@@ -22,7 +22,7 @@ module RestCreate
       end
     rescue RestClient::InternalServerError => e
       @database = old_d
-      logger.error{ "Database #{name} was NOT created. Working Database is still #{@database} "}
+      logger.error{"Database #{name} was NOT created. Working Database is still #{@database}"}
     end
     @database
   end
@@ -301,7 +301,7 @@ module RestCreate
 # Used to create an index
 
   def create_index o_class, name:, on: :automatic, type: :unique
-    logger.progname = 'OrientDB#CreateIndex'
+    logger.progname = 'RestCreate#CreateIndex'
     begin
       c = classname o_class
       execute transaction: false do

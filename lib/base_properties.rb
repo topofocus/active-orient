@@ -97,18 +97,18 @@ module ActiveOrient
           when body[:get].respond_to?(:call)
             body[:get]
           when body[:get]
-            proc { self[name].send "to_#{body[:get]}" }
+            proc{self[name].send "to_#{body[:get]}"}
           else
-            proc { self[name] }
+            proc{self[name]}
           end
           define_method name, &getter if getter
           setter = case # Define setter
           when body[:set].respond_to?(:call)
             body[:set]
           when body[:set]
-            proc { |value| self[name] = value.send "to_#{body[:set]}" }
+            proc{|value| self[name] = value.send "to_#{body[:set]}"}
           else
-            proc { |value| self[name] = value } # p name, value;
+            proc{|value| self[name] = value} # p name, value;
           end
           define_method "#{name}=", &setter if setter
 
