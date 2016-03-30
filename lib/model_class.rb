@@ -272,8 +272,8 @@ module ModelClass
   ##################### EXPERIMENT #################
 
 =begin
-  Suppose that you created a graph where a vertex month is connected with
-  the vertexes days by the edge TIMEOF.
+  Suppose that you created a graph where vertexes month is connected with
+  the vertexes day by the edge TIMEOF.
   Suppose we want to find all the days in the first month and in the third month..
 
   Usually we can do in the following way.
