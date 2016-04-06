@@ -256,7 +256,7 @@ If sub-queries are necessary, they can be introduced as OrientSupport::OrientQue
   q.let << "$city = adress.city"
   q.where = "$city.country.name = 'Italy' OR $city.country.name = 'France'"
   q.to_s
-  => select from ModelQuery let $city = adress.city where $city.country.name = 'Italy' OR $city.country.name = 'France'
+  # => select from ModelQuery let $city = adress.city where $city.country.name = 'Italy' OR $city.country.name = 'France'
 ```
 
 or
