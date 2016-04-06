@@ -59,7 +59,7 @@ module OrientSupport
 
     def where *item
       where_string = item.map{|m| where_string = compose_where m}.join(' and ')
-      query = "select from ( select expand( #{@name} ) from #{@orient.classname})  #{where_string} "
+      query = "SELECT FROM ( SELECT EXPAND( #{@name} ) FROM #{@orient.classname})  #{where_string} "
       puts query
       @orient.query query
     end

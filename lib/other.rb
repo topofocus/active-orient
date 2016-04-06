@@ -97,7 +97,7 @@ class String
     if self[0] == '$'
       self[1..-1]
     else
-      self.camelize
+      self
     end
   end
 

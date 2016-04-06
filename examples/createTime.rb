@@ -8,18 +8,29 @@ r.delete_database database: "NewTest"
 def create1month
   r = ActiveOrient::OrientDB.new database: 'NewTest'
 
-  hour_class   = r.create_vertex_class "Hour"
-  day_class    = r.create_vertex_class "Day"
-  month_class  = r.create_vertex_class "Month"
+  hour_class   = r.create_vertex_class "Hour", properties: {value_string: {type: :string}, value: {type: :integer}}
+  hour_class.alter_property property: "value", attribute: "MIN", alteration: 0
+  hour_class.alter_property property: "value", attribute: "MAX", alteration: 23
+
+
+  day_class    = r.create_vertex_class "Day", properties: {value_string: {type: :string}, value: {type: :integer}}
+  day_class.alter_property property: "value", attribute: "MIN", alteration: 1
+  day_class.alter_property property: "value", attribute: "MAX", alteration: 31
+
+  month_class  = r.create_vertex_class "Month", properties: {value_string: {type: :string}, value: {type: :integer}}
+  month_class.alter_property property: "value", attribute: "MIN", alteration: 1
+  month_class.alter_property property: "value", attribute: "MAX", alteration: 12
+
+
   timeof_class = r.create_edge_class "TIMEOF"
 
   timestamp = DateTime.strptime("1456704000",'%s')
-  monthVertex = month_class.create(value: "March")
+  monthVertex = month_class.create(value_string: "March", value: 3)
   for day in 1..31
-    dayVertex = day_class.create(value: "March #{timestamp.day}")
+    dayVertex = day_class.create(value_string: "March #{timestamp.day}", value: day)
     for hour in 0..23
       print "#{timestamp.year} #{timestamp.month} #{timestamp.day} #{timestamp.hour} \n"
-      hourVertex = hour_class.create(value: "March #{timestamp.day} #{timestamp.hour}:00")
+      hourVertex = hour_class.create(value_string: "March #{timestamp.day} #{timestamp.hour}:00", value: hour)
       timeof_class.create_edge from: dayVertex, to: hourVertex
       timestamp += Rational(1,24)
     end
@@ -54,4 +65,4 @@ print "7 #{test2} \n \n"
 mon.add_edge_link name: "days", direction: "out", edge: "TIMEOF"
 print "8 #{firstmonth.days.map{|x| x.value}} \n \n"
 
-print "9 #{firstmonth.days.value} \n \n"
+print "9 #{firstmonth.days.value_string} \n \n"

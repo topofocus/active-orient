@@ -15,7 +15,7 @@ module RestRead
 =end
 
   def get_database_classes include_system_classes: false, requery: false
-    requery = true if @classes.empty?
+    requery = true if @classes.nil? || @classes.empty?
     if requery
   	  get_class_hierarchy requery: true
   	  system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "_studio"]
@@ -39,7 +39,7 @@ module RestRead
 
   def get_classes *attributes
     begin
-    	response = @res[database_uri].get
+    	response = @res["/database/#{@database}"].get
     	if response.code == 200
     	  classes = JSON.parse(response.body)['classes']
     	  unless attributes.empty?
@@ -87,28 +87,20 @@ module RestRead
 =end
 
   def classname name_or_class
-    name= if name_or_class.is_a? Class
+    name = if name_or_class.is_a? Class
       name_or_class.to_s.split('::').last
     elsif name_or_class.is_a? ActiveOrient::Model
       name_or_class.classname
     else
-      name_or_class.to_s.camelize
+      name_or_class.to_s
     end
-    if get_database_classes.include?(name)
-      name
-    elsif get_database_classes.include?(name.underscore)
-      name.underscore
-    else
-      logger.progname = 'RestRead#ClassName'
-      logger.info{"Classname #{name} not present in active Database"}
-      nil
-    end
+    return name
   end
 
 # Return a JSON of the property of a class
 
   def get_class_properties o_class
-    JSON.parse(@res[class_uri{classname(o_class)}].get)
+    JSON.parse(@res["/class/#{@database}/#{classname(o_class)}"].get)
   end
 
 # Print the property of a class
@@ -137,7 +129,7 @@ module RestRead
     begin
       logger.progname = 'RestRead#GetRecord'
       rid = rid[1..rid.length] if rid[0]=='#'
-      response = @res[document_uri{rid}].get
+      response = @res["/document/#{@database}/#{rid}"].get
       raw_data = JSON.parse(response.body) #.merge( "#no_links" => "#no_links" )
       ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
     rescue RestClient::InternalServerError => e
@@ -151,6 +143,9 @@ module RestRead
     rescue RestClient::ResourceNotFound => e
       logger.error "Not data found"
       logger.error e.message
+    rescue Excpetion => e
+      logger.error "Something went wrong"
+      logger.error "RID: #{rid} - #{e.message}"
     end
   end
   alias get_document get_record
@@ -166,8 +161,8 @@ module RestRead
     query = OrientSupport::OrientQuery.new(args) if query.nil?
     begin
       logger.progname = 'RestRead#GetRecords'
-  	  url = query_sql_uri + query.compose(destination: :rest) + "/#{query.get_limit}"
 
+  	  url = "/query/#{@database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
   	  response = @res[URI.encode(url)].get
   	  r = JSON.parse(response.body)['result'].map do |record|
       	if raw

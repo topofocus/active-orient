@@ -67,7 +67,7 @@ A Sample:
       @res = get_resource
       @database = database || default_server[:database]
       connect() if connect
-      @classes = []
+      @classes = get_database_classes
       ActiveOrient::Model.orientdb = self
     end
 
@@ -85,7 +85,7 @@ A Sample:
       first_tentative = true
       begin
         logger.progname = 'OrientDB#Connect'
-        r= @res["/connect/#{@database}"].get
+        r = @res["/connect/#{@database}"].get
         if r.code == 204
   	      logger.info{"Connected to database #{@database}"}
   	      true

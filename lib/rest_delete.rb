@@ -13,7 +13,7 @@ module RestDelete
     old_ds = @database
     change_database database
     begin
-  	  response = @res[database_uri].delete
+  	  response = @res["/database/#{@database}"].delete
   	  if database == old_ds
   	    change_database ""
   	    logger.info{"Working database deleted"}
@@ -38,21 +38,28 @@ module RestDelete
   def delete_class o_class
     cl = classname(o_class)
     logger.progname = 'RestDelete#DeleteClass'
-    if get_database_classes.include? cl
+    if @classes.include? cl
       begin
-  	    response = @res[class_uri{cl}].delete
-  	    logger.info{"Class #{cl} deleted."} if response.code == 204
+  	    response = @res["/class/#{@database}/#{cl}"].delete
+        if response.code == 204
+  	      logger.info{"Class #{cl} deleted."}
+          @classes.delete(cl)
+        end
       rescue RestClient::InternalServerError => e
   	    if get_database_classes(requery: true).include?(cl)
   	      logger.error{"Class #{cl} still present."}
   	      logger.error{e.inspect}
   	      false
   	    else
+          logger.error{e.inspect}
   	      true
   	    end
+      rescue Exception => e
+        logger.error{e.message}
+        logger.error{e.inspect}
       end
     else
-      cl.nil? ? logger.info{"Class #{o_class} not present."} : logger.info{"Class #{cl} not present."} 
+      cl.nil? ? logger.info{"Class #{o_class} not present."} : logger.info{"Class #{cl} not present."}
     end
   end
 
@@ -123,10 +130,10 @@ module RestDelete
   def delete_property o_class, field
     logger.progname = 'RestDelete#DeleteProperty'
     begin
-  	  response = @res[property_uri(classname(o_class)){field}].delete
+  	  response =   @res["/property/#{@database}/#{classname(o_class)}/#{field}"].delete
   	  true if response.code == 204
     rescue RestClient::InternalServerError => e
-  	  logger.error{ "Property #{field} in  class #{classname(o_class)} NOT deleted" }
+  	  logger.error{"Property #{field} in  class #{classname(o_class)} NOT deleted" }
   	    false
     end
   end

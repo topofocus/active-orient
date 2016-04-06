@@ -6,6 +6,8 @@ ActiveOrient::OrientDB.default_server = { user: 'root', password: 'tretretre' }
 
 # Select database
 r = ActiveOrient::OrientDB.new database: 'NewTest'
+r.delete_database database: 'NewTest'
+r = ActiveOrient::OrientDB.new database: 'NewTest'
 
 print "\n"+"*"*20+"DATABASE"+"*"*20+"\n"
 
@@ -29,7 +31,6 @@ print "#{r.class_hierarchy base_class: 'E'} \n" # <--- See hierarchy under E (Ed
 print "#{r.database_classes} \n" # See classes without including System classes
 print "#{r.database_classes include_system_classes: true} \n " # See classes including System classes
 print "#{r.inspect_classes} \n" # Same as r.database_classes
-
 
 
 doc1 = r.create_class "DocumentTest" # Create Document/Vertex/Edge class

@@ -11,19 +11,22 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
 
     def initialize db, rebuild: true
       if rebuild
-      db.delete_class :book
-      db.delete_class :keyword
-      db.delete_class :has_content
-      db.create_vertex_class :book
-      db.create_vertex_class :keyword
-      db.create_edge_class :has_content
-      ActiveOrient::Model::Keyword.create_property( :item , type: :string, index: :unique )
-      ActiveOrient::Model::Book.create_property( :title, type: :string, index: :unique )
+        print("\n === REBUILD === \n")
+        db.delete_class :Book
+        db.delete_class :Keyword
+        db.delete_class :HAS_CONTENT
+        db.create_vertex_class :Book
+        db.create_vertex_class :Keyword
+        db.create_edge_class :HAS_CONTENT
+        print("\n === PROPERTY === \n")
+        ActiveOrient::Model::Keyword.create_property(:item, type: :string, index: :unique)
+        ActiveOrient::Model::Book.create_property(:title, type: :string, index: :unique)
       end
     end
 
 
       def read_samples
+        print("\n === READ SAMPLES === \n")
 	fill_database = ->(sentence, this_book ) do
 	  sentence.split(' ').each do |x|
 	    this_word = Keyword.update_or_create where: { item: x }
@@ -40,7 +43,8 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
       end
 
     def display_books_with *desired_words
-      query = OrientSupport::OrientQuery.new  from: Keyword, projection: "expand(in('HasContent'))"
+      print("\n === display_books_with #{desired_words.map{|x| x}} === \n")
+      query = OrientSupport::OrientQuery.new from: Keyword, projection: "expand(in('HAS_CONTENT'))"
       q =  OrientSupport::OrientQuery.new projection: 'expand( $z )'
 
       intersects = Array.new
@@ -67,11 +71,11 @@ require '../config/boot'
     ActiveOrient::OrientDB.default_server = { user: 'root', password: 'tretretre' }
     ActiveOrient::OrientDB.logger.level = Logger::WARN
     r = ActiveOrient::OrientDB.new database: 'BookTest'
-    b= BooksExample.new r, rebuild:  true
+    b = BooksExample.new r, rebuild:  true
 
-    Book = r.open_class :book
-    Keyword = r.open_class :keyword
-    HC = r.open_class :has_content
+    Book = r.open_class "Book"
+    Keyword = r.open_class "Keyword"
+    HC = r.open_class "HAS_CONTENT"
 
     b.read_samples if Keyword.count.zero?
     b.display_books_with 'Land', 'Quartal'

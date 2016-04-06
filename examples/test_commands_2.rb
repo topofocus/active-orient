@@ -22,7 +22,7 @@ ap par, :indent => -2
 
 num = r.count_documents from: "DocumentTest", where: {name: "Doc1"}
 num2 = doc1.count where: {name: "Doc1"}
-print "1 COUNT: #{num2} \n\n"
+print "\n1 COUNT: #{num2} \n\n"
 
 r.create_or_update_document doc1, set: {familyname: "John"}, where: {name: "Doc1"}
 r.update_or_create_documents doc1, where: {name: "Doc1"}, set: {age: 91}

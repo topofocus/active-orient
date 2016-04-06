@@ -119,11 +119,11 @@ module ModelRecord
       remove_execute_array = -> (it) do
         case it
         when ActiveOrient::Model
-          execute_array << {type: "cmd", language: "sql", command: "update ##{rid} remove #{array} = ##{it.rid}"}
+          execute_array << {type: "cmd", language: "sql", command: "UPDATE ##{rid} REMOVE #{array} = ##{it.rid}"}
         when String
-          execute_array << {type: "cmd", language: "sql", command: "update ##{rid} remove #{array} = '#{it}'"}
+          execute_array << {type: "cmd", language: "sql", command: "UPDATE ##{rid} REMOVE #{array} = '#{it}'"}
         when Numeric
-          execute_array << {type: "cmd", language: "sql", command: "update ##{rid} remove #{array} = #{it}"}
+          execute_array << {type: "cmd", language: "sql", command: "UPDATE ##{rid} REMOVE #{array} = #{it}"}
         else
           logger.error{"Only Basic Formats supported. Cannot Serialize #{it.class} this way"}
           logger.error{"Try to load the array from the DB, modify it and update the hole record"}

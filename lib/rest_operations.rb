@@ -5,7 +5,8 @@ module RestOperations
   def call_function *args
   #     puts "uri:#{function_uri { args.join('/') } }"
     begin
-      @res[function_uri{args.join('/')}].post ''
+      term = args.join('/')
+      @res["/function/#{@database}/#{term}"].post ''
     rescue RestClient::InternalServerError => e
   	  puts  JSON.parse(e.http_body)
     end
@@ -41,11 +42,13 @@ module RestOperations
 
   def execute classname = 'Myquery', transaction: true # Set up for classes
     batch = {transaction: transaction, operations: yield}
+    #print "\n\n ----> #{batch.to_json} <----\n\n"
     unless batch[:operations].blank?
       begin
-        response = @res[batch_uri].post batch.to_json
+        response = @res["/batch/#{@database}"].post batch.to_json
       rescue RestClient::InternalServerError => e
-        raise
+        logger.progname = 'RestOperations#Execute'
+        logger.error{e.inspect}
       end
       if response.code == 200
         if response.body['result'].present?

@@ -13,7 +13,7 @@ module ModelClass
   def orientdb_class name:
     begin
       klass = Class.new(self)
-      name = name.to_s.camelize
+      name = name.to_s
       if self.send :const_defined?, name
         retrieved_class = self.send :const_get, name
       else
@@ -24,9 +24,7 @@ module ModelClass
     rescue NameError => e
       logger.progname = "ModelClass#OrientDBClass"
       logger.error "ActiveOrient::Model::Class #{name} cannot be initialized."
-      logger.error "class: #{klass.inspect}"
-      logger.error "name: #{name.inspect}"
-      logger.error "#{e.inspect}"
+      logger.error "The name #{name} should be capitalized, for example #{name.capitalize}."
     end
   end
 
@@ -311,6 +309,14 @@ module ModelClass
     define_method(name.to_sym) do
       return self["#{direction}_#{edge}"].map{|x| x["in"]}
     end
+  end
+
+=begin
+ See http://orientdb.com/docs/2.1/SQL-Alter-Property.html
+=end
+
+  def alter_property property:, attribute: "DEFAULT", alteration:
+    orientdb.alter_property self, property: property, attribute: attribute, alteration: alteration
   end
 
 end

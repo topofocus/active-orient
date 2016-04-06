@@ -13,7 +13,7 @@ module RestCreate
   	@classes = []
   	@database = database
   	begin
-      response = @res[database_uri{type}].post ""
+      response = @res["database/#{@database}/#{type}"].post ""
       if response.code == 200
         logger.info{"Database #{@database} successfully created and stored as working database"}
       else
@@ -38,73 +38,83 @@ module RestCreate
    {SuperClass => [class, class, ...], SuperClass => [] , ... }
 =end
 
-  def create_general_class classes
-    begin
-      get_database_classes requery: true
-      consts = Array.new
-      execute transaction: false do
-        class_cmd = -> (s,n) do
-      	  n = n.to_s.camelize
-      	  consts << ActiveOrient::Model.orientdb_class(name: n)
-          classes_available = get_database_classes.map{|x| x.downcase}
-      	  unless classes_available.include?(n.downcase)
-      	    {type: "cmd", language: 'sql', command: "create class #{n} extends #{s}"}
-          end
-    	  end  ## class_cmd
-
-    	  if classes.is_a?(Array)
-    	    classes.map do |n|
-    	      n = n.to_s.camelize
-    	      consts << ActiveOrient::Model.orientdb_class(name: n)
-            classes_available = get_database_classes.map{|x| x.downcase}
-        	  unless classes_available.include?(n.downcase)
-    		      {type: "cmd", language: 'sql', command: "create class #{n}"}
-    	      end
-    	    end
-    	  elsif classes.is_a?(Hash)
-    	    classes.keys.map do |superclass|
-    	      items = Array.new
-    	      superClass = superclass.to_s.camelize
-            unless get_database_classes.flatten.include?(superClass)
-    	        items << {type: "cmd", language: 'sql', command:  "create class #{superClass} abstract"}
-            end
-    	      items << if classes[superclass].is_a?(String) || classes[superclass].is_a?(Symbol)
-    		      class_cmd[superClass, classes[superclass]]
-    	      elsif classes[superclass].is_a?(Array)
-    		      classes[superclass].map{|n| class_cmd[superClass, n]}
-    	      end
-            items  # returnvalue
-    	    end.flatten
-    	  end.compact # erase nil-entries, in case the class is already allocated
-      end
-    # refresh cached class-informations
-      get_database_classes requery: true
-    # returns an array of allocated Constants/Classes
-      consts
-    rescue RestClient::InternalServerError => e
-      logger.progname = 'RestCreate#CreateGeneralClass'
-      response = JSON.parse(e.response)['errors'].pop
-      logger.error{"#{response['content'].split(':').last }"}
-      nil
-    end
+def create_general_class classes, behaviour: "NORMALCLASS", extended_class: nil, properties: nil
+  if @classes.empty?
+    @classes = get_database_classes requery: true
   end
-  alias create_classes create_general_class
+
+  begin
+    consts = Array.new
+
+    if classes.is_a? Array
+      classes.each do |singleclass|
+        consts |= create_general_class singleclass, behaviour: behaviour, extended_class: extended_class, properties: properties
+      end
+
+    elsif classes.is_a? Hash
+      classes.keys.each do |superclass|
+        create_general_class superclass, behaviour: "SUPERCLASS", extended_class: nil, properties: nil
+        consts |= create_general_class classes[superclass], behaviour: "EXTENDEDCLASS", extended_class: superclass, properties: properties
+      end
+
+    else
+      name_class = classes.to_s
+      unless @classes.downcase.include?(name_class.downcase)
+
+        if behaviour == "NORMALCLASS"
+          command = "CREATE CLASS #{name_class}"
+        elsif behaviour == "SUPERCLASS"
+          command = "CREATE CLASS #{name_class} ABSTRACT"
+        elsif behaviour == "EXTENDEDCLASS"
+          name_superclass = extended_class.to_s
+          command = "CREATE CLASS #{name_class} EXTENDS #{name_superclass}"
+        end
+
+        #print "\n #{command} \n"
+
+        execute transaction: false do
+          [{ type:    "cmd",
+            language: "sql",
+            command:  command}]
+        end
+
+        @classes << name_class
+
+        # Add properties
+        unless properties.nil?
+          create_properties name_class, properties
+        end
+      end
+
+      consts << ActiveOrient::Model.orientdb_class(name: name_class)
+    end
+
+  return consts
+
+  rescue RestClient::InternalServerError => e
+    logger.progname = 'RestCreate#CreateGeneralClass'
+    response = JSON.parse(e.response)['errors'].pop
+    logger.error{"#{response['content'].split(':').last }"}
+    nil
+  end
+end
+alias create_classes create_general_class
 
 # Creates a class and returns the a ActiveOrient::Model:{Newclass}-Class- (Constant) which is designed to take any documents stored in this class
 
-  def create_record_class newclass
-    create_general_class([newclass]).first
+  def create_record_class newclass, properties: nil
+    create_general_class([newclass], properties: properties).first
   end
   alias open_class create_record_class
   alias create_class create_record_class
   alias create_document_class create_record_class
 
-  def create_vertex_class name, superclass: 'V'
-    create_general_class({superclass => name}).first
+  def create_vertex_class name, superclass: 'V', properties: nil
+    create_general_class({superclass => name}, properties: properties).first
   end
 
-  def create_edge_class name, superclass: 'E'
-    create_general_class({superclass => name}).first
+  def create_edge_class name, superclass: 'E', properties: nil
+    create_general_class({superclass => name}, properties: properties).first
   end
 
   ############## OBJECT #############
@@ -131,10 +141,10 @@ module RestCreate
     	end
     	#logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
     	response = execute(o_class, transaction: false) do
-    	  attr_string =  attributes.blank? ? "" : "set #{generate_sql_list attributes.to_orient}"
+    	  attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
     	  [{ type: "cmd",
           language: 'sql',
-          command: "create edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient} #{attr_string}"}]
+          command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"}]
     	end
     	if response.is_a?(Array) && response.size == 1
     	  response.pop # RETURN_VALUE
@@ -175,7 +185,7 @@ module RestCreate
     post_argument = {'@class' => classname(o_class)}.merge(attributes).to_orient
 
     begin
-      response = @res[document_uri].post post_argument.to_json
+      response = @res["/document/#{@database}"].post post_argument.to_json
       data = JSON.parse(response.body)
       ActiveOrient::Model.orientdb_class(name: data['@class']).new data
     rescue RestClient::InternalServerError => e
@@ -247,12 +257,12 @@ module RestCreate
 =end
 
   def create_properties o_class, all_properties, &b
-    logger.progname = 'RestCreate#CreatePropertes'
+    logger.progname = 'RestCreate#CreateProperties'
     all_properties_in_a_hash = HashWithIndifferentAccess.new
     all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
     begin
   	  count = if all_properties_in_a_hash.is_a?(Hash)
-    	  response = @res[property_uri(classname(o_class))].post all_properties_in_a_hash.to_json
+    	  response = @res["/property/#{@database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
     	  if response.code == 201
     	    response.body.to_i
     	  else
@@ -263,7 +273,7 @@ module RestCreate
   	    response = JSON.parse(e.response)['errors'].pop
   	    error_message = response['content'].split(':').last
         logger.error{"Properties in #{classname(o_class)} were NOT created"}
-  	    logger.error{"Error-code #{response['code']} --> #{response['content'].split(':').last }"}
+  	    logger.error{"#{response['content'].split(':').last}"}
   	    nil
       end
         ### index
@@ -315,9 +325,9 @@ module RestCreate
       c = classname o_class
       execute transaction: false do
     	  command = if on == :automatic
-    		  "create index #{c}.#{name} #{type.to_s.upcase}"
+    		  "CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
     		elsif on.is_a? Array
-    		  "create index #{name} on #{classname(o_class)}(#{on.join(', ')}) #{type.to_s.upcase}"
+    		  "CREATE INDEX #{name} ON #{classname(o_class)}(#{on.join(', ')}) #{type.to_s.upcase}"
     		else
     		  nil
     		end
