@@ -9,7 +9,7 @@ describe 'Properties and Application of Hashes' do
 
     @r = ActiveOrient::OrientDB.new database: 'HashTest'
     @r.delete_class 'model_test'
-    TestModel = @r.open_class "model_test" 
+    TestModel = @r.open_class "model_test"
     @record = TestModel.create
   end
 
@@ -19,7 +19,7 @@ describe 'Properties and Application of Hashes' do
   #
   #    it { expect( basic ).to be_empty }
   #
-  #  
+  #
   #    it "add and change an element" do
   #      expect{ basic[ :test ] = 56 }.to change{ basic.size }
   #      expect{ basic[ :test ] = 'newtest' }.not_to change{ basic.size }
@@ -47,13 +47,13 @@ describe 'Properties and Application of Hashes' do
       expect( @record.ll[:b] ).to eq 5
       expect( @record.ll.keys ).to eq [ "a", "b", 8, "zu" ]
     end
-   it "modify the Object" do
-#      expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 1
-      expect do 
-      expect{ @record.ll[:z] = 78  }.to change { @record.ll.size }.by 1
+    it "modify the Object" do
+      #      expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 1
+      expect do
+        expect{ @record.ll[:z] = 78  }.to change { @record.ll.size }.by 1
 
-      expect{ @record.ll.delete(8) }.to change { @record.ll.size }.by -1
-      expect{ @record.ll.delete_if{|x,y| y==5} }.to change { @record.ll.size }.by -1
+        expect{ @record.ll.delete(8) }.to change { @record.ll.size }.by -1
+        expect{ @record.ll.delete_if{|x,y| y==5} }.to change { @record.ll.size }.by -1
       end.not_to change{ @record.version }
     end
     it "update the object" , focus: true do
@@ -64,18 +64,18 @@ describe 'Properties and Application of Hashes' do
 
   context "a Hash with links " do
 
-   before(:all) do
+    before(:all) do
       LinkClass = @r.open_class 'hash_links'
       new_hash =  HashWithIndifferentAccess.new
-      ( 1 .. 99 ).each do | i | 
-	new_hash[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" )
+      ( 1 .. 99 ).each do | i |
+        new_hash[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" )
       end
-     @record.update set: { ll: new_hash }
-   end
+      @record.update set: { ll: new_hash }
+    end
 
-   it { expect( LinkClass.count ).to eq 99 }
-   it { expect( @record.ll.size ).to eq 99 }
-  it{  (1..99).each{|x| expect(@record.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
+    it { expect( LinkClass.count ).to eq 99 }
+    it { expect( @record.ll.size ).to eq 99 }
+    it{  (1..99).each{|x| expect(@record.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
 
 
 

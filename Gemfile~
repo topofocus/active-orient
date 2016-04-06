@@ -5,7 +5,6 @@ gem 'activemodel',   "~>4.2"
 gem 'rest-client' # , :git => 'git://github.com/rest-client/rest-client.git'
 gem 'nokogiri', '~> 1.6.6' #, :git => 'git://github.com/sparklemotion/nokogiri.git'
 group :development, :test do
-	gem "awesome_print"
 	gem "rspec"
 	gem 'rspec-its'
 	gem 'rspec-collection_matchers'
