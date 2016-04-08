@@ -58,7 +58,7 @@ def create_general_class classes, behaviour: "NORMALCLASS", extended_class: nil,
       end
 
     else
-      name_class = classes.to_s
+      name_class = classes.to_s.capitalize_first_letter
       unless @classes.downcase.include?(name_class.downcase)
 
         if behaviour == "NORMALCLASS"
@@ -196,6 +196,61 @@ alias create_classes create_general_class
     end
   end
   alias create_document create_record
+
+=begin
+  Used to create multiple records at once
+  For example:
+    $r.create_multiple_records "Month", ["date", "value"], [["June", 6], ["July", 7], ["August", 8]]
+  It is equivalent to this three functios:
+    $r.create_record "Month", attributes: {date: "June", value: 6}
+    $r.create_record "Month", attributes: {date: "July", value: 7}
+    $r.create_record "Month", attributes: {date: "August", value: 8}
+
+  The function $r.create_multiple_records "Month", ["date", "value"], [["June", 6], ["July", 7], ["August", 8]] will return an array with three element of class "Active::Model::Month".
+=end
+
+  def create_multiple_records o_class, values, new_records
+    command = "INSERT INTO #{o_class} ("
+    values.each do |val|
+      command += "#{val},"
+    end
+    command[-1] = ")"
+    command += " VALUES "
+    new_records.each do |new_record|
+      command += "("
+      new_record.each do |record_value|
+        case record_value
+        when String
+          command += "\'#{record_value}\',"
+        when Integer
+          command += "#{record_value},"
+        when ActiveOrient::Model
+          command += "##{record_value.rid},"
+        when Array
+          if record_value[0].is_a? ActiveOrient::Model
+            command += "["
+            record_value.rid.each do |rid|
+              command += "##{rid},"
+            end
+            command[-1] = "]"
+            command += ","
+          else
+            command += "null,"
+          end
+        else
+          command += "null,"
+        end
+      end
+      command[-1] = ")"
+      command += ","
+    end
+    command[-1] = ""
+    execute classname(o_class), transaction: false do # To execute commands
+      [{ type: "cmd",
+        language: 'sql',
+        command: command}]
+    end
+  end
 
 =begin
   Creating a new Database-Entry (where is omitted)

@@ -55,7 +55,7 @@ module RestChange
     logger.progname = 'RestChange#AlterProperty'
     begin
       attribute.to_s! unless attribute.is_a? String
-      attribute.upcase!
+      attribute.capitalize_first_letter
       case attribute
       when "LINKEDCLASS", "LINKEDTYPE", "NAME", "REGEX", "TYPE", "REGEX", "COLLATE", "CUSTOM"
         unless alteration.is_a? String
@@ -68,7 +68,7 @@ module RestChange
           return 0
         end
       when "MANDATORY", "NOTNULL", "READONLY"
-        unless alteration.is_a? Boolean
+        unless alteration.is_a? TrueClass or alteration.is_a? FalseClass
           logger.error{"#{alteration} should be an Integer."}
           return 0
         end

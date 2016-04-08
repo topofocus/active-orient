@@ -3,7 +3,7 @@ module RestPrivate
 
 	def translate_property_hash field, type: nil, linked_class: nil, **args
 		type =  type.presence || args[:propertyType].presence || args[:property_type]
-		linked_class = linked_class.presence || args[:linkedClass]
+		linked_class = linked_class.presence || args[:linkedClass] || args[:other_class]
 		if type.present?
 		  if linked_class.nil?
 		    {field => {propertyType: type.to_s.upcase}}

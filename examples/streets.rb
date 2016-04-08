@@ -95,15 +95,15 @@ class StreetExample
     State.all.each do |state|
       streets= Street.all.map do |street |
         if street.connects.in.detect{|x| x.state == state }
-          street.name + " verbindet " + street.connects.in.map( &:name ).join('; ')
+          street.name + " connects " + street.connects.in.map( &:name ).join('; ')
         end
       end.compact
-      # unless streets.empty?
+      unless streets.empty?
         puts "..................................."
         puts state.name
         puts "..................................."
         puts streets.join("\n")
-      # end
+      end
     end
   end
 end

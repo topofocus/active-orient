@@ -13,7 +13,7 @@ module ModelClass
   def orientdb_class name:
     begin
       klass = Class.new(self)
-      name = name.to_s
+      name = name.to_s.capitalize_first_letter
       if self.send :const_defined?, name
         retrieved_class = self.send :const_get, name
       else
@@ -36,6 +36,13 @@ module ModelClass
     orientdb.create_record self, attributes: attributes
   end
   alias create_document create_record
+
+
+  def create_multiple_records values, new_records
+    create_multiple_records self, values, new_records
+  end
+
+# Used to create multiple records
 
 =begin
   Only if the Class inherents from »E« instantiate a new Edge between two Vertices
@@ -66,7 +73,7 @@ module ModelClass
   alias update_or_create update_or_create_records
 
   def create attributes = {}
-    self.update_or_create_records set: attributes
+    (self.update_or_create_records set: attributes).first
   end
 
 =begin
