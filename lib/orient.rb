@@ -18,6 +18,7 @@ module OrientSupport
     end
 
     def << arg
+      print "\n ---> #{@name}, #{arg} <--- \n"
       @orient.add_item_to_property(@name, arg) if @name.present?
       super
     end
@@ -54,7 +55,8 @@ module OrientSupport
     end
 
     def delete *item
-      @orient.remove_item_from_property( @name ){item} if @name.present?
+      print "TEST A \n"
+      @orient.remove_item_from_property(@name){item} if @name.present?
     end
 
     def where *item

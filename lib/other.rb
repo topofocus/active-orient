@@ -76,11 +76,15 @@ class Numeric
 end
 
 class String
+  def capitalize_first_letter
+    self.sub(/^(.)/) { $1.capitalize }
+  end
+
   def from_orient
 	  if rid?
 	    ActiveOrient::Model.autoload_object self
 	  else
-	    self
+	    self.capitalize_first_letter
 	  end
   end
   alias :reload! from_orient

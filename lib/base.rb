@@ -15,7 +15,6 @@ module  ActiveOrient
 
 # ActiveRecord::Base callback API mocks
     define_model_callbacks :initialize, :only => :after
-
     mattr_accessor :logger
 
 # Used to read the metadata

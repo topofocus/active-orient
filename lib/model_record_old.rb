@@ -1,4 +1,5 @@
 module ModelRecord
+
   ############### RECORD FUNCTIONS ###############
 
   ############# GET #############
@@ -11,13 +12,13 @@ module ModelRecord
     self
   end
 
-  # Returns just the name of the Class
+# Returns just the name of the Class
 
   def classname
     self.class.to_s.split(':')[-1]
   end
 
-  # Obtain the RID of the Record
+# Obtain the RID of the Record
 
   def rid
     begin
@@ -27,7 +28,7 @@ module ModelRecord
     end
   end
 
-  # Create a query
+# Create a query
 
   def query q
     a = ActiveOrient::Query.new
@@ -35,13 +36,13 @@ module ModelRecord
     a.execute_queries
   end
 
-  # Get the version of the object
+# Get the version of the object
 
   def version
     @metadata[:version]
   end
 
-  ########### UPDATE PROPERTY ############
+  ########### CREATE ############
 
 =begin
   Convient method for populating embedded- or linkset-properties
@@ -56,25 +57,11 @@ module ModelRecord
   to_do: use "<<" to add the item to the property
 =end
 
-  def method_missing *args
-    print "TEST, #{args} \n"
-    if args[1] == "<<" or args[1] == "|="
-      update_item_property "ADD", "#{args[0][0..-2]}", args[2]
-    elsif args[0][-1] == "="
-      update_item_property "SET", "#{args[0][0..-2]}", args[1]
-    elsif args[1] == ">>"
-      update_item_property "REMOVE", "#{args[0][0..-2]}", args[2]
-    end
-  end
-
-
-  def update_item_property method, array, item = nil, items = nil
+  def add_item_to_property array, item = nil
     begin
-      logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
+      logger.progname = 'ActiveOrient::Model#AddItemToProperty'
       execute_array = Array.new
-      print "#{self.attributes.class} \n"
       self.attributes[array] = Array.new unless attributes[array].present?
-
       add_2_execute_array = -> (it) do
         case it
         when ActiveOrient::Model
@@ -97,9 +84,8 @@ module ModelRecord
         end
       end
 
-      items = yield if block_given?
-
-      if !items.nil?
+      if block_given?
+        items = yield
         items.each{|x|
           add_2_execute_array[x];
           self.attributes[array] << x}
@@ -107,45 +93,120 @@ module ModelRecord
         add_2_execute_array[item]
         self.attributes[array] << item
       end
-
       orientdb.execute do
         execute_array
       end
+      reload!
+
     rescue RestClient::InternalServerError => e
       logger.error{"Duplicate found in #{array}"}
       logger.error{e.inspect}
     end
-  end
-
-  def add_item_to_property array, item = nil
-    items = block_given? ? yield : nil
-    update_item_property "ADD", array, item, items
   end
   alias add_items_to_property add_item_to_property
   ## historical aliases
   alias update_linkset  add_item_to_property
   alias update_embedded  add_item_to_property
 
-  def set_item_to_property array, item = nil
-    items = block_given? ? yield : nil
-    update_item_property "SET", array, item, items
-  end
 
-  def remove_item_to_property array, item = nil
-    items = block_given? ? yield : nil
-    update_item_property "REMOVE", array, item, items
+  def set_item_to_property array, item = nil
+    begin
+      logger.progname = 'ActiveOrient::Model#SetItemToProperty'
+      execute_array = Array.new
+      self.attributes[array] = Array.new unless attributes[array].present?
+      set_2_execute_array = -> (it) do
+        case it
+        when ActiveOrient::Model
+          updating = "##{it.rid}"
+        when String
+          updating = "'#{it}'"
+        when Numeric
+          updating = "#{it}"
+        when Array
+          updating = it.map{|x| "##{x.rid}"} if it[0].is_a? ActiveOrient::Model
+        end
+        unless updating.nil?
+          command = "UPDATE ##{rid} SET #{array} = #{updating}"
+          command.gsub!(/\"/,"") if updating.is_a? Array
+          execute_array << {type: "cmd", language: "sql", command: command}
+        else
+          logger.error{"Only Basic Formats supported. Cannot Serialize #{it.class} this way"}
+          logger.error{"Try to load the array from the DB, modify it and update the hole record"}
+        end
+      end
+
+      if block_given?
+        items = yield
+        items.each{|x|
+          set_2_execute_array[x];
+          self.attributes[array] << x}
+      elsif item.present?
+        set_2_execute_array[item]
+        self.attributes[array] << item
+      end
+      orientdb.execute do
+        execute_array
+      end
+      reload!
+
+    rescue RestClient::InternalServerError => e
+      logger.error{"Duplicate found in #{array}"}
+      logger.error{e.inspect}
+    end
   end
 
   ############# DELETE ###########
 
 #  Removes the Model-Instance from the database
 
-def delete
-  orientdb.delete_record rid
-  ActiveOrient::Base.remove_rid self if is_edge? # removes the obj from the rid_store
-end
+  def delete
+    orientdb.delete_record rid
+    ActiveOrient::Base.remove_rid self if is_edge? # removes the obj from the rid_store
+  end
 
-########### UPDATE ############
+# Remove item from property
+
+  def remove_item_from_property array, item = nil
+    begin
+      logger.progname = 'ActiveOrient::Model#RemoveItemFromProperty'
+      execute_array = Array.new
+      return unless attributes.has_key? array
+      remove_execute_array = -> (it) do
+        case it
+        when ActiveOrient::Model
+          execute_array << {type: "cmd", language: "sql", command: "UPDATE ##{rid} REMOVE #{array} = ##{it.rid}"}
+        when String
+          execute_array << {type: "cmd", language: "sql", command: "UPDATE ##{rid} REMOVE #{array} = '#{it}'"}
+        when Numeric
+          execute_array << {type: "cmd", language: "sql", command: "UPDATE ##{rid} REMOVE #{array} = #{it}"}
+        else
+          logger.error{"Only Basic Formats supported. Cannot Serialize #{it.class} this way"}
+          logger.error{"Try to load the array from the DB, modify it and update the hole record"}
+        end
+      end
+
+      if block_given?
+        items =  yield
+        items.each{|x|
+          remove_execute_array[x];
+          self.attributes[array].delete(x)}
+      elsif item.present?
+        remove_execute_array[item]
+        a = attributes
+        a.delete item
+        self.attributes[array].delete(item)
+      end
+      orientdb.execute do
+        execute_array
+      end
+      reload!
+    rescue RestClient::InternalServerError => e
+      logger.error{"Could not remove item in #{array}"}
+      logger.error{e.inspect}
+    end
+  end
+
+  ########### UPDATE ############
 
 =begin
   Convient update of the dataset by calling sql-patch

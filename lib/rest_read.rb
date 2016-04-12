@@ -92,7 +92,7 @@ module RestRead
     elsif name_or_class.is_a? ActiveOrient::Model
       name_or_class.classname
     else
-      name_or_class.to_s
+      name_or_class.to_s.capitalize_first_letter
     end
     return name
   end
@@ -143,7 +143,7 @@ module RestRead
     rescue RestClient::ResourceNotFound => e
       logger.error "Not data found"
       logger.error e.message
-    rescue Excpetion => e
+    rescue Exception => e
       logger.error "Something went wrong"
       logger.error "RID: #{rid} - #{e.message}"
     end

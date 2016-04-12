@@ -12,7 +12,6 @@ def create1month
   hour_class.alter_property property: "value", attribute: "MIN", alteration: 0
   hour_class.alter_property property: "value", attribute: "MAX", alteration: 23
 
-
   day_class    = r.create_vertex_class "Day", properties: {value_string: {type: :string}, value: {type: :integer}}
   day_class.alter_property property: "value", attribute: "MIN", alteration: 1
   day_class.alter_property property: "value", attribute: "MAX", alteration: 31
