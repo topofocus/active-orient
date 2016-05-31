@@ -72,8 +72,8 @@ describe OrientSupport::OrientQuery do
 
     end
     it "check structure" do
-      expect( @r.class_hierarchy( base_class: 'V').sort ).to eq [Book.new.classname, Word.new.classname]
-      expect( @r.class_hierarchy( base_class: 'E') ).to eq [HC.new.classname]
+      expect( @r.class_hierarchy( base_class: 'V').sort ).to eq [Book.classname, Word.classname]
+      expect( @r.class_hierarchy( base_class: 'E') ).to eq [HC.classname]
     end
 
     it "put test-content" do
@@ -95,7 +95,7 @@ describe OrientSupport::OrientQuery do
     end
     it "Query Initialisation" do
       # search all books with words "Quartal" or "Landereien"
-      query = OrientSupport::OrientQuery.new where:  "out('HasContent').item IN ['Quartal','Landereien']",
+      query = OrientSupport::OrientQuery.new where:  "out('Has_content').item IN ['Quartal','Landereien']",
       from: Book
       result= Book.query_database query
       expect( result).to be_a Array
@@ -107,7 +107,7 @@ describe OrientSupport::OrientQuery do
     end
     it "Subquery Initialisation" do
       # search for books wiht contain all given words
-      query = OrientSupport::OrientQuery.new  from: Word, projection: "expand(in('HasContent'))"
+      query = OrientSupport::OrientQuery.new  from: Word, projection: "expand(in('Has_content'))"
 
       q =  OrientSupport::OrientQuery.new projection: 'expand( $z )'
       intersects = Array.new

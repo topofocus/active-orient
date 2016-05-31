@@ -1,3 +1,5 @@
+########### FILE CREATE TO TEST EXPERIMENTAL FUNCIONS ###################à
+
 require_relative "../lib/active-orient.rb"
 
 ActiveOrient::OrientDB.default_server = { user: 'root', password: 'tretretre' }
@@ -19,8 +21,8 @@ print "#{a1.ciao} \n"
 a1.family = [a2, a3]
 print "#{a1["family"].name} \n"
 print "---> #{a1.family.class}\n"
-a1["family"] << a4
-print "#{a1.family.name} \n"
+# a1["family"] << a4
+# print "#{a1.family.name} \n"
 
 
 # ActiveOrient::OrientDB.methods.each do |m|

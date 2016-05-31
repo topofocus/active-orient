@@ -18,13 +18,29 @@ module RestChange
   Returns the JSON-Response.
 =end
 
-  def update_records o_class, set:, where: {}
-    url = "UPDATE #{classname(o_class)} SET #{generate_sql_list(set)} #{compose_where(where)}"
+def update_records o_class, set:, where: {}
+  url = "UPDATE #{classname(o_class)} SET #{generate_sql_list(set)} #{compose_where(where)}"
+  response = @res[URI.encode("/command/#{@database}/sql/" << url)].post ''
+end
+alias update_documents update_records
 
+#### NEW VERSION (Experimental) ###
 
-    response = @res[URI.encode("/command/#{@database}/sql/" << url)].post ''
+  def put_records o_class, set:, updateMode: "full"
+    url = "/document/#{@database}/#{rid}"
+    url += "?updateMode=partial" if updateMode == "partial"
+    content = yield
+    if content.is_a? Hash
+      begin
+        @res[url].put content.to_orient.to_json
+      rescue Exception => e
+        logger.error{e.message}
+      end
+    else
+      logger.error{"FAILED: The Block must provide an Hash with properties to be updated"}
+    end
   end
-  alias update_documents update_records
+
 
 # Lazy Updating of the given Record.
 

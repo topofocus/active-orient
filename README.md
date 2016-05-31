@@ -41,8 +41,6 @@ Let's create some classes
     r.delete_class M                   # universal removal-of-the-class-method
  ```
 
-*Note*: As in Ruby, we use the convention that a class needs to be defined with a capital letter.
-
 »M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
 It's a shortcut for »ActiveOrient::Model::{Classname}« and it is reused if defined elsewhere.
 
@@ -134,6 +132,10 @@ Basic graph-support:
   Edge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 It connects the vertexes and assigns the attributes to the edge.
+
+#### Create record
+
+To create a record you can use the command create
 
 #### Links
 

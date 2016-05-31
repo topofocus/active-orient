@@ -42,7 +42,6 @@ module RestOperations
 
   def execute classname = 'Myquery', transaction: true # Set up for classes
     batch = {transaction: transaction, operations: yield}
-    #print "\n\n ----> #{batch.to_json} <----\n\n"
     unless batch[:operations].blank?
       begin
         response = @res["/batch/#{@database}"].post batch.to_json
@@ -73,4 +72,35 @@ module RestOperations
     end
   end
 
+#### EXPERIMENTAL ####
+
+  def execute_batch command
+    begin
+      response = @res["/batch/#{@database}"].post command.to_json
+    rescue RestClient::InternalServerError => e
+      logger.progname = 'RestOperations#ExecuteBatch'
+      logger.error{e.inspect}
+    end
+
+    if response.code == 200
+      if response.body['result'].present?
+        result= JSON.parse(response.body)['result']
+        result.map do |x|
+          if x.is_a? Hash
+            if x.has_key?('@class')
+              ActiveOrient::Model.orientdb_class(name: x['@class']).new x
+            elsif x.has_key?('value')
+              x['value']
+            else
+              ActiveOrient::Model.orientdb_class(name: classname).new x
+            end
+          end
+        end.compact # return_value
+      else
+        response.body
+      end
+    else
+      nil
+    end
+  end
 end

@@ -53,6 +53,7 @@ module RestRead
     rescue Exception => e
       logger.progname = 'RestRead#GetClasses'
       logger.error{e.message}
+      return []
     end
   end
 
@@ -68,9 +69,9 @@ module RestRead
 =end
 
   def get_class_hierarchy base_class: '', requery: false
-    @all_classes = get_classes('name', 'superClass') if requery || @all_classes.blank?
+    @all_classes = get_classes('name', 'superClass')# if requery || @all_classes.blank?
     def fv s   # :nodoc:
-  	  @all_classes.find_all{|x| x['superClass']== s}.map{|v| v['name']}
+  	  @all_classes.find_all{|x| x['superClass'] == s}.map{|v| v['name']}
     end
 
     def fx v # :nodoc:
@@ -90,11 +91,11 @@ module RestRead
     name = if name_or_class.is_a? Class
       name_or_class.to_s.split('::').last
     elsif name_or_class.is_a? ActiveOrient::Model
-      name_or_class.classname
+      name_or_class.to_s.split('::').last
     else
       name_or_class.to_s.capitalize_first_letter
     end
-    return name
+    return name.to_s.capitalize_first_letter
   end
 
 # Return a JSON of the property of a class
@@ -138,14 +139,16 @@ module RestRead
       else
         logger.error "Something went wrong"
         logger.error e.http_body.inspect
-        raise
+        nil
       end
     rescue RestClient::ResourceNotFound => e
       logger.error "Not data found"
       logger.error e.message
+      nil
     rescue Exception => e
       logger.error "Something went wrong"
       logger.error "RID: #{rid} - #{e.message}"
+      nil
     end
   end
   alias get_document get_record

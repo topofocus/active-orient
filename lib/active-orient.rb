@@ -5,6 +5,7 @@ require_relative "base_properties.rb"
 require_relative "orient.rb"
 require_relative "model.rb"
 require_relative "query.rb"
+require_relative "batch.rb"
 require_relative "rest.rb"
 
 logger =  Logger.new '/dev/stdout'

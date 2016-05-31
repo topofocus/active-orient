@@ -2,10 +2,9 @@ require 'spec_helper'
 
 describe OrientSupport::Array do
   before( :all ) do
-
     # working-database: hc_database
     ActiveOrient::OrientDB.default_server = {user: 'root', password: 'tretretre'}
-    r =  ActiveOrient::OrientDB.new connect:false
+    r =  ActiveOrient::OrientDB.new connect: false
     r.delete_database database: 'ArrayTest'
 
     @r = ActiveOrient::OrientDB.new database: 'ArrayTest'
@@ -93,9 +92,9 @@ describe OrientSupport::Array do
   context 'work with multi dimensional Arrays', focus:true do
     let( :multi_array ){ a = [1,2,3];  b = [ :a, :b, :c ]; [ a, b ] }
     it 'intitialize' do
+      print "\n\n === intitialize === \n\n"
       new_record = TestModel.create ll: multi_array
       expect( new_record.ll ).to eq [[1, 2, 3], ["a", "b", "c"]]
-
     end
 
     it "use saved dataset for update" do

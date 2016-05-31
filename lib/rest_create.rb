@@ -70,7 +70,7 @@ def create_general_class classes, behaviour: "NORMALCLASS", extended_class: nil,
           command = "CREATE CLASS #{name_class} EXTENDS #{name_superclass}"
         end
 
-        #print "\n #{command} \n"
+        # print "\n #{command} \n"
 
         execute transaction: false do
           [{ type:    "cmd",
@@ -103,6 +103,7 @@ alias create_classes create_general_class
 # Creates a class and returns the a ActiveOrient::Model:{Newclass}-Class- (Constant) which is designed to take any documents stored in this class
 
   def create_record_class newclass, properties: nil
+    newclass = classname(newclass)
     create_general_class([newclass], properties: properties).first
   end
   alias open_class create_record_class
@@ -110,10 +111,12 @@ alias create_classes create_general_class
   alias create_document_class create_record_class
 
   def create_vertex_class name, superclass: 'V', properties: nil
+    name = classname(name)
     create_general_class({superclass => name}, properties: properties).first
   end
 
   def create_edge_class name, superclass: 'E', properties: nil
+    name = classname(name)
     create_general_class({superclass => name}, properties: properties).first
   end
 
