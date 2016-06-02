@@ -25,6 +25,10 @@ module ActiveOrient
       end
     end
 
+    def to_ary
+      attributes.to_a
+    end
+
     mattr_accessor :orientdb
     mattr_accessor :logger
     

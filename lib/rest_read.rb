@@ -57,12 +57,12 @@ module RestRead
   end
 
 =begin
-  Returns the class_hierachie
+  Returns the class_hierachy
 
   To fetch all Vertices uses:
-   class_hiearchie(base_class: 'V').flatten
+   get_class_hiearchie(base_class: 'V').flatten
   To fetch all Edges uses:
-   class_hierachie(base_class: 'E').flatten
+   get_class_hierachy(base_class: 'E').flatten
 
   Notice: base_class has to be noted as String! There is no implicit conversion from Symbol or Class
 =end
@@ -88,13 +88,24 @@ module RestRead
 
   def classname name_or_class
     name = if name_or_class.is_a? Class
-      name_or_class.to_s.split('::').last
+      i=name_or_class.to_s.split('::').last
     elsif name_or_class.is_a? ActiveOrient::Model
       name_or_class.classname
     else
       name_or_class.to_s.capitalize_first_letter
     end
-    return name
+    ## 16/5/31  : reintegrating functionality to check wether the classname is 
+    #		  present in the database or not
+          if database_classes.include?(name)
+	             name
+	  elsif database_classes.include?(name.underscore)
+	           name.underscore
+	  else
+	     logger.progname =  'RestRead#Classname'
+	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in active  Database" }
+	  nil
+
+	  end
   end
 
 # Return a JSON of the property of a class
@@ -161,23 +172,24 @@ module RestRead
     query = OrientSupport::OrientQuery.new(args) if query.nil?
     begin
       logger.progname = 'RestRead#GetRecords'
-
   	  url = "/query/#{@database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
   	  response = @res[URI.encode(url)].get
-  	  r = JSON.parse(response.body)['result'].map do |record|
-      	if raw
-      	  record
-    # query returns an anonymus class: Use the provided Block or the Dummy-Model MyQuery
-      	elsif record['@class'].blank?
-      	  block_given? ? yield.new(record) : ActiveOrient::Model::MyQuery.new(record)
-      	else
-      	  ActiveOrient::Model.orientdb_class(name: record['@class']).new record
-      	end
-      end
-      return r
+	  JSON.parse(response.body)['result'].map do |record|
+	    if raw
+	      record
+	      # query returns an anonymus class: Use the provided Block or the Dummy-Model MyQuery
+	    elsif record['@class'].blank?
+	      block_given? ? yield.new(record) : ActiveOrient::Model::MyQuery.new(record)
+	    else
+	      ActiveOrient::Model.orientdb_class(name: record['@class']).new record
+	    end
+	  end
+	  # returns the JSON-Object
+     
 
     rescue RestClient::InternalServerError => e
   	  response = JSON.parse(e.response)['errors'].pop
+	  logger.error{ "Interbak Server ERROR" }
   	  logger.error{response['content'].split(':').last}
     rescue URI::InvalidURIError => e
   	  logger.error{"Invalid URI detected"}

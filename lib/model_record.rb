@@ -13,7 +13,7 @@ module ModelRecord
 
   # Returns just the name of the Class
 
-  def classname
+  def self.classname
     self.class.to_s.split(':')[-1]
   end
 
@@ -57,14 +57,33 @@ module ModelRecord
 =end
 
   def method_missing *args
-    print "TEST, #{args} \n"
-    if args[1] == "<<" or args[1] == "|="
-      update_item_property "ADD", "#{args[0][0..-2]}", args[2]
-    elsif args[0][-1] == "="
-      update_item_property "SET", "#{args[0][0..-2]}", args[1]
-    elsif args[1] == ">>"
-      update_item_property "REMOVE", "#{args[0][0..-2]}", args[2]
+    #puts "MethodMissing TEST, #{args} "
+    if args.is_a? Array
+      if attributes.keys.include? args.first.to_s
+	if args.size == 1
+	  attributes[args.first]
+	else
+	  if args[1] == "<<" or args[1] == "|="
+	    update_item_property "ADD", "#{args[0][0..-2]}", args[2]
+	  elsif args[0][-1] == "="
+	    update_item_property "SET", "#{args[0][0..-2]}", args[1]
+	  elsif args[1] == ">>"
+	    update_item_property "REMOVE", "#{args[0][0..-2]}", args[2]
+	  end
+	end
+      else
+	raise NameError
+      end
     end
+  rescue NameError => e
+    logger.progname = 'ActiveOrient::Model#MethodMissing'
+    if args.size == 1
+      logger.error{"Unknown Attribute: #{args.first} "}
+    else
+      logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
+    end
+    raise
+    #      print e.backtrace.join("\n")
   end
 
 
@@ -72,7 +91,6 @@ module ModelRecord
     begin
       logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
       execute_array = Array.new
-      print "#{self.attributes.class} \n"
       self.attributes[array] = Array.new unless attributes[array].present?
 
       add_2_execute_array = -> (it) do
@@ -87,9 +105,8 @@ module ModelRecord
           updating = it.map{|x| "##{x.rid}"} if it[0].is_a? ActiveOrient::Model
         end
         unless updating.nil?
-          command = "UPDATE ##{rid} ADD #{array} = #{updating}"
+          command = "UPDATE ##{rid} #{method} #{array} = #{updating}"
           command.gsub!(/\"/,"") if updating.is_a? Array
-          print "#{command} \n"
           execute_array << {type: "cmd", language: "sql", command: command}
         else
           logger.error{"Only Basic Formats supported. Cannot Serialize #{it.class} this way"}
@@ -99,7 +116,8 @@ module ModelRecord
 
       items = yield if block_given?
 
-      if !items.nil?
+      if items.present?
+	#puts "items present: #{items}"
         items.each{|x|
           add_2_execute_array[x];
           self.attributes[array] << x}
@@ -107,7 +125,6 @@ module ModelRecord
         add_2_execute_array[item]
         self.attributes[array] << item
       end
-
       orientdb.execute do
         execute_array
       end
@@ -126,14 +143,20 @@ module ModelRecord
   alias update_linkset  add_item_to_property
   alias update_embedded  add_item_to_property
 
-  def set_item_to_property array, item = nil
-    items = block_given? ? yield : nil
-    update_item_property "SET", array, item, items
+  def set_item_to_property array, item = nil, &b
+    update_item_property "SET", array, item, &b
   end
 
-  def remove_item_to_property array, item = nil
-    items = block_given? ? yield : nil
-    update_item_property "REMOVE", array, item, items
+  def remove_item_from_property array, item = nil, &b
+    update_item_property "REMOVE", array, item, &b
+    if block_given?
+        items =  yield
+        items.each{|x| self.attributes[array].delete(x)}
+    elsif item.present?
+        a = attributes
+        a.delete item
+        self.attributes[array].delete(item)
+      end
   end
 
   ############# DELETE ###########
@@ -162,7 +185,9 @@ end
       attributes.merge({'@version' => @metadata[:version], '@class' => @metadata[:class]})
     end
     # returns a new instance of ActiveOrient::Model
-    reload! ActiveOrient::Model.orientdb_class(name:  classname).new(JSON.parse(result))
+cl = orientdb.classname self.class
+
+    reload! ActiveOrient::Model.orientdb_class(name:  cl).new(JSON.parse(result))
     # instantiate object, update rid_store and reassign to self
   end
 

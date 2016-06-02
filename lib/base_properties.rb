@@ -10,7 +10,13 @@ module ActiveOrient
 
     def to_human
       "<#{self.class.to_s.demodulize}: " + content_attributes.map do |attr, value|
-        "#{attr}: #{value}" unless value.nil?
+	v= case value
+	   when ActiveOrient::Model
+	     value.to_human
+	   else
+	     value
+	   end
+        "#{attr}: #{v}" unless v.nil?
       end.compact.sort.join(' ') + ">"
     end
 

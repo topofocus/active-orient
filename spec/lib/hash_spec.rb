@@ -2,19 +2,18 @@ require 'spec_helper'
 
 describe 'Properties and Application of Hashes' do
   before( :all ) do
+require 'connect_helper'
 
+   ORD  =  connect( database: 'HashTest' )
     # working-database: hc_database
-    r =  ActiveOrient::OrientDB.new connect:false
-    r.delete_database database: 'HashTest'
-
-    @r = ActiveOrient::OrientDB.new database: 'HashTest'
-    @r.delete_class 'model_test'
-    TestModel = @r.open_class "model_test"
-    @record = TestModel.create
+    ORD = ActiveOrient::OrientDB.new database: 'HashTest'
+    ORD.delete_class 'model_test'
+    TestModel = ORD.open_class "model_test"
+    @ecord = TestModel.create
   end
 
   #  context "check isolated", focus:true do
-  #    let( :basic ) { OrientSupport::Hash.new @record, 'Go to Orient'}
+  #    let( :basic ) { OrientSupport::Hash.new @ecord, 'Go to Orient'}
   #    it { expect( basic ).to be_a OrientSupport:: Hash}
   #
   #    it { expect( basic ).to be_empty }
@@ -35,47 +34,48 @@ describe 'Properties and Application of Hashes' do
 
   context "verify a proper TestEnvironment" do
     it{ expect( TestModel.count ).to eq 1 }
-    it{ expect( @record ).to be_a ActiveOrient::Model::ModelTest }
+    it{ expect( @ecord ).to be_a ActiveOrient::Model::Model_test }
   end
 
   context "add and populate an Hash" do
-    before(:all){ @record.update set: { ll:  { a:'test', b: 5, 8 => 57 , 'zu' => 7988 }  } }
+    before(:all){ @ecord.update set: { ll:  { a:'test', b: 5, 8 => 57 , 'zu' => 7988 }  } }
 
     it "initialize the Object"  do
-      expect( @record.ll ).to be_a HashWithIndifferentAccess
-      expect( @record.ll.first ).to eq ["a","test"]
-      expect( @record.ll[:b] ).to eq 5
-      expect( @record.ll.keys ).to eq [ "a", "b", 8, "zu" ]
+      expect( @ecord.ll ).to be_a HashWithIndifferentAccess
+      expect( @ecord.ll.first ).to eq ["a","test"]
+      expect( @ecord.ll[:b] ).to eq 5
+      expect( @ecord.ll.keys ).to eq [ "a", "b", 8, "zu" ]
     end
     it "modify the Object" do
-      #      expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 1
+      #      expect{ @ecord.add_item_to_property :ll, 't' }.to change { @ecord.ll.size }.by 1
       expect do
-        expect{ @record.ll[:z] = 78  }.to change { @record.ll.size }.by 1
+        expect{ @ecord.ll[:z] = 78  }.to change { @ecord.ll.size }.by 1
 
-        expect{ @record.ll.delete(8) }.to change { @record.ll.size }.by -1
-        expect{ @record.ll.delete_if{|x,y| y==5} }.to change { @record.ll.size }.by -1
-      end.not_to change{ @record.version }
+        expect{ @ecord.ll.delete(8) }.to change { @ecord.ll.size }.by -1
+        expect{ @ecord.ll.delete_if{|x,y| y==5} }.to change { @ecord.ll.size }.by -1
+      end.not_to change{ @ecord.version }
     end
-    it "update the object" , focus: true do
-      expect{ @record.ll[0]  =  "a new Value "; @record.update }.to change{ @record.version }
-      expect( @record.ll[0] ).to eq  "a new Value "
+    it "update the object"  do
+      expect{ @ecord.ll[0]  =  "a new Value "; @ecord.update }.to change{ @ecord.version }
+      expect( @ecord.ll[0] ).to eq  "a new Value "
     end
   end
 
   context "a Hash with links " do
 
     before(:all) do
-      LinkClass = @r.open_class 'hash_links'
+      ORD.delete_class 'hash_links'
+      LinkClass = ORD.open_class 'hash_links'
       new_hash =  HashWithIndifferentAccess.new
       ( 1 .. 99 ).each do | i |
         new_hash[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" )
       end
-      @record.update set: { ll: new_hash }
+      @ecord.update set: { ll: new_hash }
     end
 
     it { expect( LinkClass.count ).to eq 99 }
-    it { expect( @record.ll.size ).to eq 99 }
-    it{  (1..99).each{|x| expect(@record.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
+    it { expect( @ecord.ll.size ).to eq 99 }
+    it{  (1..99).each{|x| expect(@ecord.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
 
 
 

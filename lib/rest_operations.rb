@@ -17,13 +17,9 @@ module RestOperations
   def count_records **args
     logger.progname = 'RestOperations#CountRecords'
     query = OrientSupport::OrientQuery.new args
-  	query.projection << 'COUNT (*)'
-  	result = get_records raw: true, query: query
-    begin
-      result.first['COUNT']
-    rescue
-      return 0
-    end
+    query.projection << 'COUNT (*)'
+    result = get_records raw: true, query: query
+    result.first['COUNT'] rescue  0  # return_value
   end
   alias count_documents count_records
   alias count count_records

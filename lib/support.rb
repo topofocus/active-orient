@@ -111,9 +111,7 @@ module OrientSupport
     	if arg.present?
   	    @database = case arg
   		  when Class
-  			  arg.new.classname
-  		  when ActiveOrient::Model
-  			  classname
+  			  arg.classname
   		  when String
   			  arg
   		  when Symbol

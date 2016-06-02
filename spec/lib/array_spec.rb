@@ -1,21 +1,18 @@
 require 'spec_helper'
+require 'connect_helper'
 
 describe OrientSupport::Array do
   before( :all ) do
 
     # working-database: hc_database
-    ActiveOrient::OrientDB.default_server = {user: 'root', password: 'tretretre'}
-    r =  ActiveOrient::OrientDB.new connect:false
-    r.delete_database database: 'ArrayTest'
-
-    @r = ActiveOrient::OrientDB.new database: 'ArrayTest'
-    @r.delete_class 'model_test'
-    TestModel = @r.open_class "model_test"
-    @record = TestModel.create
+   ORD  =  connect( database: 'ArrayTest' )
+    ORD.delete_class 'model_test'
+    TestModel = ORD.open_class "model_test"
+    @ecord = TestModel.create
   end
 
   context "check isolated" do
-    let( :basic ) { OrientSupport::Array.new @record, 'test', 6, 5 }
+    let( :basic ) { OrientSupport::Array.new @ecord, 'test', 6, 5 }
     it { expect( basic ).to be_a OrientSupport::Array }
 
     it { expect( basic ).to have(3).items }
@@ -30,39 +27,39 @@ describe OrientSupport::Array do
 
   context "verify a proper TestEnvironment" do
     it{ expect( TestModel.count ).to eq 1 }
-    it{ expect( @record ).to be_a ActiveOrient::Model::ModelTest }
+    it{ expect( @ecord ).to be_a ActiveOrient::Model::ModelTest }
   end
 
   context "add and populate an Array" do
-    before(:each){ @record.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
+    before(:each){ @ecord.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
 
     it "initialize the Object"  do
-      expect( @record.ll ).to be_a OrientSupport::Array
-      expect( @record.ll.first ).to eq "test"
-      expect( @record.ll[2] ).to eq 8
+      expect( @ecord.ll ).to be_a OrientSupport::Array
+      expect( @ecord.ll.first ).to eq "test"
+      expect( @ecord.ll[2] ).to eq 8
     end
     it "modify the Object" do
-      expect{ @record.add_item_to_property :ll, 't' }.to change { @record.ll.size }.by 1
-      expect{ @record.ll << 78 }.to change { @record.ll.size }.by 1
+      expect{ @ecord.add_item_to_property :ll, 't' }.to change { @ecord.ll.size }.by 1
+      expect{ @ecord.ll << 78 }.to change { @ecord.ll.size }.by 1
 
-      expect{ @record.ll.delete_at(2) }.to change { @record.ll.size }.by -1
-      expect{ @record.ll.delete 'test' }.to change { @record.ll.size }.by -1
+      expect{ @ecord.ll.delete_at(2) }.to change { @ecord.ll.size }.by -1
+      expect{ @ecord.ll.delete 'test' }.to change { @ecord.ll.size }.by -1
       expect do
-        expect{ @record.ll.delete 7988, 'uzg' }.to change { @record.ll.size }.by( -2 )
-      end.to change{  @record.version }.by 1
+        expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
+      end.to change{  @ecord.version }.by 1
     end
     it "update the object" do
-      expect{ @record.ll[0]  =  "a new Value " }.to change{ @record.version }
-      expect( @record.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
+      expect{ @ecord.ll[0]  =  "a new Value " }.to change{ @ecord.version }
+      expect( @ecord.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
 
     end
 
 
     context "Work with arrays containing links" do
       before(:all) do
-        @r.delete_class  'Test_link_class'
+        ORD.delete_class  'Test_link_class'
 
-        LinkClass = @r.open_class 'Test_link_class'
+        LinkClass = ORD.open_class 'Test_link_class'
         @new_record = TestModel.create ll: [ ]
         (1..9).each do |i|
           @new_record.ll << i
@@ -110,9 +107,9 @@ describe OrientSupport::Array do
   end
   context 'work with subsets of the embedded array' do
     before(:all) do
-      @r.delete_class  'Test_link_class'
+      ORD.delete_class  'Test_link_class'
 
-      LinkClass = @r.open_class 'Test_link_class'
+      LinkClass = ORD.open_class 'Test_link_class'
       @new_record = TestModel.create ll: [ ]
       (1..99).each do |i|
         @new_record.ll << i
@@ -145,11 +142,11 @@ describe OrientSupport::Array do
 
   context 'work with a hard-coded linkmap' do
     before(:all) do
-      @r.delete_class  'Test_link_class'
-      @r.delete_class  'Test_base_class'
+      ORD.delete_class  'Test_link_class'
+      ORD.delete_class  'Test_base_class'
 
-      BaseClass = @r.open_class 'Test_base_class'
-      LinkClass = @r.open_class 'Test_link_class'
+      BaseClass = ORD.open_class 'Test_base_class'
+      LinkClass = ORD.open_class 'Test_link_class'
       BaseClass.create_linkset  'aLinkSet',  LinkClass
       @new_record = BaseClass.create  aLinkSet: []
       (1..9).each do |i|

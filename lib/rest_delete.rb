@@ -37,29 +37,27 @@ module RestDelete
 
   def delete_class o_class
     cl = classname(o_class)
+    return if cl.nil?
     logger.progname = 'RestDelete#DeleteClass'
-    if @classes.include? cl
-      begin
-  	    response = @res["/class/#{@database}/#{cl}"].delete
-        if response.code == 204
-  	      logger.info{"Class #{cl} deleted."}
-          @classes.delete(cl)
-        end
-      rescue RestClient::InternalServerError => e
-  	    if get_database_classes(requery: true).include?(cl)
-  	      logger.error{"Class #{cl} still present."}
-  	      logger.error{e.inspect}
-  	      false
-  	    else
-          logger.error{e.inspect}
-  	      true
-  	    end
-      rescue Exception => e
-        logger.error{e.message}
-        logger.error{e.inspect}
+
+    begin
+      response = @res["/class/#{@database}/#{cl}"].delete
+      if response.code == 204
+	logger.info{"Class #{cl} deleted."}
+	@classes.delete(cl)
       end
-    else
-      cl.nil? ? logger.info{"Class #{o_class} not present."} : logger.info{"Class #{cl} not present."}
+    rescue RestClient::InternalServerError => e
+      if get_database_classes(requery: true).include?(cl)
+	logger.error{"Class #{cl} still present."}
+	logger.error{e.inspect}
+	false
+      else
+	logger.error{e.inspect}
+	true
+      end
+    rescue Exception => e
+      logger.error{e.message}
+      logger.error{e.inspect}
     end
   end
 

@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.summary     = 'Pure ruby client for OrientDB based on ActiveModel'
   s.description = 'Persistent ORM for OrientDB, based on ActiveModel' 
   s.platform	= Gem::Platform::RUBY
-  s.required_ruby_version = '>= 2.2.0'
+  s.required_ruby_version = '>= 2.2.5'
   s.date 	= Time.now.strftime "%Y-%m-%d"
   s.test_files  = `git ls-files -- {spec,features}/*`.split("\n")
   s.require_paths = ["lib"]

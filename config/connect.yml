@@ -4,8 +4,8 @@
  :port: 2480
  :database: hc_database
  :admin:
-   :user: root
-   :pass: tretretre
+   :user: hctw
+   :pass: hc
  :auth:
    :user: root
    :pass: tretretre

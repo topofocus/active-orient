@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'connect_helper'
 =begin
 BOOKs EXAMPLE
 
@@ -53,27 +54,24 @@ select expand( $z ) let $a = ( select expand(in('HasContent')) from Word where i
 describe OrientSupport::OrientQuery do
   before( :all ) do
     ######################################## ADJUST user+password ###################
-    ActiveOrient::OrientDB.default_server= { user: 'root', password: 'tretretre' }
-    @r = ActiveOrient::OrientDB.new database: 'ArrayTest'
-    TestQuery = @r.open_class "model_query"
-    @record = TestQuery.create
+   ORD  =  connect( database: 'ArrayTest' )
   end # before
 
-  context "Books Words example" , focus: true do
+  context "Books Words example" do
     before(:all) do
-      @r.delete_class :book
-      Book = @r.create_vertex_class :book
+      ORD.delete_class :book
+      Book = ORD.create_vertex_class :book
       Book.create_property( :title, type: :string, index: :unique )
-      @r.delete_class :word
-      Word = @r.create_vertex_class :word
+      ORD.delete_class :word
+      Word = ORD.create_vertex_class :word
       Word.create_property( :item , type: :string, index: :unique )
-      @r.delete_class :has_content
-      HC= @r.create_edge_class :has_content
+      ORD.delete_class :has_content
+      HC= ORD.create_edge_class :has_content
 
     end
-    it "check structure" do
-      expect( @r.class_hierarchy( base_class: 'V').sort ).to eq [Book.new.classname, Word.new.classname]
-      expect( @r.class_hierarchy( base_class: 'E') ).to eq [HC.new.classname]
+    it "check structure", focus:true do
+      expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["Book","Word"]
+      expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["Has_content"]
     end
 
     it "put test-content" do
@@ -93,11 +91,11 @@ describe OrientSupport::OrientQuery do
       fill_database[ words2, this_book ]
       expect( Word.count ).to be  > 100
     end
-    it "Query Initialisation" do
+    it "Query Initialisation"  do
       # search all books with words "Quartal" or "Landereien"
-      query = OrientSupport::OrientQuery.new where:  "out('HasContent').item IN ['Quartal','Landereien']",
-      from: Book
-      result= Book.query_database query
+      query = OrientSupport::OrientQuery.new where:  "out('Has_content').item IN ['Quartal','Landereien']",
+					      from: Book
+       result= Book.query_database query
       expect( result).to be_a Array
       expect( result).to have_at_least(1).item
       queried_book =  result.first

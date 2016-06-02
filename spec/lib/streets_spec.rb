@@ -1,4 +1,7 @@
+#### the streets example is brocken, because the webside  "strassen-in-deutschland" changed its design  
+#### the fetch from wikipedia works as planed
 require 'spec_helper'
+require 'connect_helper'
 require 'open-uri'
 require 'nokogiri'
 
@@ -32,6 +35,8 @@ describe OrientSupport::OrientQuery do
     doc = Nokogiri::HTML(open('http://www.strassen-in-deutschland.de/die-haeufigsten-strassennamen-in-deutschland.html'))
     strassen = doc.css('#strassen-in-deutschland_main a' ) # identified via css-inspector in browser
     # search for the css and include only links, then display the text-part
+    puts "STRASSEN"
+    puts strassen.inspect
     strassen.children.map( &:to_s )[3..-1]  # omit the first three (strassen in deutschland, straßenverzeichnis, straßen)
   end
 
@@ -44,7 +49,7 @@ describe OrientSupport::OrientQuery do
     doc.xpath("//li").map{|x| x.text[0 .. x.text.index('(')-2] if x.text.index('(').present? }.compact
   end
 
-  def read_german_cities_and_states_fom_wikipedia
+  def read_german_cities_and_states_from_wikipedia
     doc =
     Nokogiri::HTML(open('https://en.wikipedia.org/wiki/List_of_cities_and_towns_in_Germany'))
     doc.xpath("//li").map do |x|
@@ -56,43 +61,42 @@ describe OrientSupport::OrientQuery do
 
   before( :all ) do
     ######################################## ADJUST user+password ###################
-    ActiveOrient::OrientDB.default_server= { user: 'root', password: 'tretretre' }
-    @r = ActiveOrient::OrientDB.new database: 'StreetTest'
+   ORD  =  connect( database: 'StreetTest' )
 
-    @r.delete_class :state
-    State =  @r.create_vertex_class :state
+    ORD.delete_class :state
+    State =  ORD.create_vertex_class :state
     State.create_property( :name, type: :string, index: :unique )
-    @r.delete_class :city
-    City = @r.create_vertex_class :city
+    ORD.delete_class :city
+    City = ORD.create_vertex_class :city
     City.create_properties(  { name: { type: :string },
     state: { type: :link, :linked_class => 'State' } }
     ) do
       { citi_idx: :unique }
     end
-    @r.delete_class :street
-    Street = @r.create_vertex_class :street
+    ORD.delete_class :street
+    Street = ORD.create_vertex_class :street
     Street.create_property( :name , type: :string, index: :notunique )
-    @r.delete_class :connects
-    C = @r.create_edge_class :connects
+    ORD.delete_class :connects
+    C = ORD.create_edge_class :connects
     C.create_property( :distance, type: :integer, index: :notunique )
 
 
   end
   it "check structure" do
-    expect( @r.class_hierarchy( base_class: 'V').sort ).to eq [City.new.classname, State.new.classname,Street.new.classname]
-    expect( @r.class_hierarchy( base_class: 'E') ).to eq [C.new.classname]
+    expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["City","State","Street"]
+    expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["Connects"]
   end
 
 
 
   it "put new_test-content" do
-    read_german_cities_and_states_fom_wikipedia.each do |city,state|
+    read_german_cities_and_states_from_wikipedia.each do |city,state|
       state =  State.update_or_create( where: { name: state }).first
-      city = City.create name: city, state: state.link
+      city = City.create name: city, state: state.rid
     end
 
-    expect( State.count ).to eq 119
-    expect( City.count ).to eq 2064
+    expect( State.count ).to eq 118
+    expect( City.count ).to eq 2062
   end
 
   it "connect cities through streets" do
@@ -102,7 +106,7 @@ describe OrientSupport::OrientQuery do
   end
 
   it "assign streets to cities" do
-    cities_rids =  City.all.map &:link
+    cities_rids =  City.all.map &:rid
 
     read_german_street_names.each_with_index do |street, i|
       street_record =  Street.create name: street
