@@ -1,7 +1,6 @@
 #### the streets example is brocken, because the webside  "strassen-in-deutschland" changed its design  
 #### the fetch from wikipedia works as planed
 require 'spec_helper'
-require 'connect_helper'
 require 'open-uri'
 require 'nokogiri'
 
@@ -60,9 +59,7 @@ describe OrientSupport::OrientQuery do
   end
 
   before( :all ) do
-    ######################################## ADJUST user+password ###################
-   ORD  =  connect( database: 'StreetTest' )
-
+    ORD = ActiveOrient::OrientDB.new database: 'StreetTest'
     ORD.delete_class :state
     State =  ORD.create_vertex_class :state
     State.create_property( :name, type: :string, index: :unique )

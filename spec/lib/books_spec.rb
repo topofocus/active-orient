@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'connect_helper'
 =begin
 BOOKs EXAMPLE
 
@@ -54,7 +53,7 @@ select expand( $z ) let $a = ( select expand(in('HasContent')) from Word where i
 describe OrientSupport::OrientQuery do
   before( :all ) do
     ######################################## ADJUST user+password ###################
-   ORD  =  connect( database: 'ArrayTest' )
+    ORD  = ActiveOrient::OrientDB.new database: 'ArrayTest' 
   end # before
 
   context "Books Words example" do

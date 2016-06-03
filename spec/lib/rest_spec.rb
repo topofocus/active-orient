@@ -1,7 +1,6 @@
 
 require 'spec_helper'
 require 'active_support'
-require 'connect_helper'
 
 
 shared_examples_for 'a valid Class' do
@@ -12,11 +11,8 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-
-   ORD  =  connect( database: 'RestTest' )
-    # working-database: hc_database
-    @database_name = 'RestTest'
-
+   ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
+#   @database_name = 'RestTest'
   end
 
 

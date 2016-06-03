@@ -63,7 +63,7 @@ A Sample:
         :user => 'root',
         :password => 'root',
         :database => 'temp'
-      }.merge default_server
+      }.merge default_server.presence || {}
       @res = get_resource
       @database = database || default_server[:database]
       connect() if connect

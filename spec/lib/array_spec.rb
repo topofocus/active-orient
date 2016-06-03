@@ -1,11 +1,11 @@
 require 'spec_helper'
-require 'connect_helper'
-
+####  Work in progress
+#### specs are not working at all
 describe OrientSupport::Array do
   before( :all ) do
 
     # working-database: hc_database
-   ORD  =  connect( database: 'ArrayTest' )
+    ORD  = ActiveOrient::OrientDB.new database: 'ArrayTest' 
     ORD.delete_class 'model_test'
     TestModel = ORD.open_class "model_test"
     @ecord = TestModel.create

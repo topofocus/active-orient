@@ -2,10 +2,6 @@ require 'spec_helper'
 
 describe 'Properties and Application of Hashes' do
   before( :all ) do
-require 'connect_helper'
-
-   ORD  =  connect( database: 'HashTest' )
-    # working-database: hc_database
     ORD = ActiveOrient::OrientDB.new database: 'HashTest'
     ORD.delete_class 'model_test'
     TestModel = ORD.open_class "model_test"

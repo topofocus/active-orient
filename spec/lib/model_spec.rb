@@ -2,7 +2,6 @@
 require 'spec_helper'
 require 'model_helper'
 require 'active_support'
-require 'connect_helper'
 
 module ActiveOrient
   class Base
@@ -14,7 +13,7 @@ end
 
 describe ActiveOrient::Model do
   before( :all ) do
-   ORD  =  connect( database: 'MyTest' )
+    ORD = ActiveOrient::OrientDB.new database: 'MyTest'
     ORD.delete_class 'Model_test'
     TestModel = ORD.open_class "Model_test"
     @myedge = ORD.create_edge_class  'Myedge'

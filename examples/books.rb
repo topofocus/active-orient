@@ -6,15 +6,25 @@ There are several Books. And there is a Table with Keywords. These are our Verte
 The Keywords are associated to the books, this is realized via an Edge »has_content«
 
 This Example demonstrates how to build a query by using OrientSupport::OrientQuery
+
+REQUIREMENT: Configurate config/connectyml (admin/user+pass) 
+
+There are 3 default serach items provided. They are used if no parameter is given.
+However, any parameter given is transmitted as serach-criteria, ie.
+  ruby books.rb Land Japan 
+defines two serach criteria.
+
 =end
  class BooksExample
 
     def initialize db, rebuild: true
       if rebuild
-        print("\n === REBUILD === \n")
+        print "\n === REBUILD === \n"
+	print " deleting database tables \n"
         db.delete_class :Book
         db.delete_class :Keyword
         db.delete_class :HAS_CONTENT
+	print " creating Book and  Keyword as Vertex; HAS_CONTENT as Edge \n"
         db.create_vertex_class :Book
         db.create_vertex_class :Keyword
         db.create_edge_class :HAS_CONTENT
@@ -33,7 +43,7 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
 	    this_edge = HC.create_edge from: this_book, to: this_word  if this_word.present?
 	  end
 	end
-	words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heut mit Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
+	words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heute mit. Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
 	this_book =  Book.create title: 'first'
 	fill_database[ words, this_book ]
 
@@ -44,12 +54,13 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
 
     def display_books_with *desired_words
       print("\n === display_books_with #{desired_words.map{|x| x}} === \n")
-      query = OrientSupport::OrientQuery.new from: Keyword, projection: "expand(in('HAS_CONTENT'))"
       q =  OrientSupport::OrientQuery.new projection: 'expand( $z )'
 
       intersects = Array.new
       desired_words.each_with_index do | word, i |
+	puts "word: #{word}"
 	       symbol = ( i+97 ).chr   #  convert 1 -> 'a'
+	       query = OrientSupport::OrientQuery.new from: Keyword, projection: "expand(in('HAS_CONTENT'))"
 	       query.where = { item: word  }
                q.let << { symbol =>  query }
 	       intersects << "$#{symbol}"
@@ -67,8 +78,7 @@ This Example demonstrates how to build a query by using OrientSupport::OrientQue
 if $0 == __FILE__
 
 require '../config/boot'
-
-    ActiveOrient::OrientDB.default_server = { user: 'root', password: 'tretretre' }
+    search_items =  ARGV.empty? ? ['Land', 'aus', 'Quartal'] : ARGV
     ActiveOrient::OrientDB.logger.level = Logger::WARN
     r = ActiveOrient::OrientDB.new database: 'BookTest'
     b = BooksExample.new r, rebuild:  true
@@ -78,5 +88,6 @@ require '../config/boot'
     HC = r.open_class "HAS_CONTENT"
 
     b.read_samples if Keyword.count.zero?
-    b.display_books_with 'Land', 'Quartal'
+    b.display_books_with *search_items
+
 end

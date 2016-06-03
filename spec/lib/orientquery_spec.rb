@@ -1,9 +1,8 @@
 require 'spec_helper'
-require 'connect_helper'
 
 describe OrientSupport::OrientQuery do
   before( :all ) do
-   ORD  =  connect( database: 'ArrayTest' )
+    ORD = ActiveOrient::OrientDB.new database: 'ArrayTest'
    TestQuery = ORD.open_class "model_query"
   end # before
 
