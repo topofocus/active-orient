@@ -2,10 +2,10 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-The Package is tested with Ruby 2.2.1 and Orientdb 2.1.13.
+The Package is tested with Ruby 2.3.1 and Orientdb 2.1.13.
 
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
-Install the Gem the usual way
+Install the Gem the usual way.
 
 For a quick start, go to the home directory of the package and start an irb-session
 
@@ -14,8 +14,7 @@ For a quick start, go to the home directory of the package and start an irb-sess
   require 'active-orient'
 ```
 
-First, the Database-Server has to be specified. Then we can connect to a database.
-Assuming, the server is located on localhost, we just define »default-server«
+First, the Database-Server has to be specified. 
 ```ruby
    ActiveOrient::OrientDB.default_server= { user: 'your user', password: 'your password' }
 
@@ -44,7 +43,7 @@ Let's create some classes
 *Note*: As in Ruby, we use the convention that a class needs to be defined with a capital letter.
 
 »M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
-It's a shortcut for »ActiveOrient::Model::{Classname}« and it is reused if defined elsewhere.
+It's a shortcut for »ActiveOrient::Model::{Classname}«.
 
 If a schema is used, properties can be created and retrieved as well
 
@@ -72,7 +71,7 @@ If a schema is used, properties can be created and retrieved as well
   M = r.create_vertex_class "Hour", properties: {value_string: {type: :string}, value: {type: :integer}}
 ```
 
-(Experimental) You can put restriction on your properties with the command "alter_property":
+(Experimental) You can put restrictions on your properties with the command "alter_property":
 
 ```ruby
   M.alter_property property: "value", attribute: "MIN", alteration: 0
@@ -84,7 +83,7 @@ If a schema is used, properties can be created and retrieved as well
 Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is defined  by
 ```ruby
   M = r.create_class 'Classname'
-  M = r.create_class{superclass_name: 'SuperClassname'}
+  M = r.create_class('Classname'){superclass_name: 'SuperClassname'}
   Vertex = r.create_vertex_class 'VertexClassname'
   Edge   = r.create_edge_class 'EdgeClassname'
 ```
@@ -96,18 +95,11 @@ As for ActiveRecord-Tables, the Class itself provides methods to inspect and to 
   M.all   
   M.first
   M.last
-```
-It returns an Array containing all Documents/Edges of the Class; the first and the last Record.
-
-```ruby
   M.where town: 'Berlin'
-```
-It performs a query on the class and returns the result as Array
 
-```ruby
   M.count where: { town: 'Berlin' }
 ```
-It gets the number of datasets fulfilling the search-criteria. Any parameter defining a valid SQL-Query in Orientdb can be provided to the count, where, first and last-method.
+»count« gets the number of datasets fulfilling the search-criteria. Any parameter defining a valid SQL-Query in Orientdb can be provided to the »count«, »where«, »first« and »last«-method.
 
 A »normal« Query is submitted via
 ```ruby
@@ -121,7 +113,7 @@ A »normal« Query is submitted via
 		  limit:
 
 #  or
- query = OrientSupport::OrientQuery.new {paramter}
+ query = OrientSupport::OrientQuery.new {paramter}  
  M.get_documents query: query
 
 ```
@@ -137,12 +129,12 @@ It connects the vertexes and assigns the attributes to the edge.
 
 #### Links
 
-A record in a database-class is defined by a »rid«. Every Model-Object comes with a handy »link«-method.
-
+A record in a database-class is defined by a »rid«. If this is stored in a class, a link is set.
 In OrientDB links are used to realize unidirectional 1:1 and 1:n relationships.
 
-ActiveOrient autoloads Model-objects when they are accessed. As a consequence,
-if an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the ActiveOrient::Model object.
+ActiveOrient autoloads Model-objects when they are accessed. Example:
+If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the ActiveOrient::Model object and sets the 
+link if stored somewhere.
 
 ```ruby
   TestLinks = r.create_class 'Test_link_class'
@@ -173,11 +165,10 @@ If you got an undirectional graph
 
    a --> b ---> c --> d
 
-the graph elements can be explored by joining the objects (a.b.c.d), or (a.b[5].c[9].d)
+the graph elements can be explored by joining the objects (a[6].b[5].c[9].d)
 
 #### Edges
-
-Edges are easily handled
+Edges provide bidirectional Links. They are easily handled
 ```ruby
   Vertex = r.create_vertex_class 'd1'
   Edge = r.create_edge_class   'e1'
@@ -287,7 +278,7 @@ or
 
 Sql-commands can be executed as batch
 
-The ActiveOrient::Query-Class provides a Query-Stack and an Records-Array which keeps the results. The ActiveOrient::Query-Class acts as Parent-Class for aggregated Records (without a \@rid), which are ActiveOrient::Model::Myquery Objects. If a Query returns a database-record, the correct ActiveOrient::Model-Class is instantiated.
+The ActiveOrient::Query-Class provides a Query-Stack and a Records-Array which keeps the results. The ActiveOrient::Query-Class acts as Parent-Class for aggregated Records (without a \@rid), which are ActiveOrient::Model::Myquery Objects. If a Query returns a database-record, the correct ActiveOrient::Model-Class is instantiated.
 
 ```ruby
    ach = ActiveOrient::Query.new
@@ -351,5 +342,5 @@ or
 
 Note that the fetched Object is of type »Stocks« (ActiveOrient::Model::Stocks).
 
-The ActiveOrient-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-ActiveOrient
+The OrientDB-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-ActiveOrient
 and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
