@@ -84,10 +84,29 @@ Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is def
 ```ruby
   M = r.create_class 'Classname'
   M = r.create_class('Classname'){superclass_name: 'SuperClassname'}
+  A,B,C = * r.create_classes( [ :a, :b, :c ] )
   Vertex = r.create_vertex_class 'VertexClassname'
   Edge   = r.create_edge_class 'EdgeClassname'
 ```
 and is of TYPE ActiveOrient::Model::{Classname}
+
+Object-Inherence is maintained, thus
+```ruby
+  r.create_vertex_class :f
+  M = r.create_class( :m ){ :f }
+  N = r.create_class( :n ){ :f }
+
+```
+allocates the following class-hierarchy:
+```ruby
+class ActiveOrient::Model:F < ActiveOrient::Model:V
+end
+class ActiveOrient::Model:M < ActiveOrient::Model:F
+end
+class ActiveOrient::Model:N < ActiveOrient::Model:F
+end
+```
+M and N are Vertexes and inherent methods (and properties) from  F
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
