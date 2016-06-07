@@ -72,7 +72,52 @@ A Sample:
     end
 
 # Used for the connection on the server
+    #
+    def initialize_class_hierarchy
+        logger.progname = 'OrientDB#InitializeClassHierachy'
+      abstract_names, nested_classes = get_class_hierarchy.partition{|x| x if x.is_a? String}
+      # concentrate all abstract classes in abstract_classes
+      abstract_classes = (abstract_names - system_classes(abstract: true)).map do | abstract_class_name |
+	 ActiveOrient::Model.orientdb_class name: abstract_class_name
+      end
+      other_classes =  initialize_classes( nested_classes )
+      (abstract_classes + other_classes)
 
+    end
+
+    def initialize_classes array
+      super_class =  block_given? ? yield : nil
+      basic, complex = array.partition{|x| x.is_a? String } 
+      basic_classes = (basic - system_classes).map do | base_class |
+	 ActiveOrient::Model.orientdb_class name: base_class , superclass: super_class
+      end
+      nested_classes = (Hash[ complex ].keys - system_classes).map do | base_class |
+	keyclass= ActiveOrient::Model.orientdb_class name: base_class , superclass: super_class
+	dependend_classes = Hash[ array ][ base_class ]
+	[keyclass, if dependend_classes.is_a? Array
+	  initialize_classes( dependend_classes ){ base_class }
+	else
+	 ActiveOrient::Model.orientdb_class name: dependend_classes , superclass: base_class
+	end
+	]
+      end
+      [basic_classes, nested_classes ].compact
+    end
+=begin
+returns the classes set by OrientDB
+Parameter: abstract: true|false
+if abstract: true is given, only basic classes (Abstact-Classes) are returend
+=end
+    def system_classes abstract: false
+
+  	basic=   ["OFunction",  "ORIDs", "ORestricted", "OSchedule", "OTriggered", "_studio"]
+	extended = ["OIdentity","ORole",  "OUser"]
+        if abstract
+	  basic
+	else
+	  basic + extended
+	end
+    end
     def get_resource
       login = [default_server[:user].to_s , default_server[:password].to_s]
       server_adress = "#{default_server[:protocol]}://#{default_server[:server]}:#{default_server[:port]}"

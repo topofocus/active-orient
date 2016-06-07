@@ -4,7 +4,8 @@ require 'spec_helper'
 describe OrientSupport::Array do
   before( :all ) do
 
-    # working-database: hc_database
+   ao =   ActiveOrient::OrientDB.new 
+   ao.delete_database database: 'ArrayTest'
     ORD  = ActiveOrient::OrientDB.new database: 'ArrayTest' 
     ORD.delete_class 'model_test'
     TestModel = ORD.open_class "model_test"
@@ -38,15 +39,15 @@ describe OrientSupport::Array do
       expect( @ecord.ll.first ).to eq "test"
       expect( @ecord.ll[2] ).to eq 8
     end
-    it "modify the Object" do
-      expect{ @ecord.add_item_to_property :ll, 't' }.to change { @ecord.ll.size }.by 1
-      expect{ @ecord.ll << 78 }.to change { @ecord.ll.size }.by 1
+    it "modify the Object", focus:true  do
+      expect{ @ecord.add_item_to_property :ll, 't' }.to change { @ecord.version }.by 1
+      expect{ @ecord.ll << 78 }.to change { @ecord.version }.by 1
 
-      expect{ @ecord.ll.delete_at(2) }.to change { @ecord.ll.size }.by -1
-      expect{ @ecord.ll.delete 'test' }.to change { @ecord.ll.size }.by -1
-      expect do
-        expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
-      end.to change{  @ecord.version }.by 1
+#      expect{ @ecord.ll.delete_at(2) }.to change { @ecord.ll.size }.by -1
+#      expect{ @ecord.ll.delete 'test' }.to change { @ecord.ll.size }.by -1
+#      expect do
+#        expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
+#      end.to change{  @ecord.version }.by 1
     end
     it "update the object" do
       expect{ @ecord.ll[0]  =  "a new Value " }.to change{ @ecord.version }
@@ -87,7 +88,7 @@ describe OrientSupport::Array do
     end
   end
 
-  context 'work with multi dimensional Arrays', focus:true do
+  context 'work with multi dimensional Arrays' do
     let( :multi_array ){ a = [1,2,3];  b = [ :a, :b, :c ]; [ a, b ] }
     it 'intitialize' do
       new_record = TestModel.create ll: multi_array

@@ -8,15 +8,14 @@ module RestDelete
 =end
 
   def delete_database database:
-    @classes = []
-    logger.progname = 'RestDelete#DropDatabase'
+    logger.progname = 'RestDelete#DeleteDatabase'
     old_ds = @database
     change_database database
     begin
   	  response = @res["/database/#{@database}"].delete
   	  if database == old_ds
-  	    change_database ""
-  	    logger.info{"Working database deleted"}
+  	    change_database  'temp'
+  	    logger.info{"Working database deleted, switched to temp"}
   	  else
   	    change_database old_ds
   	    logger.info{"Database #{database} deleted, working database is still #{@database}"}

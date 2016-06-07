@@ -87,7 +87,7 @@ module ModelRecord
   end
 
 
-  def update_item_property method, array, item = nil, items = nil
+  def update_item_property method, array, item = nil, &b
     begin
       logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
       execute_array = Array.new
@@ -133,10 +133,25 @@ module ModelRecord
       logger.error{e.inspect}
     end
   end
+=begin
+Add Items to a linked or embedded class
+Parameter
+  array : the name of the property to work on
+  item :  what to add (optional)
+  block:  has to provide an array of elements to add to the property
 
-  def add_item_to_property array, item = nil
+  example:
+   add_item_to_property :second_list do
+       (0 .. 9).map do | s |
+               ActiveOrient::Model::SecondList.create label: s
+       end  
+   end
+   adds 10 Elements to the property.
+=end
+
+  def add_item_to_property array, item = nil, &b
     items = block_given? ? yield : nil
-    update_item_property "ADD", array, item, items
+    update_item_property "ADD", array, item, &b
   end
   alias add_items_to_property add_item_to_property
   ## historical aliases

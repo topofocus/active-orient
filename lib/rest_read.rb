@@ -18,7 +18,6 @@ module RestRead
     requery = true if @classes.nil? || @classes.empty?
     if requery
   	  get_class_hierarchy requery: true
-  	  system_classes = ["OFunction", "OIdentity", "ORIDs", "ORestricted", "ORole", "OSchedule", "OTriggered", "OUser", "_studio"]
   	  all_classes = get_classes('name').map(&:values).flatten
   	  @classes = include_system_classes ? all_classes : all_classes - system_classes
     end
@@ -65,6 +64,7 @@ module RestRead
    get_class_hierachy(base_class: 'E').flatten
 
   Notice: base_class has to be noted as String! There is no implicit conversion from Symbol or Class
+  To retrieve the class hierarchy from Objects avoid calling classname,  because it depends on class_hierarchy.
 =end
 
   def get_class_hierarchy base_class: '', requery: false
@@ -87,12 +87,14 @@ module RestRead
 =end
 
   def classname name_or_class
-    name = if name_or_class.is_a? Class
-      i=name_or_class.to_s.split('::').last
-    elsif name_or_class.is_a? ActiveOrient::Model
-      name_or_class.classname
-    else
-      name_or_class.to_s.capitalize_first_letter
+    name = case  name_or_class
+	when ActiveOrient::Model
+              name_or_class.class.ref_name
+	when Class
+              name_or_class.ref_name
+#	      name_or_class.to_s.split('::').last
+	else
+	  name_or_class.to_s #.to_s.camelcase # capitalize_first_letter
     end
     ## 16/5/31  : reintegrating functionality to check wether the classname is 
     #		  present in the database or not
@@ -102,7 +104,7 @@ module RestRead
 	           name.underscore
 	  else
 	     logger.progname =  'RestRead#Classname'
-	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in active  Database" }
+	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in active Database" }
 	  nil
 
 	  end

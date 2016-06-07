@@ -25,14 +25,32 @@ module ActiveOrient
       end
     end
 
+    ## to prevent errors when calling to_a 
     def to_ary
       attributes.to_a
     end
 
+=begin
+Deletes the database class and removes the ruby-class 
+=end
+    def self.delete_class
+      orientdb.delete_class self
+      ActiveOrient::Model.send(:remove_const, naming_convention.to_sym)
+    end
+
+    # provides an unique accessor on the Class
+    # works with a class-variable, its unique through all Subclasses
     mattr_accessor :orientdb
     mattr_accessor :logger
-    
+#    mattr_accessor  :ref_name    
     # Used to read the metadata
     attr_reader :metadata
+
+    # provides an accessor at class level 
+    # it unique on all instances 
+      class << self
+	    attr_accessor :ref_name
+	    attr_accessor :abstract
+      end
   end
 end

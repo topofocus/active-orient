@@ -13,9 +13,10 @@ end
 
 describe ActiveOrient::Model do
   before( :all ) do
-    ORD = ActiveOrient::OrientDB.new database: 'MyTest'
-    ORD.delete_class 'Model_test'
-    TestModel = ORD.open_class "Model_test"
+   ao =   ActiveOrient::OrientDB.new 
+   ao.delete_database database: 'ModelTest'
+    ORD = ActiveOrient::OrientDB.new database: 'ModelTest'
+    TestModel = ORD.open_class "Modeltest"
     @myedge = ORD.create_edge_class  'Myedge'
     @mynode = ORD.create_vertex_class  'Mynode'
   end
@@ -41,18 +42,18 @@ describe ActiveOrient::Model do
 
   context "The Models have proper superClasses" do
     it "A document class has an empty superClass" do
-      expect( TestModel.superClass ).to eq ""
+      expect( TestModel.superClass ).to eq  ActiveOrient::Model => nil
     end
     it "An Vertex inherents from »V«" do
-      expect( @mynode.superClass ).to eq "V"
+      expect( @mynode.superClass ).to eq  ActiveOrient::Model::V => 'V'
     end
     it "An Edge inherents from »E«" do
-      expect( @myedge.superClass ).to eq "E"
+      expect( @myedge.superClass ).to eq ActiveOrient::Model::E => 'E'
     end
   end  # context
 
-  context "naming issues of classes" do
-    ['Indextest','testIndex'].each do | this_class |
+  context "naming issues of classes"  do
+    ['Indextest','Testindex'].each do | this_class |
       it_behaves_like 'basic class properties' , this_class
     end
   end
@@ -122,7 +123,8 @@ describe ActiveOrient::Model do
     let( :new_document ){TestModel.create test: 45 }
     it "create a document"  do
       expect( new_document.test ).to eq 45
-      expect(new_document).to be_a ActiveOrient::Model::Model_test
+      puts new_document.inspect
+      expect(new_document).to be_a ActiveOrient::Model::Modeltest
       expect( ActiveOrient::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end
 
@@ -131,12 +133,12 @@ describe ActiveOrient::Model do
       all = TestModel.all
       expect(all).to be_a Array
       expect(all.size).to eq 1
-      expect(all.first).to  be_a ActiveOrient::Model::Model_test
+      expect(all.first).to  be_a ActiveOrient::Model::Modeltest
       expect(all.first.test).to eq 45
     end
 
     it "the document can be retrieved by first" do
-      expect( TestModel.first ).to be_a ActiveOrient::Model::Model_test
+      expect( TestModel.first ).to be_a ActiveOrient::Model::Modeltest
       expect( TestModel.first.test ).to eq 45
     end
 ##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen

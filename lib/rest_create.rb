@@ -30,91 +30,194 @@ module RestCreate
   ######### CLASS ##########
 
 =begin
-  Creates classes and class-hierachies in OrientDB and in Ruby.
-  Takes an Array or a Hash as argument and returns an Array of
-  successfull allocated Ruby-Classes
-  If the argument is an array, Basic-Classes are build.
-  Otherwise key/value pairs are assumend to follow this terminology
-   {SuperClass => [class, class, ...], SuperClass => [] , ... }
+  Creates classes and class-hierarchies in OrientDB and in Ruby.
+  Takes a String,  Array or Hash as argument and returns a (nested) Array of
+  successfull allocated Ruby-Classes.
+  If a block is provided, this is used to allocate the class to this superclass.
+
+  Examples
+
+    create_class  "a_single_class"
+    create_class  :a_single_class
+    create_class(  :a_single_class ){ :a_super_class }
+    create_class(  :a_single_class ){ superclass: :a_super_class, abstract: true }
+    create_class( ["c",:l,:A,:SS] ){ :V } --> vertices
+    create_class( ["c",:l,:A,:SS] ){ superclass: :V, abstract: true } --> abstract vertices
+    create_class( { V: [ :A, :B, C: [:c1,:c3,:c2]  ],  E: [:has_content, :becomes_hot ]} )
 =end
 
-def create_general_class classes, behaviour: "NORMALCLASS", extended_class: nil, properties: nil
-  if @classes.empty?
-    @classes = get_database_classes requery: true
-  end
-
-  begin
-    consts = Array.new
-
-    if classes.is_a? Array
-      classes.each do |singleclass|
-        consts |= create_general_class singleclass, behaviour: behaviour, extended_class: extended_class, properties: properties
-      end
-
-    elsif classes.is_a? Hash
-      classes.keys.each do |superclass|
-        create_general_class superclass, behaviour: "SUPERCLASS", extended_class: nil, properties: nil
-        consts |= create_general_class classes[superclass], behaviour: "EXTENDEDCLASS", extended_class: superclass, properties: properties
-      end
-
-    else
-      name_class = classes.to_s.capitalize_first_letter
-      unless @classes.downcase.include?(name_class.downcase)
-
-        if behaviour == "NORMALCLASS"
-          command = "CREATE CLASS #{name_class}"
-        elsif behaviour == "SUPERCLASS"
-          command = "CREATE CLASS #{name_class} ABSTRACT"
-        elsif behaviour == "EXTENDEDCLASS"
-          name_superclass = extended_class.to_s
-          command = "CREATE CLASS #{name_class} EXTENDS #{name_superclass}"
-        end
-
-        #print "\n #{command} \n"
-
-        execute transaction: false do
-          [{ type:    "cmd",
-            language: "sql",
-            command:  command}]
-        end
-
-        @classes << name_class
-
-        # Add properties
-        unless properties.nil?
-          create_properties name_class, properties
-        end
-      end
-
-      consts << ActiveOrient::Model.orientdb_class(name: name_class)
+def allocate_classes_in_ruby classes
+    generate_ruby_object = ->( name, superclass, abstract ) do
+	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
+	 m.abstract = abstract
+	 m
     end
 
-  return consts
+    superclass, abstract  = if block_given? 
+			      s =  yield
+			      if s.is_a? Hash
+				[s[:superclass],s[:abstract]]
+				else
+				  [s,false]
+			      end
+			    else
+			      [nil,false]
+			    end
+    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
 
-  rescue RestClient::InternalServerError => e
-    logger.progname = 'RestCreate#CreateGeneralClass'
-    response = JSON.parse(e.response)['errors'].pop
-    logger.error{"#{response['content'].split(':').last }"}
-    nil
-  end
+    consts = case classes 
+    when  Array
+      classes.map do |singleclass|
+	if singleclass.is_a?( String) || singleclass.is_a?( Symbol)
+	generate_ruby_object[singleclass,superclass,abstract]
+	elsif singleclass.is_a?(Array) || singleclass.is_a?(Hash) 
+	  allocate_classes_in_ruby( singleclass){ {superclass: superclass, abstract: abstract}}
+	end
+      end
+    when Hash
+      classes.keys.map  do| h_superclass |
+[	generate_ruby_object[h_superclass,superclass,abstract], 
+        allocate_classes_in_ruby(classes[ h_superclass ]){{ superclass: h_superclass, abstract: abstract }} ]
+      end
+    when String, Symbol
+      generate_ruby_object[classes,superclass, abstract]
+    end
+    consts.unshift superclass_object if superclass_object.present?  rescue [ superclass_object, consts ]
+    consts
 end
-alias create_classes create_general_class
+=begin 
+General method to create database classes
+-----------------------------------------
+Accepts 
+* a string or symbol  
+  then creates a single class and returns the ActiveOrient::Model-Class
+* an arrray of strings or symbols
+  then creates alltogether and returns an array of created ActiveOrient::Model-Classes
+* a (nested) Hash 
+  then creates a hierarchy of database-classes and returns them as hash
 
-# Creates a class and returns the a ActiveOrient::Model:{Newclass}-Class- (Constant) which is designed to take any documents stored in this class
+takes an optional block to specify a superclass.
+This is NOT retruned 
+eg  
+  create_classes( :test ){ :V } 
+creates a vertex-class, but returns just ActiveOrient::Model::Test
+  create_classes( :V => :test)
+creates a vertex-class, too, but returns the Hash
+=end
 
-  def create_record_class newclass, properties: nil
-    create_general_class([newclass], properties: properties).first
-  end
-  alias open_class create_record_class
-  alias create_class create_record_class
-  alias create_document_class create_record_class
+    def create_classes classes, &b
 
-  def create_vertex_class name, superclass: 'V', properties: nil
-    create_general_class({superclass => name}, properties: properties).first
+      consts = allocate_classes_in_ruby( classes , &b )
+
+      all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
+      get_database_classes(requery: true)
+      selected_classes =  all_classes.map do | this_class |
+	this_class unless get_database_classes(requery: false).include? this_class.ref_name  
+      end.compact.uniq
+      command= selected_classes.map do | database_class |
+	## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
+	next if database_class.ref_name.blank?  
+	c = if database_class.superclass == ActiveOrient::Model || database_class.superclass.ref_name.blank?
+		    "CREATE CLASS #{database_class.ref_name}" 
+		  else
+		    "CREATE CLASS #{database_class.ref_name} EXTENDS #{database_class.superclass.ref_name}"
+		  end
+	c << " ABSTRACT" if database_class.abstract
+	{ type: "cmd", language: 'sql', command: c }
+	end
+
+	# execute anything as batch, don't roll back in case of an error
+	execute transaction: false, tolerated_error_code: /already exists in current database/ do
+	  command
+      end
+      # update the internal class hierarchy 
+      get_database_classes requery: true
+      # return all allocated classes, no matter whether they had to be created in the DB or not.
+      #  keep the format of the input-parameter
+      consts.shift if block_given? && consts.is_a?( Array) # remove the first element
+      # remove traces of superclass-allocations
+      if classes.is_a? Hash
+	consts =  Hash[ consts ] 
+	consts.each_key{ |x| consts[x].delete_if{|y| y == x} if consts[x].is_a? Array  }
+      end
+      consts
+    end
+=begin
+create a single class and provide properties as well
+
+  ORB.create_class( the_class_name as String or Symbol (nessesary) ,
+		    properties: a Hash with property- and Index-descriptions (optional)){
+		    {superclass: The name of the superclass as String or Symbol , 
+		     abstract: true|false } (optional Block provides a Hash ) }
+
+=end
+ def create_class classname, properties: nil, &b
+   the_class= create_classes( classname, &b )
+   create_properties( the_class.ref_name , properties )  if properties.present?
+   the_class # return_value
+ end
+
+  alias open_class create_class
+  alias create_document_class create_class
+
+#        create_general_class singleclass, behaviour: behaviour, extended_class: extended_class, properties: properties
+
+#    when Hash 
+#      classes.keys.each do |superclass|
+#        create_general_class superclass, behaviour: "SUPERCLASS", extended_class: nil, properties: nil
+#        create_general_class classes[superclass], behaviour: "EXTENDEDCLASS", extended_class: superclass, properties: properties
+#      end
+#
+#    else
+#      name_class = classes.to_s.capitalize_first_letter
+#      unless @classes.downcase.include?(name_class.downcase)
+#
+#        if behaviour == "NORMALCLASS"
+#          command = "CREATE CLASS #{name_class}"
+#        elsif behaviour == "SUPERCLASS"
+#          command = "CREATE CLASS #{name_class} ABSTRACT"
+#        elsif behaviour == "EXTENDEDCLASS"
+#          name_superclass = extended_class.to_s
+#          command = "CREATE CLASS #{name_class} EXTENDS #{name_superclass}"
+#        end
+#
+#        #print "\n #{command} \n"
+#
+#        execute transaction: false do
+#          [{ type:    "cmd",
+#            language: "sql",
+#            command:  command}]
+#        end
+#
+#        @classes << name_class
+#
+#        # Add properties
+#        unless properties.nil?
+#          create_properties name_class, properties
+#        end
+#      end
+#
+#      consts << ActiveOrient::Model.orientdb_class(name: name_class)
+#    end
+
+#  return consts
+#
+#  rescue RestClient::InternalServerError => e
+#    logger.progname = 'RestCreate#CreateGeneralClass'
+#    response = JSON.parse(e.response)['errors'].pop
+#    logger.error{"#{response['content'].split(':').last }"}
+#    nil
+#  end
+#end
+
+  def create_vertex_class name, properties: nil
+    create_class( :V ) unless database_classes.include? "V"
+    create_class( name, properties: properties){ {superclass: :V } } 
   end
 
   def create_edge_class name, superclass: 'E', properties: nil
-    create_general_class({superclass => name}, properties: properties).first
+    create_class( :E ) unless database_classes.include? "E"
+    create_class( name, properties: properties){ {superclass: :E } }
   end
 
   ############## OBJECT #############
@@ -127,30 +230,32 @@ alias create_classes create_general_class
   def create_edge o_class, attributes: {}, from:, to:, unique: false
     logger.progname = "ActiveOrient::RestCreate#CreateEdge"
     if from.is_a? Array
-  	  from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique}
+      from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique}
     elsif to.is_a? Array
-  	  to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique}
+      to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique}
     else
-    	if unique
-    	  wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
-    	  existing_edge = get_records(from: o_class, where: wwhere)
-    	  if existing_edge.first.is_a?(ActiveOrient::Model)
-    	    #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-    	    return existing_edge.first
-    	  end
-    	end
-    	#logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-    	response = execute(o_class, transaction: false) do
-    	  attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
-    	  [{ type: "cmd",
-          language: 'sql',
-          command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"}]
-    	end
-    	if response.is_a?(Array) && response.size == 1
-    	  response.pop # RETURN_VALUE
-    	else
-    	  response
-    	end
+      if unique
+	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
+	existing_edge = get_records(from: o_class, where: wwhere)
+	if existing_edge.first.is_a?(ActiveOrient::Model)
+	  #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+	  existing_edge.first
+	else
+	  existing_edge
+	end
+      end
+      #logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+      response = execute(transaction: false) do
+	attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
+	[{ type: "cmd",
+	  language: 'sql',
+	  command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"}]
+      end
+      if response.is_a?(Array) && response.size == 1
+	response.pop # RETURN_VALUE
+      else
+	response
+      end
     end
   end
 
@@ -328,10 +433,11 @@ alias create_classes create_general_class
 	count= response.body.to_f.to_i if response.code == 201
       end
     rescue RestClient::InternalServerError => e
+      logger.progname = 'RestCreate#CreateProperties'
       response = JSON.parse(e.response)['errors'].pop
       error_message = response['content'].split(':').last
       logger.error{"Properties in #{classname(o_class)} were NOT created"}
-      logger.error{"#{response['content'].split(':').last}"}
+      logger.error{"The Error was: #{response['content'].split(':').last}"}
       nil
     end
         ### index

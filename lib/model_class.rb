@@ -5,26 +5,58 @@ module ModelClass
 
   ######## INITIALIZE A RECORD FROM A CLASS ########
 
+
+=begin
+NamingConvention provides a translation from database-names to class-names.
+Should provide 
+   to_s.capitalize_first_letter
+as minimum.
+Can be overwritten to provide different conventions for different classes, eg. Vertexes or edges.
+To overwrite use 
+  class ActiveOrient::Model::{xxx} < ActiveOrient::Model[:: ...]
+    def self.naming_convention
+    ( convention code )
+    end
+ end
+# todo(maybe) two directional naming convention,  convert classname to database_name
+=end
+  def naming_convention name=nil
+    name.present? ? name.to_s.camelize : ref_name.camelize
+  end
+
 =begin
   orientdb_class is used to instantiate a ActiveOrient:Model:{class} by providing its name
-  todo: implement object-inherence
 =end
-
-  def orientdb_class name:
-    begin
-      klass = Class.new(self)
-      name = name.to_s.capitalize_first_letter
-      if self.send :const_defined?, name
-        retrieved_class = self.send :const_get, name
-      else
-        new_class = self.send :const_set, name, klass
-        new_class.orientdb = orientdb
-        new_class # return_value
-      end
-    rescue NameError => e
-      logger.progname = "ModelClass#OrientDBClass"
+  def orientdb_class name:, superclass: nil
+    logger.progname = "ModelClass#OrientDBClass"
+    i=0
+    ref_name =  name.to_s
+    klass = if superclass.present? 
+	      superclass = self.orientdb_class( name: superclass ) unless superclass.is_a? Class
+#	      superclass= self.send( :const_get, naming_convention(superclass) ) if superclass.is_a?( String) || superclass.is_a?( Symbol)
+	      Class.new(superclass)
+	    else
+	      Class.new(self)
+	    end
+    name = klass.naming_convention ref_name #
+    if self.send :const_defined?, name
+      retrieved_class = self.send :const_get, name
+    else
+      new_class = self.send :const_set, name, klass
+      new_class.orientdb = orientdb
+      new_class.ref_name =  ref_name
+      logger.info{"created:: Class #{new_class} < #{new_class.superclass} "}
+      logger.info{"database-table:: #{ref_name} "}
+      new_class # return_value
+    end
+  rescue NameError => e
+    if i.zero?
+      self.orientdb_class( name: superclass )
+      i += 1
+      retry
+    else
       logger.error "ActiveOrient::Model::Class #{name} cannot be initialized."
-      logger.error "The name #{name} should be capitalized, for example #{name.capitalize}."
+      logger.error e.inspect
     end
   end
 
@@ -108,7 +140,7 @@ module ModelClass
   ########## GET ###############
 
   def classname
-    orientdb.classname self
+     self.ref_name
   end
 
 # get elements by rid
@@ -219,14 +251,15 @@ module ModelClass
 # Get the superclass of the class
 
   def superClass
-    logger.progname = 'ActiveOrient::Model#Superclass'
-    r = orientdb.get_classes('name', 'superClass').detect{|x|
-      x["name"].downcase == new.class.to_s.downcase.split(':')[-1].to_s
-    }['superClass']
-    if r.empty?
-      logger.info{"#{self} does not have any superclass. Probably it is a Document"}
-    end
-    return r
+    { superclass => superclass.ref_name }
+#    logger.progname = 'ActiveOrient::Model#Superclass'
+#    r = orientdb.get_classes('name', 'superClass').detect{|x|
+#      x["name"].downcase == new.class.to_s.downcase.split(':')[-1].to_s
+#    }['superClass']
+#    if r.empty?
+#      logger.info{"#{self} does not have any superclass. Probably it is a Document"}
+#    end
+#    return r
   end
 
 =begin
@@ -238,7 +271,7 @@ module ModelClass
   def query_database query, set_from: true
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    orientdb.execute(self.to_s.split(':')[-1]) do
+    orientdb.execute do
       [sql_cmd[query.to_s]]
     end
   end
