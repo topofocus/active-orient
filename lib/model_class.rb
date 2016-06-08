@@ -88,6 +88,7 @@ To overwrite use
   def create_edge **keyword_arguments
     new_edge = orientdb.create_edge self, **keyword_arguments
     [:from,:to].each{|y|
+#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"
       keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
     }
     new_edge

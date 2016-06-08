@@ -11,7 +11,7 @@ describe ActiveOrient::OrientDB do
 #   @database_name = 'RestTest'
   end
 
-        context "create and manage a 2 layer 1:n relation" , focus: true do
+        context "create and manage a 2 layer 1:n relation"  do
           before(:all) do
 	    ORD.create_classes([ :base, :first_list, :second_list ]){ "V" }
             ORD.create_properties :base,  first_list: { type: :linklist, linkedClass: :first_list }
@@ -23,7 +23,6 @@ describe ActiveOrient::OrientDB do
 		first = ActiveOrient::Model::FirstList.create label: f
 		base.add_item_to_property :first_list , first
 
-		puts "B->F:#{b} -->  #{f}"
 		first.add_item_to_property :second_list do
 		  (0 .. 9).map do | s |
 		    ActiveOrient::Model::SecondList.create label: s
@@ -112,11 +111,8 @@ describe ActiveOrient::OrientDB do
           it "create through create_or_update"  do
             res=  ORD.create_or_update_document   ORDest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
             expect( res ).to be_a ORDest_class
-	    puts res.attributes
             expect(res.a_new_property).to eq 34
             res2= ORD.create_or_update_document  ORDest_class , set: { a_new_property: 35 } , where: {con_id: 345 }
-	    puts "res2"
-	    puts res2.inspect
             expect( res2.a_new_property).to eq 35
             expect( res2.version).to eq res.version+1
           end

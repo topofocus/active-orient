@@ -93,8 +93,8 @@ describe ActiveOrient::OrientDB do
     it "change the naming convention" do
       ## We want to represent all Edges with Uppercase-Letters
       class ActiveOrient::Model::E < ActiveOrient::Model
-	def self.naming_convention name
-	  name.upcase
+	def self.naming_convention name=nil
+	  name.present? ? name.upcase : ref_name.upcase
 	end
       end
 
@@ -128,10 +128,10 @@ describe ActiveOrient::OrientDB do
 	m =  ORD.create_class classes_simple 
 	expect(m).to have(3).items
 	classes_simple.each_with_index do |c,i|
-	  expect(m[i].ref_name).to eq c.to
+	  expect(m[i].ref_name).to eq c.to_s
 	  classes_simple.each_with_index do |c,i|
 	    expect(m[i].ref_name).to eq c.to_s
-	    expect(m[i].superclass ).to be ActiveOrient::Model::TR
+	    expect(m[i].superclass ).to be ActiveOrient::Model
 	  end
 	end
 
@@ -166,7 +166,7 @@ describe ActiveOrient::OrientDB do
         klasses = ORD.create_classes( classes_simple ){ 'V' }
         classes_simple.each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
 	expect( klasses ).to have( 3 ).items
-        klasses.each{|x| expect(x.superclass).to eq ActiveOrient::Model }
+        klasses.each{|x| expect(x.superclass).to eq ActiveOrient::Model::V }
       end
       ## When creating multible classes through a hash, the allocated
       ## class-hierarchy is returned
@@ -188,7 +188,7 @@ describe ActiveOrient::OrientDB do
         model = ORD.create_edge_class  edge_name
         expect( model.new ).to be_a ActiveOrient::Model
         expect( model.superClass ).to eq ActiveOrient::Model::E =>  "E"
-        expect( model.to_s ).to eq "ActiveOrient::Model::#{edge_name.camelize}"
+        expect( model.to_s ).to eq "ActiveOrient::Model::#{edge_name.upcase}"
         ## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
         expect( model.new.is_edge? ).to be_falsy
         expect( ORD.classname  model ).to eq edge_name
@@ -197,7 +197,7 @@ describe ActiveOrient::OrientDB do
       end
   end
 
-  context "create and delete records ", focus: true  do
+  context "create and delete records "  do
     before(:all) do 
       TheEdge =  ORD.create_edge_class "TheEdge"
       Vertex1,Vertex2 =  ORD.create_classes([:Vertex1,:Vertex2]){:V}

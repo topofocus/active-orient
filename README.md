@@ -2,42 +2,36 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-The Package is tested with Ruby 2.3.1 and Orientdb 2.1.13.
+The Package is tested with Ruby 2.3.1 and OrientDB 2.1.13.
+It works with OrientDB2.2. 
+However, the Model#Last-method incompatible.
+Use Model#all.last as Workaround.
 
 To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
 Install the Gem the usual way.
 
-For a quick start, go to the home directory of the package and start an irb-session
+For a quick start clone the project, call bundle install + bundle update, update config/connect.yml  and start an irb-session 
 
 ```ruby
-  require 'bundler/setup'
+  require 'config/boot'
   require 'active-orient'
+  ORD = ActiveOrient::OrientDB.new database: 'OrientTest'
+  => #<ActiveOrient::OrientDB:0x00000002f924d0 @res=#<RestClient::Resource:0x00000002f922c8 @url="http://localhost:2480", @block=nil, @options={:user=>(...)}, {"name"=>"V", "superClass"=>""}], @classes=["E", "OSequence", "V"]> 
 ```
 
-First, the Database-Server has to be specified. 
-```ruby
-   ActiveOrient::OrientDB.default_server= { user: 'your user', password: 'your password' }
 
-
-  r = ActiveOrient::OrientDB.new  database: 'First'
-   => I, [2015-08-18T09:49:18.858758 #88831]  INFO -- OrientDB#Connect: Connected to database First
-   => #<ActiveOrient::OrientDB:0x000000048d0488 @res=#<RestClient::Resource:0x00000004927288
-       @url="http://localhost:2480", @block=nil,
-       @options={:user=>"xx", :password=>"***"}>, @database="First", @classes=[]>
-```
-
-»r« is the Database-Instance itself.  Obviously the database is  empty.
+»ORD« is the Database-Instance itself. Obviously the database is empty.
 
 
 Let's create some classes
 
  ```ruby
-    M = r.open_class          'Classname'  #
-    M = r.create_class        'ClassDocumentName'  # creates or opens a basic document-class
-    M = r.create_vertex_class 'ClassVertexName'  # creates or opens a vertex-class
-    M = r.create_edge_class   'ClassEdgeName'  # creates or opens an edge-class, providing bidirectional links between documents
+    M = ORD.open_class          'Classname'  #
+    M = ORD.create_class        'ClassDocumentName'  # creates or opens a basic document-class
+    M = ORD.create_vertex_class 'ClassVertexName'  # creates or opens a vertex-class
+    M = ORD.create_edge_class   'ClassEdgeName'  # creates or opens an edge-class, providing bidirectional links between documents
 
-    r.delete_class M                   # universal removal-of-the-class-method
+    ORD.delete_class M                   # universal removal-of-the-class-method
  ```
 
 *Note*: As in Ruby, we use the convention that a class needs to be defined with a capital letter.
@@ -48,14 +42,14 @@ It's a shortcut for »ActiveOrient::Model::{Classname}«.
 If a schema is used, properties can be created and retrieved as well
 
  ```ruby
-    r.create_properties(M) do
+    ORD.create_properties(M) do
     {
       symbol: {propertyType: 'STRING' },
 		  con_id: {propertyType: 'INTEGER' },
       details: {propertyType: 'LINK', linkedClass: 'Contracts' }
     }
 
-  r.get_class_properties  M
+  ORD.get_class_properties  M
  ```
  or
 
@@ -68,7 +62,7 @@ If a schema is used, properties can be created and retrieved as well
 (Experimental) You can assign a property, directly when you create a class.
 
 ```ruby
-  M = r.create_vertex_class "Hour", properties: {value_string: {type: :string}, value: {type: :integer}}
+  M = ORD.create_vertex_class "Hour", properties: {value_string: {type: :string}, value: {type: :integer}}
 ```
 
 (Experimental) You can put restrictions on your properties with the command "alter_property":
@@ -82,19 +76,19 @@ If a schema is used, properties can be created and retrieved as well
 
 Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is defined  by
 ```ruby
-  M = r.create_class 'Classname'
-  M = r.create_class('Classname'){superclass_name: 'SuperClassname'}
-  A,B,C = * r.create_classes( [ :a, :b, :c ] )
-  Vertex = r.create_vertex_class 'VertexClassname'
-  Edge   = r.create_edge_class 'EdgeClassname'
+  M = ORD.create_class 'Classname'
+  M = ORD.create_class('Classname'){superclass_name: 'SuperClassname'}
+  A,B,C = * ORD.create_classes( [ :a, :b, :c ] )
+  Vertex = ORD.create_vertex_class 'VertexClassname'
+  Edge   = ORD.create_edge_class 'EdgeClassname'
 ```
 and is of TYPE ActiveOrient::Model::{Classname}
 
 Object-Inherence is maintained, thus
 ```ruby
-  r.create_vertex_class :f
-  M = r.create_class( :m ){ :f }
-  N = r.create_class( :n ){ :f }
+  ORD.create_vertex_class :f
+  M = ORD.create_class( :m ){ :f }
+  N = ORD.create_class( :n ){ :f }
 
 ```
 allocates the following class-hierarchy:
@@ -156,8 +150,8 @@ If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the 
 link if stored somewhere.
 
 ```ruby
-  TestLinks = r.create_class 'Test_link_class'
-  TestBase = r.create_class 'Test_base_class'
+  TestLinks = ORD.create_class 'Test_link_class'
+  TestBase =  ORD.create_class 'Test_base_class'
 
   link_document =  TestLinks.create  att: 'one attribute'
   base_document =  TestBase.create  base: 'my_base', single_link: link_document
@@ -189,8 +183,8 @@ the graph elements can be explored by joining the objects (a[6].b[5].c[9].d)
 #### Edges
 Edges provide bidirectional Links. They are easily handled
 ```ruby
-  Vertex = r.create_vertex_class 'd1'
-  Edge = r.create_edge_class   'e1'
+  Vertex = ORD.create_vertex_class 'd1'
+  Edge = ORD.create_edge_class   'e1'
 
   start = Vertex.create something: 'nice'
   the_end  =  Vertex.create something: 'not_nice'
@@ -206,7 +200,7 @@ Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, the
 ```ruby
   record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
   record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
-  edges = r.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
+  edges = ORD.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
     ('a'.ord .. 'z'.ord).map do |o| 
 	  { from: record1.find{|x| x.testentry == o },
 	    to:  record2.find{ |x| x.testentry.ord == o },
@@ -295,7 +289,7 @@ or
 or
 
 ```ruby
-  OpenInterest = r.open_class 'Openinterest'
+  OpenInterest = ORD.open_class 'Openinterest'
   last_12_open_interest_records = OQ.new from: OpenInterest, order: { fetch_date: :desc } , limit: 12
   bunch_of_contracts =  OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
   distinct_contracts = OQ.new from: bunch_of_contracts, projection: 'expand( distinct(@rid) )'
@@ -303,7 +297,7 @@ or
   distinct_contracts.to_s
    => "select expand( distinct(@rid) ) from ( select expand( contracts ) from ( select  from Openinterest order by fetch_date desc limit 12 ) ) "
 
-  cq = r.get_documents query: distinct_contracts
+  cq = ORD.get_documents query: distinct_contracts
 ```
 #### Execute SQL-Commands
 
@@ -352,7 +346,7 @@ Therefor complex queries can be simplified using database-variables
 The contract-documents are accessible with
 
 ```ruby
-  r.get_document '21:1'
+  ORD.get_document '21:1'
   # --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS primary_exchange: IBIS subcategory: #14:1 symbol: BAS>
 ```
 or

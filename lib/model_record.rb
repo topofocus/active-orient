@@ -179,7 +179,7 @@ Parameter
 #  Removes the Model-Instance from the database
 
 def delete
-  orientdb.delete_record rid
+  orientdb.delete_record self
   ActiveOrient::Base.remove_rid self if is_edge? # removes the obj from the rid_store
 end
 

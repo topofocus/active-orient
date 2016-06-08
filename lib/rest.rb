@@ -110,7 +110,8 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 =end
     def system_classes abstract: false
 
-  	basic=   ["OFunction",  "ORIDs", "ORestricted", "OSchedule", "OTriggered", "_studio"]
+  	basic=   ["OFunction",  "ORestricted", "OSchedule", "OTriggered", "_studio"]
+	## "ORid" dropped in V2.2
 	extended = ["OIdentity","ORole",  "OUser"]
         if abstract
 	  basic

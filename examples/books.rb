@@ -80,7 +80,7 @@ defines two serach criteria.
 if $0 == __FILE__
 
 require '../config/boot'
-    search_items =  ARGV.empty? ? ['Land', 'aus', 'Quartal'] : ARGV
+    search_items =  ARGV.empty? ? ['China', 'aus', 'Flaute'] : ARGV
     ActiveOrient::OrientDB.logger.level = Logger::WARN
     ORD = ActiveOrient::OrientDB.new database: 'BookTest'
     b = BooksExample.new  rebuild:  true
