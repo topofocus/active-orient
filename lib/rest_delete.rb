@@ -66,30 +66,47 @@ module RestDelete
   Deletes a single Record when providing a single rid-link (#00:00) or a record
   Deletes multible Records when providing a list of rid-links or a record
   Todo: implement delete_edges after querying the database in one statement
+
+  Example:
+  record =  Vertex.create_document attributes: { something: 'something' }
+  Vertex.delete_record record
+
+  records= (1..100).map{|x| Vertex.create_document attributes: { something: x } }
+  Vertex.delete_record *records
+
+  delete_records provides the removal of datasets after quering the database.
 =end
 
   def delete_record *rid
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
     ridvec = []
-    rid.each do |mm|
-      if mm.is_a?(String)
-  	    ridvec << mm if mm.rid?
-      elsif mm.is_a?(Array)
-        mm.each do |mmarr|
-          ridvec << mmarr.rid if mmarr.is_a?(ActiveOrient::Model)
-          ridvec << mmarr if mmarr.is_a?(String) && mmarr.rid?
-        end
-      elsif mm.is_a?(ActiveOrient::Model)
-        ridvec << mm.rid
-      end
-    end
-    ridvec.compact!
-
+    ridvec= rid.map( &:to_orient).flatten
+    #    old code
+#    do |mm|
+#      case mm
+#      when  String
+#  	     mm if mm.rid?
+#      when  Array
+#        mm.map do |mmarr|
+#	  if mmarr.is_a?(ActiveOrient::Model)
+#           mmarr.rid   
+#	   elsif mmarr.is_a?(String) && mmarr.rid?
+#	     mmarr
+#	   end
+#        end.compact
+#	when ActiveOrient::Model
+#         mm.rid
+#      end
+#    end.flatten
+    puts "RIDVEC"
+    puts ridvec.inspect
+#
     unless ridvec.empty?
       ridvec.each do |rid|
         begin
-          @res["/document/#{@database}/#{rid}"].delete
-        rescue RestClient::InternalServerError
+          @res["/document/#{@database}/#{rid[1..-1]}"].delete
+        rescue RestClient::InternalServerError => e
+	  puts e.inspect
           logger.error{"Record #{rid} NOT deleted"}
         rescue RestClient::ResourceNotFound
           logger.error{"Record #{rid} does not exist in the database"}

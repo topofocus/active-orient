@@ -225,15 +225,48 @@ create a single class and provide properties as well
 =begin
   create_edge connects two vertexes
   The parameter o_class can be either a class or a string
+
+  if batch is specified, the edge-statement is prepared and returned 
+  else the statement is transmitted to the database
+
+  The method takes a block as well. 
+  It must provide a Hash with :from and :to- Key's, e.g.
+
+
+      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
+      record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+
+      edges = ORD.create_edge TheEdge do | attributes |
+	 ('a'.ord .. 'z'.ord).map do |o| 
+	       { from: record1.find{|x| x.testentry == o },
+		 to: record2.find{ |x| x.testentry.ord == o },
+		 attributes: attributes.merge{ key: o.chr } }
+	  end
+
+  Benefits: The statements are transmitted as batch.
+
 =end
 
-  def create_edge o_class, attributes: {}, from:, to:, unique: false
+  def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil
     logger.progname = "ActiveOrient::RestCreate#CreateEdge"
-    if from.is_a? Array
-      from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique}
+
+    if block_given?
+      a =  yield(attributes)
+      command = if a.is_a? Array
+       a.map do | record | 
+	this_attributes =  record[:attributes].present? ? record[:attributes] : attributes
+       
+       # in batch-mode unique is not supportet	
+       create_edge o_class, attributes: this_attributes, from: record[:from], to: record[:to], unique: false, batch: true
+      end
+      else
+	create_edge o_class, attributes: attributes, from: a[:from], to: a[:to], unique: a[:uniq], batch: true
+      end
+    elsif from.is_a? Array
+      command = from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique, batch: true}
     elsif to.is_a? Array
-      to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique}
-    else
+      command = to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique, batch: true}
+    elsif from.present? && to.present?
       if unique
 	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
 	existing_edge = get_records(from: o_class, where: wwhere)
@@ -243,19 +276,31 @@ create a single class and provide properties as well
 	else
 	  existing_edge
 	end
-      end
       #logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-      response = execute(transaction: false) do
-	attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
-	[{ type: "cmd",
+    elsif from.to_orient.nil? || to.to_orient.nil? 
+      logger.error{ "Parameter :from or :to is missing"}
+    else
+      attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
+      command = { type: "cmd",
 	  language: 'sql',
-	  command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"}]
+	  command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"
+		      }
+      end
+    else 
+      # for or to are not set
+      return nil
+    end
+    if batch.nil?
+      response = execute(transaction: false) do
+	command.is_a?(Array) ? command.flatten.compact : [ command ]
       end
       if response.is_a?(Array) && response.size == 1
 	response.pop # RETURN_VALUE
       else
-	response
+	response  # return value (the normal case)
       end
+    else
+      command # return value (if batch)
     end
   end
 
@@ -383,7 +428,7 @@ create a single class and provide properties as well
     	  end
     	  [create_record(o_class, attributes: set.merge(where))]
     	else
-    	  possible_records.map{|doc| doc.update(set: set)}
+    	  possible_records.map{|doc| doc.update(set: set)} unless set.empty?
     	end
     end
   end

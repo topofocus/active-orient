@@ -201,10 +201,22 @@ Edges provide bidirectional Links. They are easily handled
   (...)
   the_edge.delete # To delete the edge
 ```
+The create_edge-Method takes a block. Then all statements are transmitted in batch-mode.
+Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, then
+```ruby
+  record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
+  record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+  edges = r.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
+    ('a'.ord .. 'z'.ord).map do |o| 
+	  { from: record1.find{|x| x.testentry == o },
+	    to:  record2.find{ |x| x.testentry.ord == o },
+	    attributes: attributes.merge( key: o.chr ) }
+      end  
+```
+connects the vertices and provides a variable "key" and a common "study" attribute to each edge.
 
 There is a basic support for traversals through a graph.
 The Edges are accessed  by their names (downcase).
-
 ```ruby
   start = Vertex.get_documents where: {something: "nice"}
   start[0].e1[0]

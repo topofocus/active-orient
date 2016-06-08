@@ -11,23 +11,20 @@ REQUIREMENT: Configurate config/connectyml (admin/user+pass)
 
 There are 3 default serach items provided. They are used if no parameter is given.
 However, any parameter given is transmitted as serach-criteria, ie.
-  ruby books.rb Land Japan 
+  ruby books.rb Juli August
 defines two serach criteria.
 
 =end
  class BooksExample
 
-    def initialize db, rebuild: true
+    def initialize  rebuild: true
       if rebuild
+	database_classes = [ :Book, :Keyword, :HAS_CONTENT ]
         print "\n === REBUILD === \n"
 	print " deleting database tables \n"
-        db.delete_class :Book
-        db.delete_class :Keyword
-        db.delete_class :HAS_CONTENT
+        database_classes.each{ | c | ORD.delete_class c }
 	print " creating Book and  Keyword as Vertex; HAS_CONTENT as Edge \n"
-        db.create_vertex_class :Book
-        db.create_vertex_class :Keyword
-        db.create_edge_class :HAS_CONTENT
+	ORD.create_classes( { V: [:Book, :Keyword], E: :HAS_CONTENT })
         print("\n === PROPERTY === \n")
         ActiveOrient::Model::Keyword.create_property(:item, type: :string, index: :unique)
         ActiveOrient::Model::Book.create_property(:title, type: :string, index: :unique)
@@ -37,12 +34,17 @@ defines two serach criteria.
 
       def read_samples
         print("\n === READ SAMPLES === \n")
+	## Lambda fill database
 	fill_database = ->(sentence, this_book ) do
-	  sentence.split(' ').each do |x|
-	    this_word = Keyword.update_or_create where: { item: x }
-	    this_edge = HC.create_edge from: this_book, to: this_word  if this_word.present?
+	  ORD.create_edge HC do
+	    sentence.split(' ').map do |x|
+	      this_word = Keyword.update_or_create where: { item: x }
+	      { :from => this_book, :to => this_word } if this_word.present?
+	    end.compact
 	  end
+
 	end
+	## Lanbda end
 	words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heute mit. Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
 	this_book =  Book.create title: 'first'
 	fill_database[ words, this_book ]
@@ -53,7 +55,7 @@ defines two serach criteria.
       end
 
     def display_books_with *desired_words
-      print("\n === display_books_with #{desired_words.map{|x| x}} === \n")
+      print("\n === display_books_with #{ desired_words.join "," } === \n")
       q =  OrientSupport::OrientQuery.new projection: 'expand( $z )'
 
       intersects = Array.new
@@ -80,12 +82,11 @@ if $0 == __FILE__
 require '../config/boot'
     search_items =  ARGV.empty? ? ['Land', 'aus', 'Quartal'] : ARGV
     ActiveOrient::OrientDB.logger.level = Logger::WARN
-    r = ActiveOrient::OrientDB.new database: 'BookTest'
-    b = BooksExample.new r, rebuild:  true
+    ORD = ActiveOrient::OrientDB.new database: 'BookTest'
+    b = BooksExample.new  rebuild:  true
 
-    Book = r.open_class "Book"
-    Keyword = r.open_class "Keyword"
-    HC = r.open_class "HAS_CONTENT"
+    Book, Keyword = *ORD.create_classes([ "Book", "Keyword" ]){ "V" }
+    HC = ORD.create_edge_class 'HAS_CONTENT'
 
     b.read_samples if Keyword.count.zero?
     b.display_books_with *search_items

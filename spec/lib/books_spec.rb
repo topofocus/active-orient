@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'pp'
 =begin
 BOOKs EXAMPLE
 
@@ -52,32 +53,34 @@ select expand( $z ) let $a = ( select expand(in('HasContent')) from Word where i
 
 describe OrientSupport::OrientQuery do
   before( :all ) do
-    ######################################## ADJUST user+password ###################
-    ORD  = ActiveOrient::OrientDB.new database: 'ArrayTest' 
+    ao =   ActiveOrient::OrientDB.new 
+    ao.delete_database database: 'BookTest'
+    ORD  = ActiveOrient::OrientDB.new database: 'BookTest' 
   end # before
 
   context "Books Words example" do
     before(:all) do
-      ORD.delete_class :book
-      Book = ORD.create_vertex_class :book
+      Book, Word = *ORD.create_classes([ :Book, :Word ]){ :V }
       Book.create_property( :title, type: :string, index: :unique )
-      ORD.delete_class :word
-      Word = ORD.create_vertex_class :word
       Word.create_property( :item , type: :string, index: :unique )
-      ORD.delete_class :has_content
-      HC= ORD.create_edge_class :has_content
+      HC= ORD.create_edge_class :HasContent
 
     end
+    # there are only the allocated classes present in the database!
+    # otherwise we have to use the "include" test
     it "check structure", focus:true do
       expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["Book","Word"]
-      expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["Has_content"]
+      expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["HasContent"]
     end
-
-    it "put test-content" do
+   
+    # we test the lambda "fill database"
+    it "put test-content" , focus: true do
       fill_database = ->(sentence, this_book ) do
-        sentence.split(' ').each do |x|
+	  ORD.create_edge HC do 
+	    sentence.split(' ').map do |x|
           this_word = Word.update_or_create where: { item: x }
-          this_edge = HC.create_edge from: this_book, to: this_word  if this_word.present?
+	  { :from => this_book, :to => this_word } if this_word.present?
+	    end.compact
         end
       end
       words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heut mit Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
