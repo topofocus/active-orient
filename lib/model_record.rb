@@ -26,6 +26,12 @@ module ModelRecord
       "0:0"
     end
   end
+=begin
+The extended representation of rid
+=end
+  def rrid
+    "#" + rid
+  end
 
   # Create a query
 

@@ -59,6 +59,18 @@ To overwrite use
       logger.error e.inspect
     end
   end
+=begin
+Retrieves the preallocated class derived from ActiveOrient::Model
+
+Only classes noted in the @classes-Array of orientdb are fetched.
+=end
+  def get_model_class name
+    if orientdb.database_classes.include?(name)
+      orientdb_class name: name
+    else
+      nil
+    end
+  end
 
   ########## CREATE ############
 
@@ -68,7 +80,10 @@ To overwrite use
     orientdb.create_record self, attributes: attributes
   end
   alias create_document create_record
-
+  
+  def create **attributes
+    create_record attributes: attributes
+  end
 
   def create_multiple_records values, new_records
     create_multiple_records self, values, new_records

@@ -229,6 +229,13 @@ describe ActiveOrient::OrientDB do
 
   end
 
+  context "populate records with data", focus: true do
+ before(:all) do
+      Dataset =  ORD.create_vertex_class 'dataset'
+      ORD.create_class 'linked_data'
+
+  end
+
   context "update records " , focus: true do
     before(:all) do
       TheDataset =  ORD.create_vertex_class 'the_dataset'
@@ -261,8 +268,18 @@ describe ActiveOrient::OrientDB do
      puts "The original: "+ @orginal.to_human
      puts "The update  : "+ @updated.to_human
      expect( @orginal.the_value).not_to eq @updated.the_value
+
+     # insert dataset and perfom action with created object
+     @orginal= ORD.upsert( TheDataset, 
+				   set: {the_value: 'TestValue40', the_other_value: 'a string02'}, 
+				   where: {the_date: Date.new(2015,11,25)} ) do | the_new_record |
+				   expect( the_new_record ).to be_a ActiveOrient::Model
+				   expect( the_new_record.the_value).to eq 'TestValue40'
+				   end
+#				     }.to change{ TheDataset.count }.by 1
+     #
+
     end
-
-
+    end
   end
 end

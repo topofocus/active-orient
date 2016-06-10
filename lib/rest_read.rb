@@ -56,6 +56,21 @@ module RestRead
   end
 
 =begin
+preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
+=end
+ def preallocate_classes
+
+   get_classes( 'name', 'superClass').each do | name_and_superclass |
+     if database_classes.include? name_and_superclass['name']
+       if name_and_superclass['superClass'].blank?
+	 allocate_classes_in_ruby name_and_superclass['name']
+       else
+	 allocate_classes_in_ruby( {name_and_superclass["superClass"] => name_and_superclass['name'] } )
+       end
+     end 
+   end
+ end
+=begin
   Returns the class_hierachy
 
   To fetch all Vertices uses:
@@ -175,6 +190,9 @@ module RestRead
     begin
       logger.progname = 'RestRead#GetRecords'
   	  url = "/query/#{@database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
+	  puts "URL"
+	  puts query.compose( destination: :rest).to_s
+	  puts url.to_s
   	  response = @res[URI.encode(url)].get
 	  JSON.parse(response.body)['result'].map do |record|
 	    if raw

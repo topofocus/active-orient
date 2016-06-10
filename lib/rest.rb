@@ -54,7 +54,7 @@ A Sample:
   initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
 =end
 
-    def initialize database: nil, connect: true
+    def initialize database: nil, connect: true, preallocate: true
       self.logger = Logger.new('/dev/stdout') unless logger.present?
       self.default_server = {
         :server => 'localhost',
@@ -68,7 +68,9 @@ A Sample:
       @database = database || default_server[:database]
       connect() if connect
       @classes = get_database_classes
-      ActiveOrient::Model.orientdb = self
+      ActiveOrient::Model.orientdb = self 
+      preallocate_classes  if preallocate
+
     end
 
 # Used for the connection on the server

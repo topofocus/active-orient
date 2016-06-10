@@ -70,7 +70,7 @@ describe ActiveOrient::OrientDB do
   end
 
 
-  describe "handle Properties at Class-Level" , focus: true do
+  describe "handle Properties at Class-Level"  do
     before(:all) do
       ORD.create_classes [ :Contract, :Exchange, 'property' ]
     end
@@ -129,7 +129,7 @@ describe ActiveOrient::OrientDB do
       ## without predefined property the test fails because the date is recognized as string.
       predefined_property
       industries = ORD.open_class :industry
-      linked_record = ActiveOrient::Model::Industry.create label: 'TestIndustry'
+      linked_record = ActiveOrient::Model::Industry.create_record attributes:{ label: 'TestIndustry' }
       expect{ ActiveOrient::Model::Property.update_or_create where: { con_id: 12345 }, 
 					set: { industry: linked_record.rid, 
 					date: Date.parse( "2011-04-04") } 
@@ -162,8 +162,8 @@ describe ActiveOrient::OrientDB do
       expect( ds.exchanges ).to have(1).items
     end
 
-    it "add  an embedded linkmap- entry " , focus: true do
-      
+    it "add  an embedded linkmap- entry " , :pending => true do
+      pending( "Query Database for last entry does not work in 2.2" )
       predefined_property
       ORD.open_class :industry
       property_record=  ActiveOrient::Model::Property.create  con_id: 12346

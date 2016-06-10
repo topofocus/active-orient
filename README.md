@@ -31,15 +31,25 @@ Let's create some classes
     M = ORD.create_vertex_class 'ClassVertexName'  # creates or opens a vertex-class
     M = ORD.create_edge_class   'ClassEdgeName'  # creates or opens an edge-class, providing bidirectional links between documents
 
-    ORD.delete_class M                   # universal removal-of-the-class-method
+    ORD.delete_class M                   # universal removal-of-the-class-method; the ruby-object is untouched
+    M.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
-
-*Note*: As in Ruby, we use the convention that a class needs to be defined with a capital letter.
 
 »M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
 It's a shortcut for »ActiveOrient::Model::{Classname}«.
 
-If a schema is used, properties can be created and retrieved as well
+To access Instances of a database-class 
+```ruby
+  instances_of_the_model_class =  ActiveOrient::Model.get_model_class( database_name )
+  # i.e.
+  I=ActiveOrient::Model.get_model_class 'Industry'  #=> ActiveOrient::Model::Industry 
+  I.superclass				            #=> ActiveOrient::Model::V 
+  I.all (...)
+ ```
+If a populated database is accessed, first all database-classes are preallocated. The "get_model_class" method is thus available from the start.
+
+
+Properties can be created and retrieved as well
 
  ```ruby
     ORD.create_properties(M) do

@@ -415,17 +415,34 @@ Otherwise it's taken unmodified.
 
 The method returns the included or the updated dataset
 =end
-  def upsert o_class, set: {}, where: {}, **args
+  def upsert o_class, set: {}, where: {}
     logger.progname = 'RestCreate#Upsert'
     if where.blank?
-      create_record(o_class, attributes: set)
+      new_record = create_record(o_class, attributes: set)
+      yield new_record if block_given?	  # in case if insert execute optional block
+      new_record			  # return_value
     else
-	set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
-	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert return after @this  #{compose_where where}" 
+       specify_return_value =  block_given? ? "" : "return after @this"
+       set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
+	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
+
+
 	puts "COMMAND: #{command} "
-	execute  do # To execute commands
+	result = execute  do # To execute commands
 	  [{ type: "cmd", language: 'sql', command: command}]
 	end.pop
+	case result
+	when ActiveOrient::Model
+	  result   # just return the result
+	when String, Numeric
+	  the_record=  get_records(from: o_class, where: where, limit: 1).pop
+	  if result.to_i == 1  # one dataset inserted, block is specified
+	   yield the_record 	
+	  end
+	  the_record # return_value
+	else
+	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
+	  end
     end
   end
 =begin
@@ -463,10 +480,8 @@ The method returns the included or the updated dataset
   end
 
   def update_or_create_a_record o_class, set: {}, where: {},   **args, &b
-	  puts "Uclassname"
-	  puts o_class
-	  puts where
     result = update_or_create_records( o_class, set: set, where: where, **args, &b) 
+    puts "Attantion: update_or_create_a_record is depriciated"
     result.first
   end
 
