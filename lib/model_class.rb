@@ -119,9 +119,6 @@ Parameter:
   alias create_or_update_document upsert
   alias update_or_create upsert
 
-  def create attributes = {}
-    (self.update_or_create_records set: attributes).first
-  end
 
 =begin
   Create a Property in the Schema of the Class
