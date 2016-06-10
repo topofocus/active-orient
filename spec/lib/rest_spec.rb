@@ -162,7 +162,8 @@ describe ActiveOrient::OrientDB do
       expect( ds.exchanges ).to have(1).items
     end
 
-    it "add  an embedded linkmap- entry " do
+    it "add  an embedded linkmap- entry " , focus: true do
+      
       predefined_property
       ORD.open_class :industry
       property_record=  ActiveOrient::Model::Property.create  con_id: 12346
@@ -178,6 +179,8 @@ describe ActiveOrient::OrientDB do
       expect( property_record.con_id ).to eq 12346
       expect( property_record.property ).to be_a Array
       expect( property_record.property ).to have(3).records
+      puts property_record.property.map( &:label).join(":")
+      puts ActiveOrient::Model::Industry.all.map(&:label).join(" -- ")
       expect( property_record.property.last ).to eq ActiveOrient::Model::Industry.last
 
       expect( property_record.property[2].label ).to eq 'Bevarage'

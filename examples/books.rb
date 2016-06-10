@@ -38,9 +38,9 @@ defines two serach criteria.
 	fill_database = ->(sentence, this_book ) do
 	  ORD.create_edge HC do
 	    sentence.split(' ').map do |x|
-	      this_word = Keyword.update_or_create where: { item: x }
+	      this_word = Keyword.upsert where: { item: x }
 	      { :from => this_book, :to => this_word } if this_word.present?
-	    end.compact
+	    end.uniq.compact
 	  end
 
 	end

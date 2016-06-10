@@ -395,19 +395,44 @@ create a single class and provide properties as well
       command += ","
     end
     command[-1] = ""
-    execute classname(o_class), transaction: false do # To execute commands
+    execute  transaction: false do # To execute commands
       [{ type: "cmd",
         language: 'sql',
         command: command}]
     end
   end
+# UPDATE <class>|CLUSTER:<cluster>|<recordID>
+  #   [SET|INCREMENT|ADD|REMOVE|PUT <field-name> = <field-value>[,]*]|[CONTENT|MERGE <JSON>]
+  #     [UPSERT]
+  #       [RETURN <returning> [<returning-expression>]]
+  #         [WHERE <conditions>]
+  #           [LOCK default|record]
+  #             [LIMIT <max-records>] [TIMEOUT <timeout>]
+=begin
+update or insert one record is implemented as upsert.
+The where-condition is merged into the set-attributes if its a hash.  
+Otherwise it's taken unmodified.
 
+The method returns the included or the updated dataset
+=end
+  def upsert o_class, set: {}, where: {}, **args
+    logger.progname = 'RestCreate#Upsert'
+    if where.blank?
+      create_record(o_class, attributes: set)
+    else
+	set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
+	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert return after @this  #{compose_where where}" 
+	puts "COMMAND: #{command} "
+	execute  do # To execute commands
+	  [{ type: "cmd", language: 'sql', command: command}]
+	end.pop
+    end
+  end
 =begin
   Creating a new Database-Entry (where is omitted)
   Or updating the Database-Entry (if present)
 
   The optional Block should provide a hash with attributes (properties). These are used if a new dataset is created.
-
   Based on the query specified in :where records are updated according to :set
 
   Returns an Array of updated documents
@@ -418,8 +443,12 @@ create a single class and provide properties as well
     if where.blank?
       [create_record(o_class, attributes: set)]
     else
-  	  set.extract!(where.keys) # removes any keys from where in set
+  	  set.extract!(where.keys) if where.is_a?(Hash) # removes any keys from where in set
+	  puts "classname"
+	  puts o_class
   	  possible_records = get_records from: classname(o_class), where: where, **args
+	  puts "possible records"
+	  puts possible_records.inspect 
     	if possible_records.empty?
     	  if block_given?
     	    more_where = yield   # do Preparations prior to the creation of the dataset
@@ -434,6 +463,9 @@ create a single class and provide properties as well
   end
 
   def update_or_create_a_record o_class, set: {}, where: {},   **args, &b
+	  puts "Uclassname"
+	  puts o_class
+	  puts where
     result = update_or_create_records( o_class, set: set, where: where, **args, &b) 
     result.first
   end

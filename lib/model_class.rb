@@ -101,9 +101,23 @@ To overwrite use
   def update_or_create_records set: {}, where: {}, **args, &b
     orientdb.update_or_create_records self, set: set, where: where, **args, &b
   end
+
+=begin 
+Creates or updates a record.
+Parameter: 
+  set: A hash of attributes to set
+  where: A string or hash as condition which should return just one record.
+ The where-part should be covered with an unique-index.
+ If where is omitted, a record is added with attributes from set:
+
+ returns the affected record
+=end
+  def upsert set:{}, where:{}
+    orientdb.upsert self, set: set, where: where
+  end
   alias update_or_create_documents update_or_create_records
-  alias create_or_update_document update_or_create_records
-  alias update_or_create update_or_create_records
+  alias create_or_update_document upsert
+  alias update_or_create upsert
 
   def create attributes = {}
     (self.update_or_create_records set: attributes).first

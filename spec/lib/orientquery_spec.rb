@@ -17,6 +17,18 @@ describe OrientSupport::OrientQuery do
       expect(q.to_s).to eq "traverse  from Model_query where a = 2 and c = 'ufz' "
     end
 
+    it "where with dates", focus: true do 
+      date = Date.today
+      q = OrientSupport::OrientQuery.new from: :Openinterest, 
+		where:{"fieldtype.date(\"yyyy-mm-dd\")"=> date.to_s}
+      q.where << {:a =>  2}
+
+      puts q.to_s
+
+
+	
+
+    end
     it "Initialisation with a Parameter" do
       q =  OrientSupport::OrientQuery.new from: TestQuery, where:{ a: 2 , c: 'ufz' }
       expect(q.where_s).to eq "where a = 2 and c = 'ufz'"

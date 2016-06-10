@@ -229,5 +229,40 @@ describe ActiveOrient::OrientDB do
 
   end
 
+  context "update records " , focus: true do
+    before(:all) do
+      TheDataset =  ORD.create_vertex_class 'the_dataset'
+      TheDataset.create_property :the_date, type: 'Date', index: :unique
+      TheDataset.create_property :the_value, type: 'String' #, index: :unique
+      TheDataset.create_property :the_other_element, type: 'String'
 
+    end
+
+    it "add to records" do
+      TheDataset.create_record  attributes: { the_value: 'TestValue', the_other_value: 'a string', 
+				    the_date: Date.new(2015,11,11) }
+      TheDataset.create_record  attributes: {the_value: 'TestValue2', the_other_value: 'a string2', 
+				    the_date: Date.new(2015,11,14) }
+      expect( TheDataset.count).to eq 2
+    end
+
+    it "update via upsert" do
+      TheDataset.create_record  attributes: {the_value: 'TestValue3', the_other_value: 'a string2', 
+				    the_date: Date.new(2015,11,17) }
+      ## insert dataset
+      expect{ @orginal= ORD.upsert TheDataset, set: {the_value: 'TestValue4', the_other_value: 'a string2'}, 
+			    where: {the_date: Date.new(2015,11,15) } }.to change{ TheDataset.count }.by 1
+      ## update dataset
+#     orginal = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
+     expect{ @updated= ORD.upsert TheDataset, set: {the_value: 'TestValue5', the_other_value: 'a string6'}, 
+			      where: { the_date: Date.new(2015,11,14) } }.not_to change { TheDataset.count }
+
+     # updated = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
+     puts "The original: "+ @orginal.to_human
+     puts "The update  : "+ @updated.to_human
+     expect( @orginal.the_value).not_to eq @updated.the_value
+    end
+
+
+  end
 end

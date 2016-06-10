@@ -78,9 +78,9 @@ describe OrientSupport::OrientQuery do
       fill_database = ->(sentence, this_book ) do
 	  ORD.create_edge HC do 
 	    sentence.split(' ').map do |x|
-          this_word = Word.update_or_create where: { item: x }
-	  { :from => this_book, :to => this_word } if this_word.present?
-	    end.compact
+          this_word = Word.upsert where: { item: x } 
+	  { :from => this_book, :to => this_word } if this_word.present?  # return value for the iteration
+	    end.uniq.compact
         end
       end
       words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heut mit Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'

@@ -9,6 +9,9 @@ module OrientSupport
   Used by update and select
 =end
 
+## ORD.compose_where 'z=34', {u:6}
+    # => "where z=34 and u = 6" 
+    #
     def compose_where *arg
       arg = arg.flatten
       return "" if arg.blank? || arg.size == 1 && arg.first.blank?
@@ -22,15 +25,27 @@ module OrientSupport
       end.join(' and ')
     end
 
+=begin
+designs a list of "Key =  Value" pairs combined by "and" or the fillword provided by the block
+   ORD.generate_sql_list  where: 25 , upper: '65' 
+    => "where = 25 and upper = '65'"
+   ORD.generate_sql_list(  con_id: 25 , symbol: :G) { ',' } 
+    => "con_id = 25 , symbol = 'G'"
+=end
     def generate_sql_list attributes = {}
+      fill = block_given? ? yield : 'and'
       attributes.map do |key, value|
 	      case value
+	      when ActiveOrient::Model
+		"#{key} = ##{value.rid}"
 	      when Numeric
           "#{key} = #{value}"
-	      else #  String, Symbol, Date, Time, Trueclass, Falseclass ...
-          "#{key} = \'#{value}\'"
+	      when Date
+		"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
+	      else #  String, Symbol, Time, Trueclass, Falseclass ...
+          "#{key} = \'#{value.to_s}\'"
 	      end
-      end.join(' and ')
+      end.join(" #{fill} ")
     end
   end
 
