@@ -131,8 +131,8 @@ Parameter:
 
  returns the affected record
 =end
-  def upsert set:{}, where:{}
-    orientdb.upsert self, set: set, where: where
+  def upsert set:{}, where:{}, &b
+    orientdb.upsert self, set: set, where: where, &b
   end
   alias update_or_create_documents update_or_create_records
   alias create_or_update_document upsert

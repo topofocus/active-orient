@@ -245,7 +245,7 @@ describe ActiveOrient::OrientDB do
 
     end
 
-    it "add to records" do
+    it "add to records", focus:true do
       TheDataset.create_record  attributes: { the_value: 'TestValue', the_other_value: 'a string', 
 				    the_date: Date.new(2015,11,11) }
       TheDataset.create_record  attributes: {the_value: 'TestValue2', the_other_value: 'a string2', 
@@ -253,7 +253,7 @@ describe ActiveOrient::OrientDB do
       expect( TheDataset.count).to eq 2
     end
 
-    it "update via upsert" do
+    it "update via upsert" , focus: true do
       TheDataset.create_record  attributes: {the_value: 'TestValue3', the_other_value: 'a string2', 
 				    the_date: Date.new(2015,11,17) }
       ## insert dataset
@@ -270,14 +270,14 @@ describe ActiveOrient::OrientDB do
      expect( @orginal.the_value).not_to eq @updated.the_value
 
      # insert dataset and perfom action with created object
-     @orginal= ORD.upsert( TheDataset, 
+     new_record = ORD.upsert( TheDataset, 
 				   set: {the_value: 'TestValue40', the_other_value: 'a string02'}, 
 				   where: {the_date: Date.new(2015,11,25)} ) do | the_new_record |
 				   expect( the_new_record ).to be_a ActiveOrient::Model
 				   expect( the_new_record.the_value).to eq 'TestValue40'
 				   end
 #				     }.to change{ TheDataset.count }.by 1
-     #
+     expect( new_record.the_value ).to eq 'TestValue40' 
 
     end
     end

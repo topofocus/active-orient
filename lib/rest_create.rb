@@ -429,7 +429,7 @@ The method returns the included or the updated dataset
 
 #	puts "COMMAND: #{command} "
 	result = execute  do # To execute commands
-	  { type: "cmd", language: 'sql', command: command}
+	 [ { type: "cmd", language: 'sql', command: command}]
 	end.pop
 	case result
 	when ActiveOrient::Model
@@ -461,11 +461,7 @@ The method returns the included or the updated dataset
       [create_record(o_class, attributes: set)]
     else
   	  set.extract!(where.keys) if where.is_a?(Hash) # removes any keys from where in set
-	  puts "classname"
-	  puts o_class
   	  possible_records = get_records from: classname(o_class), where: where, **args
-	  puts "possible records"
-	  puts possible_records.inspect 
     	if possible_records.empty?
     	  if block_given?
     	    more_where = yield   # do Preparations prior to the creation of the dataset
@@ -481,7 +477,7 @@ The method returns the included or the updated dataset
 
   def update_or_create_a_record o_class, set: {}, where: {},   **args, &b
     result = update_or_create_records( o_class, set: set, where: where, **args, &b) 
-    puts "Attantion: update_or_create_a_record is depriciated"
+    puts "Attention: update_or_create_a_record is depriciated"
     result.first
   end
 
@@ -534,14 +530,12 @@ The method returns the included or the updated dataset
     end
         ### index
     if block_given? && count == all_properties_in_a_hash.size
-      puts "creat_rest#create_properties##index detected"
       index = yield
       if index.is_a?(Hash)
 	if index.size == 1
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
 	else
 	  index_hash =  HashWithIndifferentAccess.new(type: :unique, on: all_properties_in_a_hash.keys).merge index
-	  puts "index_hash:  #{index_hash.inspect}"
 	  create_index o_class, **index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
 	end
       end
@@ -590,7 +584,7 @@ The method returns the included or the updated dataset
     		  "CREATE INDEX #{name} ON #{classname(o_class)}(#{on.to_s}) #{type.to_s.upcase}"
     		  #nil
     		end
-	  puts "command: #{command}"
+	  #puts "command: #{command}"
     	  {type: "cmd", language: 'sql', command: command} if command.present?
       end
       logger.info{"Index on #{c} based on #{name} created."}
