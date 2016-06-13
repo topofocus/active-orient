@@ -33,7 +33,7 @@ To overwrite use
     ref_name =  name.to_s
     klass = if superclass.present? 
 	      superclass = self.orientdb_class( name: superclass ) unless superclass.is_a? Class
-#	      superclass= self.send( :const_get, naming_convention(superclass) ) if superclass.is_a?( String) || superclass.is_a?( Symbol)
+	      #	      superclass= self.send( :const_get, naming_convention(superclass) ) if superclass.is_a?( String) || superclass.is_a?( Symbol)
 	      Class.new(superclass)
 	    else
 	      Class.new(self)
@@ -72,6 +72,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
     end
   end
 
+
   ########## CREATE ############
 
 # Create a new Record
@@ -93,20 +94,23 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 
 =begin
   Only if the Class inherents from »E« instantiate a new Edge between two Vertices
+
   Parameter: unique: (true)
+  
   In case of an existing Edge just update its Properties.
+  
   The parameters »from« and »to« can take a list of model-records. Then subsequent edges are created.
    :call-seq:
     self.create_edge from:, to:, unique: false, attributes:{}
 =end
 
-  def create_edge **keyword_arguments
+  def create_edge reload: false, **keyword_arguments
     new_edge = orientdb.create_edge self, **keyword_arguments
-    [:from,:to].each{|y|
-#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"
+    [:from,:to].each do |y|
+#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"a
       keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
-    }
-    new_edge
+      end if reload
+      new_edge
   end
 
 =begin

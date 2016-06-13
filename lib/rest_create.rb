@@ -427,9 +427,9 @@ The method returns the included or the updated dataset
 	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
 
 
-	puts "COMMAND: #{command} "
+#	puts "COMMAND: #{command} "
 	result = execute  do # To execute commands
-	  [{ type: "cmd", language: 'sql', command: command}]
+	  { type: "cmd", language: 'sql', command: command}
 	end.pop
 	case result
 	when ActiveOrient::Model
@@ -541,7 +541,8 @@ The method returns the included or the updated dataset
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
 	else
 	  index_hash =  HashWithIndifferentAccess.new(type: :unique, on: all_properties_in_a_hash.keys).merge index
-	  create_index o_class, index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
+	  puts "index_hash:  #{index_hash.inspect}"
+	  create_index o_class, **index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
 	end
       end
     end
@@ -590,7 +591,7 @@ The method returns the included or the updated dataset
     		  #nil
     		end
 	  puts "command: #{command}"
-    	  [{type: "cmd", language: 'sql', command: command}] if command.present?
+    	  {type: "cmd", language: 'sql', command: command} if command.present?
       end
       logger.info{"Index on #{c} based on #{name} created."}
     rescue RestClient::InternalServerError => e

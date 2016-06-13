@@ -25,33 +25,39 @@ module RestOperations
   alias count count_records
 
 =begin
-  Executes a list of commands and returns the result-array (if present)
-  structure of the provided block:
-  [{type: "cmd", language: "sql",  command: "create class Person extends V"}, (...)]
+Executes a list of commands and returns the result-array (if present)
 
+Structure of the provided block:
+  [{type: "cmd", language: "sql",  command: "create class Person extends V"}, (...)]
+--
   It was first used by ActiveOrient::Query.execute_queries
   Later I (topofocus) discovered that some Queries are not interpretated correctly by #GetRecords but are submitted without Error via batch-processing.
   For instance, this valid query
    select expand(first_list[5].second_list[9]) from base where label = 9
   can only be submitted via batch
+++
+Parameters:
+ 
+ transaction:  true|false   Perform the batch as transaction
+ tolerate_error_code: /a regular expression/   
+ Statements to execute are provided via block
+ These statements are translated to json and transmitted to the database. Example:
 
-parameters:
-  transaction:  true|false   Perform the batch as transaction
-  tolerate_error_code: /a regular expression/   
-  Statements to execute are provided via block
-    These statements are translated to json and transmitted to the database. Example:
-
-    	[{ type: "cmd",
+    	{ type: "cmd",
           language: 'sql',
-          command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient}"}]
+          command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient}"}
+
+Multible statements are transmitted at once if the Block provides an Array of statements.
+
+
 =end
 
   def execute transaction: true, tolerated_error_code: nil # Set up for classes
-    classname = 'Myquery', 
     batch = {transaction: transaction, operations: yield}
-puts "Execute# batch::"
-print "\n ----> #{batch.to_json} <----\n"
+#puts "Execute# batch::"
+#print "\n ----> #{batch.to_json} <----\n"
     unless batch[:operations].blank?
+      batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
       begin
 #	logger.info{"command(s)"+batch[:operations].join(";")}
         response = @res["/batch/#{@database}"].post batch.to_json
@@ -73,8 +79,8 @@ print "\n ----> #{batch.to_json} <----\n"
                 ActiveOrient::Model.orientdb_class(name: x['@class']).new x
               elsif x.has_key?('value')
                 x['value']
-              else
-                ActiveOrient::Model.orientdb_class(name: classname).new x
+              else   # create a dummy class and fill with attributes from result-set
+                ActiveOrient::Model.orientdb_class(name: 'query' ).new x
               end
             end
           end.compact # return_value

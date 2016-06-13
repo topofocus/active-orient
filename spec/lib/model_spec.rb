@@ -191,13 +191,12 @@ describe ActiveOrient::Model do
 
 
     it "creates an edge between two documents"  do
-      node_1 =  ORD.update_or_create_documents(  @mynode, :where => { test: 23 } ).first
-      node_2  =  ORD.update_or_create_documents( @mynode, :where => { test: 15 } ).first
-      node_3 = ORD.update_or_create_documents(  @mynode, :where => { test: 16 } ).first
-      the_edge= @myedge.create_edge(
-      attributes: { halbwertzeit: 45 },
-      from: node_1,
-      to:   node_2  )
+      node_1 =  ORD.upsert(  @mynode, :where => { test: 23 } )
+      node_2  =  ORD.upsert( @mynode, :where => { test: 15 } )
+      node_3 = ORD.upsert(  @mynode, :where => { test: 16 } )
+      the_edge= @myedge.create_edge( attributes: { halbwertzeit: 45 },
+					  from: node_1,
+					    to: node_2  )
       expect( the_edge).to be_a ActiveOrient::Model
 
       # creation of a second edge with the same properties leads to  reusing the existent edge

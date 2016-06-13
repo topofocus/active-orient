@@ -229,14 +229,14 @@ describe ActiveOrient::OrientDB do
 
   end
 
-  context "populate records with data", focus: true do
+  context "populate records with data" do
  before(:all) do
       Dataset =  ORD.create_vertex_class 'dataset'
       ORD.create_class 'linked_data'
 
   end
 
-  context "update records " , focus: true do
+  context "update records " do
     before(:all) do
       TheDataset =  ORD.create_vertex_class 'the_dataset'
       TheDataset.create_property :the_date, type: 'Date', index: :unique
