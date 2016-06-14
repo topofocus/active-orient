@@ -1,3 +1,4 @@
+require 'active_support/inflector'
 module OrientSupport
   module Support
 
@@ -40,6 +41,8 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
 		"#{key} = ##{value.rid}"
 	      when Numeric
           "#{key} = #{value}"
+	      when Array
+		"#{key}= #{value}"
 	      when Date
 		"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
 	      else #  String, Symbol, Time, Trueclass, Falseclass ...
@@ -48,6 +51,114 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
       end.join(" #{fill} ")
     end
   end
+
+
+  class MatchConnection
+    attr_accessor :as
+    def initialize edge: nil, direction: :both, as: nil, count: 1
+      @edge = edge
+      @direction = direction  # may be :both, :in, :out
+      @as =  as
+      @count =  count
+    end
+
+    def direction= dir
+      @direction =  dir
+    end
+
+
+    def direction
+      fillup =  @edge.present? ? @edge : ''
+      case @direction
+      when :both
+	" -#{fillup}- "
+      when :in
+	" <-#{fillup}- "
+      when :out
+	" -#{fillup}-> "
+      end
+
+    end
+
+    def compose
+      ministatement = @as.present? ? "{ as: #{@as} } " : "" 
+     (1 .. @count).map{|x| direction }.join("{}") << ministatement
+
+    end
+    
+  end
+
+  class MatchStatement
+    include Support
+    attr_accessor :as
+    attr_accessor :where
+    def initialize match_class=nil, **args
+      @misc  = []
+      @where = []
+      @while = []
+      @maxdepth = 0
+      @as =  nil
+
+
+      @match_class = match_class
+      @as = match_class.pluralize if match_class.is_a? String
+
+      args.each do |k, v|
+        case k
+	when :as
+	  @as = v
+        when :while
+          @while << v
+        when :where
+          @where << v
+	when :class
+	  @match_class = v
+	  @as = v.pluralize
+        else
+          self.send k, v
+        end
+      end
+    end
+    
+        def while_s
+  	  compose_where( @while ).gsub( /where/, 'while:(' )<< ")" unless @while.blank?
+    end
+
+    def match_alias
+      "as: #{@as }"
+    end
+    def where_s
+  	  compose_where( @where ).gsub( /where/, 'where:(' )<< ")"  unless @where.blank?
+    end
+  
+    def maxdepth=x
+      @maxdepth = x
+    end
+
+    def method_missing method, *arg, &b
+      @misc << method.to_s << " " << arg.map(&:to_s).join(' ')
+    end
+
+    def misc
+      @misc.join(' ') unless @misc.empty?
+    end
+    # used for the first compose-statement of a compose-query
+    def compose_simple
+   '{'+ [ "class: #{@match_class}", 
+	       "as: #{@as}" , 
+	       where_s ].compact.join(', ') + '}'
+    end
+
+    def compose
+
+        '{'+ [ "class: #{@match_class}", 
+	       "as: #{@as}" , 
+	       where_s, 
+	      while_s, 
+	      @maxdepth >0 ? "maxdepth: #{maxdepth}": nil  ].compact.join(', ')+'}'
+    end
+    alias :to_s :compose
+end
 
   class OrientQuery
     include Support
@@ -65,6 +176,7 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
     attr_accessor :let
     attr_accessor :projection
     attr_accessor :order
+    attr_accessor :match_statements
 
     def initialize  **args
       @projection = []
@@ -72,6 +184,9 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
       @let   = []
       @where = []
       @order = []
+      @aliases = []
+      @match_statements = []
+      @class =  nil
       @kind  = 'select'
       args.each do |k, v|
         case k
@@ -85,6 +200,13 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
           @where << v
         when :kind
           @kind = v
+	when :start
+	  @match_statements[0] = MatchStatement.new **v
+#  @match_statements[1] = MatchConnection.new
+	when :connection
+	  @match_statements[1] = MatchConnection.new **v
+	when :return
+	  @aliases << v
         else
           self.send k, v
         end
@@ -110,7 +232,13 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
 =end
 
     def compose(destination: :batch)
-      if destination == :rest
+      if @kind == :match
+	unless @match_statements.empty?
+	match_query =  @kind.to_s.upcase + " "+ @match_statements[0].compose_simple 
+	match_query << @match_statements[1..-1].map( &:compose ).join
+	match_query << " RETURN "<< (@match_statements.map( &:as ).compact | @aliases).join(', ')
+	end
+      elsif destination == :rest
         [@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, unwind, skip].compact.join(' ')
       else
         [@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, limit, unwind, skip].compact.join(' ')
@@ -122,23 +250,20 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
   from can either be a Databaseclass to operate on or a Subquery providing data to query further
 =end
 
+
     def from arg = nil
-    	if arg.present?
-  	    @database = case arg
-  		  when Class
-  			  arg.classname
-  		  when String
-  			  arg
-  		  when Symbol
-  			  arg
-  		  when OrientQuery
-  			  ' ( '+ arg.to_s + ' ) '
-  		  end
-  	    compose  # return the complete query
-  	  else # read from
-  	    "from #{@database}" unless @database.nil?
-  	  end
-  	end
+      if arg.present?
+	@database = case arg
+		    when OrientQuery
+		      ' ( '+ arg.to_s + ' ) '
+		    else
+		      ORD.classname(arg)
+		    end
+	compose  # return the complete query
+      else # read from
+	"from #{@database}" unless @database.nil?
+      end
+    end
     alias :from= :from
 
     def database_class
@@ -234,20 +359,21 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
     end
 
     def order_s
-  	  unless @order.empty?
-  	 # the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
-    	  "order by " << [@order].flatten.map do |o|
-    	    case o
-    	    when Hash
-    	      o.map{|x,y| "#{x} #{y}"}.join(" ")
-    	    else
-    	      o.to_s
-    	    end  # case
-    	  end.join(', ')
-    	else
-  	    ''
-  	  end
-    end
-  end
+      unless @order.empty?
+	# the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
+	"order by " << [@order].flatten.map do |o|
+	  case o
+	  when Hash
+	    o.map{|x,y| "#{x} #{y}"}.join(" ")
+	  else
+	    o.to_s
+	  end  # case
+	end.join(', ')
+      else
+	''
+      end # unless
+    end	  # def
+    end # class
+
 
 end # module
