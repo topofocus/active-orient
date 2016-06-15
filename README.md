@@ -33,7 +33,7 @@ In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb.
 To create, update,  query and remove a Document just write
 ```ruby	
     hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
-    hugo.update :set{ :father => M.create( name: "Volker", age: 76 ) }
+    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
     hugo = M.where name: 'Hugo'
     M.delete hugo 
  ```
@@ -166,7 +166,7 @@ is the same then
   I.where name: "Communications" 
 ```
 The Match-Query uses this result-set as start for subsequent queries on connected records.
-If a linear graph: Industry <- Category <- Subcategory <- Stock  is build Subcategories can 
+If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
 accessed  starting at Industry defining
 ```ruby
   var = I.match( where: { name: 'Communications'}) do | query |
