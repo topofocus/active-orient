@@ -272,6 +272,55 @@ Parameter:
     q = OrientSupport::OrientQuery.new from: self, where: attributes
     query_database q
   end
+=begin
+Performs a Match-Query
+
+The Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
+records. In the simplest version this can be returnd:
+  
+  I= ActiveOrient::Model::Industry
+  I.match where:{ name: "Communications" }
+  => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
+
+The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
+
+  I.match( where: { name: 'Communications' }).first.Industries
+
+is the same then
+  I.where name: "Communications" 
+
+  
+The Match-Query uses this result-set as start for subsequent queries on connected records.
+These connections are defined in the Block
+
+  var = I.match do | query |
+    query.connect :in, count: 2, as: 'Subcategories'
+    puts query.to_s  # print the query send to the database
+    query            # important: block has to return the query 
+  end
+  => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
+
+The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
+
+This set follows 1 ( classname and where-condition ), a connection followd by other Statement-connection-pairs.
+262 It performs a sub-query starting at the given entry-point.
+
+By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be clearly constructed. 
+
+=end
+
+  def match where: {}
+    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
+    query.match_statements[0].where =  where unless where.empty?
+    query= yield( query ) if block_given?
+    if query.is_a? OrientSupport::OrientQuery
+      query_database query, set_from: false
+    else
+      logger.progname = 'ActiveOrient::Model#Match'
+      logger.error{ "the block must return a OrientSupport::OrientQuery" }
+    end
+
+  end
 
 # Used to count of the elements in the class
 

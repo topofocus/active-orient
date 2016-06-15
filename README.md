@@ -2,13 +2,7 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-The Package is tested with Ruby 2.3.1 and OrientDB 2.1.13.
-It works with OrientDB2.2. 
-However, the Model#Last-method incompatible.
-Use Model#all.last as Workaround.
-
-To start you need a ruby 2.x Installation and a working OrientDB-Instance.  
-Install the Gem the usual way.
+You need a ruby 2.3 Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
 For a quick start clone the project, call bundle install + bundle update, update config/connect.yml  and start an irb-session 
 
@@ -18,10 +12,7 @@ For a quick start clone the project, call bundle install + bundle update, update
   ORD = ActiveOrient::OrientDB.new database: 'OrientTest'
   => #<ActiveOrient::OrientDB:0x00000002f924d0 @res=#<RestClient::Resource:0x00000002f922c8 @url="http://localhost:2480", @block=nil, @options={:user=>(...)}, {"name"=>"V", "superClass"=>""}], @classes=["E", "OSequence", "V"]> 
 ```
-
-
 »ORD« is the Database-Instance itself. Obviously the database is empty.
-
 
 Let's create some classes
 
@@ -30,43 +21,44 @@ Let's create some classes
     M = ORD.create_class        'ClassDocumentName'  # creates or opens a basic document-class
     M = ORD.create_vertex_class 'ClassVertexName'  # creates or opens a vertex-class
     M = ORD.create_edge_class   'ClassEdgeName'  # creates or opens an edge-class, providing bidirectional links between documents
-
-    ORD.delete_class M                   # universal removal-of-the-class-method; the ruby-object is untouched
     M.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
 »M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
 It's a shortcut for »ActiveOrient::Model::{Classname}«.
 
-To access Instances of a database-class 
-```ruby
-  instances_of_the_model_class =  ActiveOrient::Model.get_model_class( database_name )
-  # i.e.
-  I=ActiveOrient::Model.get_model_class 'Industry'  #=> ActiveOrient::Model::Industry 
-  I.superclass				            #=> ActiveOrient::Model::V 
-  I.all (...)
+Naming-Convention: The name given in the »create-class«-Statement becomes the Database-Classname. 
+In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
+
+To create, update,  query and remove a Document just write
+```ruby	
+    hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    hugo.update :set{ :father => M.create( name: "Volker", age: 76 ) }
+    hugo = M.where name: 'Hugo'
+    M.delete hugo 
  ```
+ 
+The database is fully object-orientated and supports inherence.
+
+Create a Tree of Objects
+```ruby
+  ORD.create_classes { :sector => [ :industry, : category, :subcategory ] }
+  I =  ActiveOrient::Model::Industry
+  S =  ActiveOrient::Model::Sector
+  I.create name: 'Communications'
+  S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
+ ```
+
 If a populated database is accessed, first all database-classes are preallocated. The "get_model_class" method is thus available from the start.
 
 
-Properties can be created and retrieved as well
-
- ```ruby
-    ORD.create_properties(M) do
-    {
-      symbol: {propertyType: 'STRING' },
-		  con_id: {propertyType: 'INTEGER' },
-      details: {propertyType: 'LINK', linkedClass: 'Contracts' }
-    }
-
-  ORD.get_class_properties  M
- ```
- or
+The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
 
  ```ruby
  M.create_property 'symbol'
  M.create_property 'con_id', type: 'integer'
  M.create_property 'details', type: 'link', other_class: 'Contracts'
+ M.create_property 'name', type: :string, index: :unique
  ```
 
 (Experimental) You can assign a property, directly when you create a class.
@@ -92,7 +84,7 @@ Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is def
   Vertex = ORD.create_vertex_class 'VertexClassname'
   Edge   = ORD.create_edge_class 'EdgeClassname'
 ```
-and is of TYPE ActiveOrient::Model::{Classname}
+and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by Class#NamingConvention
 
 Object-Inherence is maintained, thus
 ```ruby
@@ -126,7 +118,7 @@ As for ActiveRecord-Tables, the Class itself provides methods to inspect and to 
 
 A »normal« Query is submitted via
 ```ruby
-  M.get_documents projection: { projection-parameter }
+  M.get_records projection: { projection-parameter }
 		  distinct: { some parameters }
 		  where: { where-parameter }
 		  order: { sorting-parameters }
@@ -137,11 +129,11 @@ A »normal« Query is submitted via
 
 #  or
  query = OrientSupport::OrientQuery.new {paramter}  
- M.get_documents query: query
+ M.query_database query
 
 ```
 
-Basic graph-support:
+Graph-support:
 
 ```ruby
   vertex_1 = Vertex.create  color: "blue"
@@ -149,6 +141,45 @@ Basic graph-support:
   Edge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 It connects the vertexes and assigns the attributes to the edge.
+
+To query a graph,  SQL-like-Queries can be used. However, this is done very elegant using MATCH
+
+#### Match
+
+A Match-Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
+records. In the simplest version this can be returnd:
+  
+```ruby
+  I= ActiveOrient::Model::Industry
+  I.match where:{ name: "Communications" }
+  => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
+```
+
+The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
+
+```ruby
+  I.match( where: { name: 'Communications' }).first.Industries
+```
+
+is the same then
+```ruby
+  I.where name: "Communications" 
+```
+The Match-Query uses this result-set as start for subsequent queries on connected records.
+If a linear graph: Industry <- Category <- Subcategory <- Stock  is build Subcategories can 
+accessed  starting at Industry defining
+```ruby
+  var = I.match( where: { name: 'Communications'}) do | query |
+    query.connect :in, count: 2, as: 'Subcategories'
+    puts query.to_s  # print the query send to the database
+    query            # important: block has to return the query 
+  end
+  => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
+```
+
+The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
+
+By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be clearly constructed. 
 
 #### Links
 
@@ -224,7 +255,9 @@ The Edges are accessed  by their names (downcase).
 ```ruby
   start = Vertex.get_documents where: {something: "nice"}
   start[0].e1[0]
-  --> #<ActiveOrient::Model::E1:0x000000041e4e30	@metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", "cluster"=>16, "record"=>43}, @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
+  --> #<ActiveOrient::Model::E1:0x000000041e4e30	
+      @metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", "cluster"=>16, "record"=>43}, 
+      @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
 ```
 
 The Attributes "in" and "out" can be used to move across the graph
@@ -309,73 +342,5 @@ or
 
   cq = ORD.get_documents query: distinct_contracts
 ```
-#### Execute SQL-Commands
-
-Sql-commands can be executed as batch
-
-The ActiveOrient::Query-Class provides a Query-Stack and a Records-Array which keeps the results. The ActiveOrient::Query-Class acts as Parent-Class for aggregated Records (without a \@rid), which are ActiveOrient::Model::Myquery Objects. If a Query returns a database-record, the correct ActiveOrient::Model-Class is instantiated.
-
-```ruby
-   ach = ActiveOrient::Query.new
-
-   ach.queries << 'create class Contracts ABSTRACT'
-   ach.queries << 'create property Contracts.subcategory link'
-   ach.queries << 'create property Contracts.details link'
-   ach.queries << 'create class Stocks extends Contracts'
-   ach.queries << 'create class Futures extends Contracts'
-   result = ach.execute_queries transaction: false
-```
-
-It queries the database as demonstrated above. In addition, the generated query itself is added to the »queries«-Stack and the result can be found in sample_query.records.
-
-This feature can be used as a substitute for simple functions
-
-```ruby
- roq = ActiveOrient::Query.new
- roq.queries =["select name, categories.subcategories.contracts from Industries where name containstext 'ial'"]
- roq.execute_queries.each{|x| puts x.name, x.categories.inspect }
- #--> Basic Materials 	[["#21:1"]]
- #--> Financial  	[["#21:2"]]
- #--> Industrial 	[["#23:0", "#23:1"]]
-```
-
-OrientDB supports the execution of SQL-Batch-Commands.
-( http://orientdb.com/docs/2.0/orientdb.wiki/SQL-batch.html )
-This is supported simply by using a Array as Argument for ActiveOrient::Query.queries
-
-Therefor complex queries can be simplified using database-variables
-
-```ruby
-   ach = ActiveOrient::Query.new
-   ach.queries << ["select expand( contracts ) from Openinterest"
-	            "let con = select expand( contracts )  from Openinterest; ",
-		    "...", ... ]
-   result = ach.execute_queries
-```
-
-The contract-documents are accessible with
-
-```ruby
-  ORD.get_document '21:1'
-  # --><Stocks: con_id: 77680640 currency: EUR details: #18:1 exchange: SMART local_symbol: BAS primary_exchange: IBIS subcategory: #14:1 symbol: BAS>
-```
-or
-
-```ruby
-  my_query = ActiveOrient::Query.new
-  ['Contracts', 'Industries', 'Categories', 'Subcategories'].each do |table|
-    my_query.queries = ["select count(*) from #{table}"]
-    count = my_query.execute_queries
-      # count => [#<ActiveOrient::Model::Myquery:0x00000003b317c8 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"count=l"}, @attributes={"count"=>4 }] --> an Array with one Element, therefor count.pop
-    puts "Table #{table} \t #{count.pop.count} Datasets "
-  end
-  #  -->Table Contracts 	 	56 Datasets
-  #  -->Table Industries 	 8 Datasets
-  #  -->Table Categories 	22 Datasets
-  #  -->Table Subcategories 	35 Datasets
-```
-
-Note that the fetched Object is of type »Stocks« (ActiveOrient::Model::Stocks).
-
 The OrientDB-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-ActiveOrient
 and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel

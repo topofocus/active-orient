@@ -225,6 +225,56 @@ end
       nil
     end
 
+
+
+=begin
+(only if kind == :match): connect
+
+Add a connection to the match-query
+
+A Match-Query alwas has an Entry-Stratement and maybe other Statements.
+They are connected via " -> " (outE), "<-" (inE) or "--" (both).
+
+The connection method adds a connection to the statement-stack. 
+
+Parameters:
+  direction: :in, :out, :both
+  edge_class: to restrict the Query on a certain Edge-Class
+  count: To repeat the connection
+  as:  Includes a micro-statement to finalize the Match-Query
+       as: defines a output-variablet, which is used later in the return-statement
+
+The method returns the OrientSupport::MatchConnection object, which can be modified further.
+It is compiled by calling compose
+=end
+
+def connect direction, edge_class: nil, count: 1, as: nil
+  direction= :both unless [ :in, :out].include? direction
+  match_statements << m = OrientSupport::MatchConnection.new( direction: direction, count: count, as: as)
+  m
+end
+
+=begin
+(only if kind == :match): statement
+
+A Match Query consists of a simple start-statement
+( classname and where-condition ), a connection followd by other Statement-connection-pairs.
+It performs a sub-query starting at the given entry-point.
+
+Statement adds a statement to the statement-stack.
+Statement returns the created OrientSupport::MatchStatement-record for further modifications. 
+It is compiled by calling »compose«. 
+
+OrientSupport::OrientQuery collects any "as"-directive for inclusion  in the return-statement
+
+Parameter (all optional)
+ Class: classname, :where: {}, while: {}, as: string, maxdepth: >0 , 
+
+=end
+def statement match_class= nil, **args
+  match_statements << s = OrientSupport::MatchStatement.new( mattch_class, args )
+  s
+end
 =begin
   Output the compiled query
   Parameter: destination (rest, batch )
