@@ -49,7 +49,7 @@ Create a Tree of Objects
   S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
  ```
 
-If a populated database is accessed, first all database-classes are preallocated. The "get_model_class" method is thus available from the start.
+If a populated database is accessed, first all database-classes are preallocated. You can use ActiveOrient::Model::{classname} from the start.
 
 
 The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
@@ -103,6 +103,8 @@ class ActiveOrient::Model:N < ActiveOrient::Model:F
 end
 ```
 M and N are Vertexes and inherent methods (and properties) from  F
+
+**notice.** If ActiveOrient::Model::{classname} methods are defined, they have to be required _after_ initalizing the database by calling  ActiveOrient::OrientDB.new. Otherwise the preallocation mechanism fails. 
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
