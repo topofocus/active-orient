@@ -4,7 +4,8 @@ datasets.
 
 You need a ruby 2.3 Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
-For a quick start clone the project, call bundle install + bundle update, update config/connect.yml  and start an irb-session 
+For a quick start, clone the project, call bundle install + bundle update, update config/connect.yml, create the documentation by calling »rdoc«
+and start an irb-session 
 
 ```ruby
   require 'config/boot'
@@ -33,7 +34,7 @@ In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb.
 To create, update,  query and remove a Document just write
 ```ruby	
     hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
-    hugo.update :set{ :father => M.create( name: "Volker", age: 76 ) }
+    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
     hugo = M.where name: 'Hugo'
     M.delete hugo 
  ```
@@ -49,7 +50,7 @@ Create a Tree of Objects
   S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
  ```
 
-If a populated database is accessed, first all database-classes are preallocated. The "get_model_class" method is thus available from the start.
+If a populated database is accessed, first all database-classes are preallocated. You can use ActiveOrient::Model::{classname} from the start.
 
 
 The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
@@ -103,6 +104,8 @@ class ActiveOrient::Model:N < ActiveOrient::Model:F
 end
 ```
 M and N are Vertexes and inherent methods (and properties) from  F
+
+**notice.** If ActiveOrient::Model::{classname} methods are defined, they have to be required _after_ initalizing the database by calling  ActiveOrient::OrientDB.new. Otherwise the preallocation mechanism fails. 
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
@@ -166,7 +169,7 @@ is the same then
   I.where name: "Communications" 
 ```
 The Match-Query uses this result-set as start for subsequent queries on connected records.
-If a linear graph: Industry <- Category <- Subcategory <- Stock  is build Subcategories can 
+If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
 accessed  starting at Industry defining
 ```ruby
   var = I.match( where: { name: 'Communications'}) do | query |
