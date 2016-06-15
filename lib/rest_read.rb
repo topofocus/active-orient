@@ -190,16 +190,17 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
     begin
       logger.progname = 'RestRead#GetRecords'
   	  url = "/query/#{@database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
-	  puts "URL"
-	  puts query.compose( destination: :rest).to_s
-	  puts url.to_s
+#	  puts "URL"
+#	  puts query.compose( destination: :rest).to_s
+#	  puts url.to_s
   	  response = @res[URI.encode(url)].get
 	  JSON.parse(response.body)['result'].map do |record|
 	    if raw
 	      record
 	      # query returns an anonymus class: Use the provided Block or the Dummy-Model MyQuery
 	    elsif record['@class'].blank?
-	      block_given? ? yield.new(record) : ActiveOrient::Model::MyQuery.new(record)
+#	      puts "RECORD:\n"+record.inspect
+	      block_given? ? yield.new(record) : ActiveOrient::Model.orientdb_class(name: 'query' ).new( record )
 	    else
 	      ActiveOrient::Model.orientdb_class(name: record['@class']).new record
 	    end

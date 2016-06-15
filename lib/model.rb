@@ -17,8 +17,13 @@ module ActiveOrient
 =end
 
     def self.autoload_object rid
+      rid = rid[1..-1] if rid[0]=='#'
       if rid.rid?
-        @@rid_store[rid].presence || orientdb.get_record(rid)
+	if  @@rid_store[rid].present?
+	  @@rid_store[rid]  
+	else
+	   orientdb.get_record(rid)
+	end
       else
         logger.progname = "ActiveOrient::Model#AutoloadObject"
         logger.info{"#{rid} is not a valid rid."}

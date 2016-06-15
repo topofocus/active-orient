@@ -17,7 +17,7 @@ module ActiveOrient
 	     value
 	   end
         "#{attr}: #{v}" unless v.nil?
-      end.compact.sort.join(' ') + ">"
+      end.compact.sort.join(', ') + ">"
     end
 
 # Comparison support

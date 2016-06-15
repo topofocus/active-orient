@@ -3,10 +3,6 @@ module ModelRecord
 
   ############# GET #############
 
-  def to_orient
-    "##{rid}"
-  end
-
   def from_orient
     self
   end
@@ -23,7 +19,7 @@ module ModelRecord
     begin
       "#{@metadata[:cluster]}:#{@metadata[:record]}"
     rescue
-      "0:0"
+      "#0:0"
     end
   end
 =begin
@@ -32,13 +28,19 @@ The extended representation of rid
   def rrid
     "#" + rid
   end
+  alias to_orient rrid
+=begin
+Query uses a single model-objec as origin for the query
+It sends the OrientSuppor::OrientQuery direct to the database and returns a 
+ActiveOrient::Model-Object  or an Array of Model-Objects as result. 
 
-  # Create a query
+=end
 
-  def query q
-    a = ActiveOrient::Query.new
-    a.queries << q
-    a.execute_queries
+  def query query
+    sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
+    orientdb.execute do
+      sql_cmd[query.to_s]
+    end
   end
 
   # Get the version of the object

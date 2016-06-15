@@ -302,9 +302,6 @@ These connections are defined in the Block
 
 The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
 
-This set follows 1 ( classname and where-condition ), a connection followd by other Statement-connection-pairs.
-262 It performs a sub-query starting at the given entry-point.
-
 By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be clearly constructed. 
 
 =end

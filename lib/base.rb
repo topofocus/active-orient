@@ -39,8 +39,7 @@ module  ActiveOrient
     end
 
     def self.store_rid obj
-      if obj.rid.present? && obj.rid.split(":").all?{|x| x.present? && x.to_i >=  0}
-    # only positive values are stored
+      if obj.rid.present? && obj.rid.rid?
 	  # return the presence of a stored object as true by the block
 	  # the block is only executed if the presence is confirmed
 	  # Nothing is returned from the class-method
@@ -101,7 +100,7 @@ The model instance fields are then set automatically from the opts Hash.
 	      end
 	      self.attributes = attributes # set_attribute_defaults is now after_init callback
 	    end
-
+#      puts "Storing #{self.rid} to rid-store"
       ActiveOrient::Base.store_rid self
     end
 

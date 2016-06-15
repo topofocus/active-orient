@@ -304,6 +304,8 @@ end
     def from arg = nil
       if arg.present?
 	@database = case arg
+		    when ActiveOrient::Model
+		      arg.rrid
 		    when OrientQuery
 		      ' ( '+ arg.to_s + ' ) '
 		    else
