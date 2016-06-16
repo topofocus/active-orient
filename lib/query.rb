@@ -1,4 +1,6 @@
 module ActiveOrient
+
+## this is depreciated and not maintained anymore
   class Query < ActiveOrient::Model
 
     has_many :records

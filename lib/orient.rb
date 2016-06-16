@@ -59,11 +59,18 @@ module OrientSupport
       @orient.remove_item_from_property(@name){item} if @name.present?
     end
 
+    ## just works with Hashes as parameters
     def where *item
       where_string = item.map{|m| where_string = compose_where m}.join(' and ')
-      query = "SELECT FROM ( SELECT EXPAND( #{@name} ) FROM #{@orient.classname})  #{where_string} "
-      puts query
-      @orient.query query
+       subquery= OrientSupport::OrientQuery.new from: @orient, projection: "expand( #{@name})"
+       q= OrientSupport::OrientQuery.new from: subquery, where: item
+#      query = "SELECT FROM ( SELECT EXPAND( #{@name} ) FROM #{@orient.classname})  #{where_string} "
+     # puts q.compose
+     #  sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
+    #  @orient.orientdb.execute do
+#	  sql_cmd[query.to_s]
+#      end
+       @orient.thx q 
     end
 
     def method_missing *args

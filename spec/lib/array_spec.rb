@@ -39,17 +39,20 @@ describe OrientSupport::Array do
       expect( @ecord.ll.first ).to eq "test"
       expect( @ecord.ll[2] ).to eq 8
     end
-    it "modify the Object", focus:true  do
-      expect{ @ecord.add_item_to_property :ll, 't' }.to change { @ecord.version }.by 1
-      expect{ @ecord.ll << 78 }.to change { @ecord.version }.by 1
+    it "modify the Object" , focus: true do
+      expect{ @ecord.add_item_to_property( :ll, 't') ; @ecord.reload! }.to change { @ecord.version }.by 1
+      expect{ @ecord.ll << 78 }.to change { @ecord.ll.size }.by 1
+      expect{ @ecord.reload! }.to change { @ecord.version }.by 1
 
-#      expect{ @ecord.ll.delete_at(2) }.to change { @ecord.ll.size }.by -1
-#      expect{ @ecord.ll.delete 'test' }.to change { @ecord.ll.size }.by -1
-#      expect do
-#        expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
-#      end.to change{  @ecord.version }.by 1
+      expect{ @ecord.ll.delete_at(2) }.to change { @ecord.ll.size }.by -1
+      expect{ @ecord.ll.delete 'test' }.to change { @ecord.ll.size }.by -1
+      expect{ @ecord.reload! }.to change { @ecord.version }.by 2
+      expect do
+        expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
+	@ecord.reload!
+      end.to change{  @ecord.version }.by 1
     end
-    it "update the object" do
+    it "update the object"  do
       expect{ @ecord.ll[0]  =  "a new Value " }.to change{ @ecord.version }
       expect( @ecord.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
 
@@ -83,7 +86,7 @@ describe OrientSupport::Array do
         expect{ @new_record.ll.delete  1,8 }.to change { @new_record.ll.size }.by -2
         expect{ @new_record.ll.delete_if{|x| x.is_a?(Numeric)}}.to change {@new_record.ll.size }.by -6
         expect{ @new_record.ll.delete_if{|x| x.is_a?(ActiveOrient::Model) && x.att.to_i == 3}}.to change {@new_record.ll.size }.by -1
-        expect{ @new_record.ll.delete_if{|x| x == LinkClass.first.link}}.to change {@new_record.ll.size }.by -1
+        expect{ @new_record.ll.delete_if{|x| x == LinkClass.first.rid}}.to change {@new_record.ll.size }.by -1
       end
     end
   end
@@ -100,13 +103,13 @@ describe OrientSupport::Array do
       dataset =  TestModel.create ll: []    # create schemaless property type embedded
       expect{ dataset.update set: {ll: multi_array  } }.to change{ dataset.version }
       # explicit reread the dataset
-      data_set =  TestModel.last
+      data_set =  TestModel.all.last  # last does not work in Vers. 2.2
       expect( data_set.ll ).to eq [[1, 2, 3], ['a', 'b', 'c']]
 
     end
 
   end
-  context 'work with subsets of the embedded array' do
+  context 'work with subsets of the embedded array', focus: true  do
     before(:all) do
       ORD.delete_class  'Test_link_class'
 
@@ -121,19 +124,23 @@ describe OrientSupport::Array do
     #    it{ expect( @new_record.ll ).to have(198).items }
 
     it "get one element from the embedded array by index" do
-      i = 50
+      i = 40
       #	numeric_element =  @new_record.ll[i]
       linked_element = @new_record.ll[i+1]
 
       #          expect( numeric_element ).to be_a Numeric
-      expect( linked_element ).to be_a ActiveOrient::Model::LinkClass
+      expect( linked_element ).to be_a LinkClass
     end
 
     it "get one element from the embedded array by condition" do
+      expect(  @new_record.ll.find_all{|x| x.is_a?( ActiveOrient::Model)  &&  x.att == "30 attribute" }.pop ).to be_a LinkClass
       expect(  @new_record.ll.where( :att => "30 attribute" ).pop ).to be_a LinkClass
-      linked_element =  @new_record.ll.where( "att matches  '\b3\b'" )
-      #       linked_element =  @new_record.ll.where( "att like '3\u0025'" )
-      puts linked_element.inspect
+      # matches is broken in 2.2
+      #linked_element =  @new_record.ll.where( "att matches  '\b3\b'" )a
+      #  like + % does not work in REST environment
+       #      linked_element =  @new_record.ll.where( "att like '3%'" )
+             #linked_element =  @new_record.ll.where( "att like '3\u0025'" )
+      #puts linked_element.inspect
       # raises an Error: 505 HTTP Version Not Supported
     end
 
