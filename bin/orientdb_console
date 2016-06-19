@@ -1,0 +1,48 @@
+#!/usr/bin/env jruby
+require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
+#require File.expand_path(File.dirname(__FILE__) + "/../lib/orientdb")
+config_file = File.expand_path(File.dirname(__FILE__) + '/../config/connect.yml')
+e=  ARGV.present? ? ARGV.last.downcase : 'development'
+env =  if e =~ /^p/
+	 'production'
+       elsif e =~ /^t/
+	 'test'
+       else
+	 'development'
+       end
+ puts "Using #{env}-environment"
+ orientyml   = YAML.load_file( config_file )[:orientdb]
+  
+ require 'orientdb'
+
+ORD =	ActiveOrient::OrientDB.new database: orientyml[:database][env.to_sym]
+DB  =	OrientDB::DocumentDatabase.new("remote:localhost/#{ orientyml[:database][env.to_sym]}")
+
+puts "using  #{orientyml[:database][env.to_sym]}"
+
+puts "ORD points to the REST-Instance and"
+puts "DB is the Java-API-Instance of the database"
+
+puts "Allocated Classes"
+puts '-'* 25
+puts ORD.class_hierarchy
+#if ARGV.include?('test:db')
+#  GEM_ROOT  = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+#  TEMP_DIR  = Dir.pwd + '/tmp'
+#
+#  TEST_DB_PATH = "#{TEMP_DIR}/databases/db_#{rand(999) + 1}"
+#
+#  puts ">> GEM_ROOT     : #{GEM_ROOT}"
+#  puts ">> TEST_DB PATH : #{TEST_DB_PATH}"
+#
+#  require 'fileutils'
+#  FileUtils.remove_dir "#{TEMP_DIR}/databases" rescue nil
+#  FileUtils.mkdir_p TEST_DB_PATH
+#  DB = OrientDB::DocumentDatabase.new("local:#{TEST_DB_PATH}/test").create
+#end
+
+include OrientDB
+
+require 'irb'
+ARGV.clear
+IRB.start(__FILE__)

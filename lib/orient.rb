@@ -18,7 +18,7 @@ module OrientSupport
     end
 
     def << arg
-      print "\n ---> #{@name}, #{arg} <--- \n"
+      #print "\n ---> #{@name}, #{arg} <--- \n"
       @orient.add_item_to_property(@name, arg) if @name.present?
       super
     end
@@ -70,7 +70,7 @@ module OrientSupport
     #  @orient.orientdb.execute do
 #	  sql_cmd[query.to_s]
 #      end
-       @orient.thx q 
+       @orient.query q 
     end
 
     def method_missing *args

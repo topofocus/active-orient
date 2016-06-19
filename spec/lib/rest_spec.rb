@@ -11,9 +11,9 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'RestTest'
-   ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
+#   ao =   ActiveOrient::OrientDB.new 
+#   ao.delete_database database: 'RestTest'
+#   ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
 #   @database_name = 'RestTest'
   end
 

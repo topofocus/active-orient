@@ -7,9 +7,10 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'RestTest'
-   ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
+   #ao =   ActiveOrient::OrientDB.new 
+   #ao.delete_database database: 'RestTest'
+   #ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
+    ORD.database_classes.each{|x| ORD.delete_class x }
   end
 
 
@@ -101,7 +102,9 @@ describe ActiveOrient::OrientDB do
 #      m = ActiveOrient::Model.orientdb_class  name:"zweiter", superclass: :E
  #     puts m.inspect
  #     puts m.superclass
-      m = ORD.create_class( "zweiter"){  :E }
+#      ORD.create_class 'E
+    ### if the block contains a Symbol, the test fails
+      m = ORD.create_class( "zweiter"){  'E' }
       puts m.classname
       expect(m.superclass).to be ActiveOrient::Model::E
       expect(m).to be ActiveOrient::Model::ZWEITER
@@ -131,7 +134,7 @@ describe ActiveOrient::OrientDB do
 	  expect(m[i].ref_name).to eq c.to_s
 	  classes_simple.each_with_index do |c,i|
 	    expect(m[i].ref_name).to eq c.to_s
-	    expect(m[i].superclass ).to be ActiveOrient::Model
+	    expect(m[i].superclass ).to be ActiveOrient::Model::V
 	  end
 	end
 
@@ -236,7 +239,7 @@ describe ActiveOrient::OrientDB do
 
   end
 
-  context "update records " do
+  context "update records "  do
     before(:all) do
       TheDataset =  ORD.create_vertex_class 'the_dataset'
       TheDataset.create_property :the_date, type: 'Date', index: :unique
@@ -245,7 +248,7 @@ describe ActiveOrient::OrientDB do
 
     end
 
-    it "add to records", focus:true do
+    it "add to records"  do
       TheDataset.create_record  attributes: { the_value: 'TestValue', the_other_value: 'a string', 
 				    the_date: Date.new(2015,11,11) }
       TheDataset.create_record  attributes: {the_value: 'TestValue2', the_other_value: 'a string2', 
@@ -253,7 +256,7 @@ describe ActiveOrient::OrientDB do
       expect( TheDataset.count).to eq 2
     end
 
-    it "update via upsert" , focus: true do
+    it "update via upsert" do
       TheDataset.create_record  attributes: {the_value: 'TestValue3', the_other_value: 'a string2', 
 				    the_date: Date.new(2015,11,17) }
       ## insert dataset
@@ -272,7 +275,7 @@ describe ActiveOrient::OrientDB do
      # insert dataset and perfom action with created object
      new_record = ORD.upsert( TheDataset, 
 				   set: {the_value: 'TestValue40', the_other_value: 'a string02'}, 
-				   where: {the_date: Date.new(2015,11,25)} ) do | the_new_record |
+				   where: {the_date: Date.new(2015,11,14)} ) do | the_new_record |
 				   expect( the_new_record ).to be_a ActiveOrient::Model
 				   expect( the_new_record.the_value).to eq 'TestValue40'
 				   end

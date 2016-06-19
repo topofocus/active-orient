@@ -1,7 +1,20 @@
 
 require 'spec_helper'
-require 'model_helper'
-require 'active_support'
+#require 'model_helper'
+#require 'active_support'
+ shared_examples_for 'basic class properties' do |bez|
+     
+     it "class #{bez}: initialize and add a property " do 
+      ORD.delete_class bez 
+      subject = ORD.create_class bez
+puts "subject:  #{subject.inspect}"
+puts "superclass: #{subject.superclass}"
+puts "ref name: #{subject.ref_name}"
+      subject.create_property :test_ind, type: 'string' 
+
+      expect( subject.get_properties[:properties] ).to have(1).item 
+     end
+ end
 
 module ActiveOrient
   class Base
@@ -13,9 +26,11 @@ end
 
 describe ActiveOrient::Model do
   before( :all ) do
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'ModelTest'
-    ORD = ActiveOrient::OrientDB.new database: 'ModelTest'
+#   ao =   ActiveOrient::OrientDB.new 
+#   ao.delete_database database: 'ModelTest'
+#    ORD = ActiveOrient::OrientDB.new database: 'ModelTest'
+    TestModel = ORD.open_class "Modeltest"
+    TestModel.delete_class
     TestModel = ORD.open_class "Modeltest"
     @myedge = ORD.create_edge_class  'Myedge'
     @mynode = ORD.create_vertex_class  'Mynode'

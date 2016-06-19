@@ -12,9 +12,6 @@ require File.expand_path('../../lib/rest', __FILE__)
 RSpec.configure do |config|
 	config.mock_with :rspec
 	config.color = true
-	#		config.order = "random"
-
-
 	# ermöglicht die Einschränkung der zu testenden Specs
 	# durch  >>it "irgendwas", :focus => true do <<
 	config.filter_run :focus => true
@@ -38,3 +35,5 @@ RSpec.shared_context 'private', private: true do
 	      end
 
 end
+
+#require 'model_helper'

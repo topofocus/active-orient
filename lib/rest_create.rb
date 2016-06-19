@@ -112,7 +112,7 @@ creates a vertex-class, too, but returns the Hash
       all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
       get_database_classes(requery: true)
       selected_classes =  all_classes.map do | this_class |
-	this_class unless get_database_classes(requery: false).include? this_class.ref_name  
+	this_class unless get_database_classes(requery: false).include?( this_class.ref_name ) rescue nil
       end.compact.uniq
       command= selected_classes.map do | database_class |
 	## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
@@ -224,6 +224,7 @@ create a single class and provide properties as well
 
 =begin
   create_edge connects two vertexes
+
   The parameter o_class can be either a class or a string
 
   if batch is specified, the edge-statement is prepared and returned 
@@ -231,19 +232,29 @@ create a single class and provide properties as well
 
   The method takes a block as well. 
   It must provide a Hash with :from and :to- Key's, e.g.
+      Vertex1, Vertex2 = ActiveOrient::Model:Test1, ActiveOrient::Model::Test2
 
-
-      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
+      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes: { testentry: y  }
       record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
 
       edges = ORD.create_edge TheEdge do | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
 	       { from: record1.find{|x| x.testentry == o },
-		 to: record2.find{ |x| x.testentry.ord == o },
+		 to:   record2.find{ |x| x.testentry.ord == o },
+		 attributes: attributes.merge{ key: o.chr } }
+	  end
+  or
+
+      edges = ORD.create_edge TheEdge do | attributes |
+	 ('a'.ord .. 'z'.ord).map do |o| 
+	       { from: Vertex1.where( testentry:  o ).pop ,
+		 to:   Vertex2.where( testentry.ord =>  o).pop ,
 		 attributes: attributes.merge{ key: o.chr } }
 	  end
 
   Benefits: The statements are transmitted as batch.
+
+  The pure-ruby-solution minimizes traffic to the database-server and is prefered.
 
 =end
 
@@ -415,7 +426,7 @@ Otherwise it's taken unmodified.
 
 The method returns the included or the updated dataset
 =end
-  def upsert o_class, set: {}, where: {}
+  def upsert o_class, set: {}, where: {} 
     logger.progname = 'RestCreate#Upsert'
     if where.blank?
       new_record = create_record(o_class, attributes: set)
@@ -428,9 +439,11 @@ The method returns the included or the updated dataset
 
 
 #	puts "COMMAND: #{command} "
-	result = execute  do # To execute commands
+	result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
 	 [ { type: "cmd", language: 'sql', command: command}]
-	end.pop
+	end 
+	result =result.pop if result.is_a? Array
+
 	case result
 	when ActiveOrient::Model
 	  result   # just return the result

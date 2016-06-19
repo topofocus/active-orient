@@ -39,7 +39,7 @@ describe OrientSupport::Array do
       expect( @ecord.ll.first ).to eq "test"
       expect( @ecord.ll[2] ).to eq 8
     end
-    it "modify the Object" , focus: true do
+    it "modify the Object"  do
       expect{ @ecord.add_item_to_property( :ll, 't') ; @ecord.reload! }.to change { @ecord.version }.by 1
       expect{ @ecord.ll << 78 }.to change { @ecord.ll.size }.by 1
       expect{ @ecord.reload! }.to change { @ecord.version }.by 1
@@ -109,7 +109,7 @@ describe OrientSupport::Array do
     end
 
   end
-  context 'work with subsets of the embedded array', focus: true  do
+  context 'work with subsets of the embedded array'  do
     before(:all) do
       ORD.delete_class  'Test_link_class'
 
@@ -171,12 +171,29 @@ describe OrientSupport::Array do
       expect{ @new_record.aLinkSet << LinkClass.create( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
       #	expect{ @new_record.aLinkSet.delete  LinkClass.last }.to change { @new_record.aLinkSet.size }.by -1
       # gives an Error - its not possible to mix links with other objects
-      #	expect{ @new_record.aLinkSet.<<   9 }.to change { @new_record.aLinkSet.size }.by 1
+     	expect{ @record_with_6 =  @new_record.aLinkSet <<   6 }.to change { @new_record.aLinkSet.size }.by 1
+	puts @record_with_6.inspect
+	### this fails!!
+#     	expect{ @new_record.aLinkSet.delete  @record_with_6 }.to change { @new_record.aLinkSet.size }.by -1
       expect{ @new_record.aLinkSet.delete 19 }.not_to change { @new_record.aLinkSet.size }
       expect{ @new_record.aLinkSet.delete  LinkClass.last, LinkClass.first  }.to change { @new_record.aLinkSet.size }.by -2
-      expect{ @new_record.aLinkSet.delete_if{|x| x == LinkClass.where( att: '5 attribute').pop.link}}.to change {@new_record.aLinkSet.size }.by -1
+      expect{ @new_record.aLinkSet.delete_if{|x| x == LinkClass.where( att: '5 attribute').pop.rid}}.to change {@new_record.aLinkSet.size }.by -1
     end
 
   end
+
+#  context 'create an array and save it to a linkmap' do
+#    before( :all ) do
+#      AC= ORD.create_class  'array_class'
+#      TLC= ORD.create_class  'this_link_class'
+#      TLC.create_linkset 'this_set', AC
+#      @item =  TLC.create this_set: [] 
+#
+#    end
+#
+#    set( :the_array ) do
+#      a = OrientSupport::Array.new
+#    end
+#  end
 
 end

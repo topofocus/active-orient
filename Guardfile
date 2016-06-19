@@ -1,7 +1,10 @@
 # A sample Guardfile
 # More info at https://github.com/guard/guard#readme
 
-guard :rspec, cmd: "bundle exec rspec" do
+interactor :simple
+guard 'jruby-rspec' do  #', :spec_paths => ["spec"]
+
+#guard :rspec, cmd: "bundle exec rspec" do
   require "ostruct"
 
   # Generic Ruby apps
