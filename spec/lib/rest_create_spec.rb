@@ -7,10 +7,13 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-   #ao =   ActiveOrient::OrientDB.new 
-   #ao.delete_database database: 'RestTest'
+   ao =   ActiveOrient::OrientDB.new 
+   ao.delete_database database: 'RestTest'
+   ActiveOrient.database = 'RestTest'
+   ORD  =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new #database: 'RestTest' 
+   DB= ActiveOrient::Model.db =  ActiveOrient::API.new 
    #ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
-    ORD.database_classes.each{|x| ORD.delete_class x }
+  #  ORD.database_classes.each{|x| ORD.delete_class x }
   end
 
 
@@ -56,16 +59,16 @@ describe ActiveOrient::OrientDB do
   context "initialize class hierachie from database"   do
     let( :orientclasses ){ ORD.get_class_hierarchy requery: true }
 
-    it "orientdb-hierachy includes system classes" do
-      expect( orientclasses ).to be_a Array
-      ## systemclasses must be reduced from [OIdentity[ORole,OUser]]
-      ORD.system_classes( abstract: true).each do | system_class |
-	unless system_class == '_studio' ### this systemclass is not present until studio processed the database
-	  expect( orientclasses.map{ |x| x if x.is_a? String} ).to include system_class
-	end
-      end
-    end
-
+#    it "orientdb-hierachy includes system classes" do
+#      expect( orientclasses ).to be_a Array
+#      ## systemclasses must be reduced from [OIdentity[ORole,OUser]]
+#      ORD.system_classes( abstract: true).each do | system_class |
+#	unless system_class == '_studio' ### this systemclass is not present until studio processed the database
+#	  expect( orientclasses.map{ |x| x if x.is_a? String} ).to include system_class
+#	end
+#      end
+#    end
+#
     it "abstract-classes can be initialized" do
      classes= ORD.initialize_class_hierarchy
      pp classes.compact
@@ -91,7 +94,7 @@ describe ActiveOrient::OrientDB do
 #      n = ORD.open_class "
     end
 
-    it "change the naming convention" do
+    it "change the naming convention"  do
       ## We want to represent all Edges with Uppercase-Letters
       class ActiveOrient::Model::E < ActiveOrient::Model
 	def self.naming_convention name=nil
@@ -99,12 +102,7 @@ describe ActiveOrient::OrientDB do
 	end
       end
 
-#      m = ActiveOrient::Model.orientdb_class  name:"zweiter", superclass: :E
- #     puts m.inspect
- #     puts m.superclass
-#      ORD.create_class 'E
-    ### if the block contains a Symbol, the test fails
-      m = ORD.create_class( "zweiter"){  'E' }
+      m = ORD.create_class( "zweiter"){ :E }
       puts m.classname
       expect(m.superclass).to be ActiveOrient::Model::E
       expect(m).to be ActiveOrient::Model::ZWEITER
@@ -128,13 +126,13 @@ describe ActiveOrient::OrientDB do
     end
 
     it "create a bunch of abstract classes" do
-	m =  ORD.create_class classes_simple 
+	m =  ORD.create_classes classes_simple 
 	expect(m).to have(3).items
 	classes_simple.each_with_index do |c,i|
 	  expect(m[i].ref_name).to eq c.to_s
 	  classes_simple.each_with_index do |c,i|
 	    expect(m[i].ref_name).to eq c.to_s
-	    expect(m[i].superclass ).to be ActiveOrient::Model::V
+	    expect(m[i].superclass ).to be ActiveOrient::Model
 	  end
 	end
 
@@ -176,7 +174,7 @@ describe ActiveOrient::OrientDB do
       it "create Vertex classes through hash"  do
 #	classes_simple.each{|x| ORD.delete_class x }
         klasses = ORD.create_classes( classes_vertex ) 
-#        classes_vertex[:v].each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
+        classes_vertex[:V].each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
 	# klasses : {ActiveOrient::Model =>
 	#	[ ActiveOrient::Model::V, ActiveOrient::Model::V, ActiveOrient::Model::V]]
 	expect( klasses.keys.first).to be ActiveOrient::Model::V 
@@ -200,28 +198,28 @@ describe ActiveOrient::OrientDB do
       end
   end
 
-  context "create and delete records "  do
+  context "create and delete records ", focus: true  do
     before(:all) do 
-      TheEdge =  ORD.create_edge_class "TheEdge"
-      Vertex1,Vertex2 =  ORD.create_classes([:Vertex1,:Vertex2]){:V}
+      TheEdge =  DB.create_edge_class "TheEdge"
+      Vertex1,Vertex2 =  DB.create_classes([:Vertex1,:Vertex2]){:V}
     end
     
     it "populate database-table with data and subsequent delete them" do
-      records = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
+      records = (1 .. 100).map{|y| Vertex1.create testentry: y }
       expect( Vertex1.count ).to eq 100
       expect( records ).to have(100).items
       Vertex1.delete_record  *records
       expect( Vertex1.count).to be_zero
-    end
+   end
 
     it "populate database with data and connect them via an edge" do
-      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
-      record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+      record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
+     record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
       expect(record1).to have(100).items
       expect(record2).to have(26).items
 
       ## create just sql-statements
-      edges = ORD.create_edge TheEdge do  | attributes |
+      edges = DB.create_edge TheEdge do  | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
 	       { from: record1.find{|x| x.testentry == o },
 		 to: record2.find{ |x| x.testentry.ord == o } ,
@@ -268,8 +266,8 @@ describe ActiveOrient::OrientDB do
 			      where: { the_date: Date.new(2015,11,14) } }.not_to change { TheDataset.count }
 
      # updated = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
-     puts "The original: "+ @orginal.to_human
-     puts "The update  : "+ @updated.to_human
+     #puts "The original: "+ @orginal.to_human
+     #puts "The update  : "+ @updated.to_human
      expect( @orginal.the_value).not_to eq @updated.the_value
 
      # insert dataset and perfom action with created object

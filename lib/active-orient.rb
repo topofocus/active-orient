@@ -6,7 +6,7 @@ require_relative "orient.rb"
 require_relative "model.rb"
 #require_relative "query.rb"
 if RUBY_PLATFORM == 'java'
-  require_relative 'jdbc.rb'
+  require_relative 'java-api.rb'
   end
 require_relative "rest.rb"
 
@@ -16,3 +16,9 @@ logger.formatter = proc do |severity, datetime, progname, msg|
 end
 ActiveOrient::Model.logger =  logger
 ActiveOrient::OrientDB.logger =  logger
+
+module  ActiveOrient
+mattr_accessor :database
+mattr_accessor :database_classes
+mattr_accessor :default_server
+end

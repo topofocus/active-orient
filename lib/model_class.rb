@@ -78,7 +78,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 # Create a new Record
 
   def create_record attributes: {}
-    orientdb.create_record self, attributes: attributes
+    db.create_record self, attributes: attributes
   end
   alias create_document create_record
   
@@ -105,7 +105,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
 
   def create_edge reload: false, **keyword_arguments
-    new_edge = orientdb.create_edge self, **keyword_arguments
+    new_edge = db.create_edge self, **keyword_arguments
     [:from,:to].each do |y|
 #    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"a
       keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
@@ -118,7 +118,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
 
   def update_or_create_records set: {}, where: {}, **args, &b
-    orientdb.update_or_create_records self, set: set, where: where, **args, &b
+    db.update_or_create_records self, set: set, where: where, **args, &b
   end
 
 =begin 
@@ -132,7 +132,7 @@ Parameter:
  returns the affected record
 =end
   def upsert set:{}, where:{}, &b
-    orientdb.upsert self, set: set, where: where, &b
+    db.upsert self, set: set, where: where, &b
   end
   alias update_or_create_documents update_or_create_records
   alias create_or_update_document upsert
@@ -177,25 +177,25 @@ Parameter:
 # get elements by rid
 
   def get rid
-    orientdb.get_record rid
+    db.get_record rid
   end
 
 # get all the elements of the class
 
   def all
-    orientdb.get_records from: self
+    db.get_records from: self
   end
 
 # get the first element of the class
 
   def first where: {}
-    orientdb.get_records(from: self, where: where, limit: 1).pop
+    db.get_records(from: self, where: where, limit: 1).pop
   end
 
 # get the last element of the class
 
   def last where: {}
-    orientdb.get_records(from: self, where: where, order: {"@rid" => 'desc'}, limit: 1).pop
+    db.get_records(from: self, where: where, order: {"@rid" => 'desc'}, limit: 1).pop
   end
 
 # Get the properties of the class
@@ -254,7 +254,7 @@ Parameter:
 =end
 
   def get_records **args
-    orientdb.get_records(from: self, **args){self}
+    db.get_records(from: self, **args){self}
   end
   alias get_documents get_records
 
@@ -348,7 +348,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   def query_database query, set_from: true
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    orientdb.execute do
+    db.execute do
       [sql_cmd[query.to_s]]
     end
   end
@@ -364,7 +364,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 # Delete a record
 
   def delete_record *rid
-    orientdb.delete_record rid
+    db.delete_record rid
   end
   alias delete_document delete_record
 
@@ -380,7 +380,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 # Update records of a class
 
   def update_records set:, where:
-    orientdb.update_records self, set: set, where: where
+    db.update_records self, set: set, where: where
   end
   alias update_documents update_records
 

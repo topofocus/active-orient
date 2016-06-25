@@ -36,6 +36,7 @@ module  ActiveOrient
     end
 
     def self.get_rid rid
+      @@rid_store[rid] 
     end
 
     def self.store_rid obj

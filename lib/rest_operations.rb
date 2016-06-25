@@ -59,7 +59,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
     unless batch[:operations].blank?
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
       begin
-#	logger.info{"command(s)"+batch[:operations].join(";")}
+	logger.info{"command(s)"+batch[:operations].join(";")}
         response = @res["/batch/#{@database}"].post batch.to_json
       rescue RestClient::InternalServerError => e
         logger.progname = 'RestOperations#Execute'

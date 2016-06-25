@@ -8,6 +8,7 @@ gem 'orientdb' , :path => '/home/topo/orientdb-jruby' , :platforms => :jruby
 group :development, :test do
 	gem "awesome_print"
 	gem "rspec"
+	gem 'rspec-legacy_formatters'
 	gem 'rspec-its'
 	gem 'rspec-collection_matchers'
 	gem 'rspec-context-private'

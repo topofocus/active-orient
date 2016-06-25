@@ -1,4 +1,4 @@
-module RestPrivate
+module OrientDbPrivate
 	private
 
 	def translate_property_hash field, type: nil, linked_class: nil, **args

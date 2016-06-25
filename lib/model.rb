@@ -22,7 +22,7 @@ module ActiveOrient
 	if  @@rid_store[rid].present?
 	  @@rid_store[rid]  
 	else
-	   orientdb.get_record(rid)
+	   db.get_record(rid)
 	end
       else
         logger.progname = "ActiveOrient::Model#AutoloadObject"
@@ -45,7 +45,10 @@ Deletes the database class and removes the ruby-class
 
     # provides an unique accessor on the Class
     # works with a class-variable, its unique through all Subclasses
-    mattr_accessor :orientdb
+    mattr_accessor :orientdb  # points to the instance of the REST-DB-Client used for Administration
+			      # i.e. creation and deleting of classes and databases
+    mattr_accessor :db	      # points to the instance of the Client used for Database-Queries
+    mattr_accessor :api
     mattr_accessor :logger
 #    mattr_accessor  :ref_name    
     # Used to read the metadata
