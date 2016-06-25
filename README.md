@@ -4,6 +4,8 @@ datasets.
 
 You need a ruby 2.3 Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
+*notice* There is a experimental branch using jruby and java-api-calls 
+
 For a quick start, clone the project, call bundle install + bundle update, update config/connect.yml, create the documentation by calling »rdoc«
 and start an irb-session 
 
