@@ -27,6 +27,8 @@ require "#{project_root}/lib/active-orient.rb"
     ORD = ActiveOrient::OrientDB.new  preallocate: true
     if RUBY_PLATFORM == 'java'
     DB =  ActiveOrient::API.new   preallocate: false
+    else
+      DB = ORD
     end
    else
      ActiveOrient::Base.logger = Logger.new('/dev/stdout')

@@ -11,7 +11,8 @@ describe ActiveOrient::OrientDB do
 #    ORD.database_classes.each{|x| ORD.delete_class x }
    #ao =   ActiveOrient::OrientDB.new 
    ORD.delete_database database: 'temp'
-   ORD  =  ActiveOrient::OrientDB.new database: 'temp'
+   ActiveOrient.database = 'temp'
+   ORD  =  ActiveOrient::OrientDB.new
 #   @database_name = 'RestTest'
   end
 

@@ -218,14 +218,9 @@ end
 
   def update set: {}
     attributes.merge!(set) if set.present?
-    result = orientdb.patch_record(rid) do
-      attributes.merge({'@version' => @metadata[:version], '@class' => @metadata[:class]})
-    end
-    # returns a new instance of ActiveOrient::Model
-cl = orientdb.classname self.class
+    db.update self, attributes, @metadata[:version]
+    reload!
 
-    reload! ActiveOrient::Model.orientdb_class(name:  cl).new(JSON.parse(result))
-    # instantiate object, update rid_store and reassign to self
   end
 
 =begin

@@ -3,9 +3,28 @@ require_relative "database_utils.rb" #common methods without rest.specific conte
 require_relative "class_utils.rb" #common methods without rest.specific content
 require_relative "orientdb_private.rb" 
 
+module OrientDB
+
+	class Document
+	  def update_attributes attributes
+	    attributes.each do |y,x| 
+	      self[ y ] =  x.to_orient
+	    end
+	  end
+	end  # class Document
+end
 
 module ActiveOrient
-
+#  class Date
+#     def proxy_object
+#       java.util.Date.new year, month - 1, day, 0, 0, 0 
+#     end
+#  end
+#  class DateTime
+#     def proxy_object
+#       java.util.Date.new year, month - 1, day, hour, min, sec
+#     end
+#  end
 
   class API
     include OrientSupport::Support
@@ -135,23 +154,41 @@ module ActiveOrient
   			 type: :notunique            # default: :unique
   	    }
   		end
-=end
+supported  types:
+{
+  :bool          => "BOOLEAN",
+  :double        => "BYTE",
+  :datetime      => "DATE",
+  :float         => "FLOAT",
+  :decimal       => "DECIMAL",
+  :embedded_list => "EMBEDDEDLIST",
+  :list          => "EMBEDDEDLIST",
+  :embedded_map  => "EMBEDDEDMAP",
+  :map           => "EMBEDDEDMAP",
+  :embedded_set  => "EMBEDDEDSET",
+  :set           => "EMBEDDEDSET",
+  :int           => "INTEGER",
+  :integer       => "INTEGER",
+  :link_list     => "LINKLIST",
+  :link_map      => "LINKMAP",
+  :link_set      => "LINKSET",
+  }
 
+=end
     def create_properties o_class, **all_properties, &b
       logger.progname = 'JavaApi#CreateProperties'
       ap =  all_properties
+      index =  ap.is_a?(Hash) ?  ap[:index] : nil
       created_properties = ap.map do |property, specification | 
-	puts "specification:  #{specification.inspect}"
 	field_type = ( specification.is_a?( Hash) ?  specification[:type] : specification ).downcase.to_sym rescue :string
-	the_other_class =  specification.is_a?(Hash) ?  specification[:other_class] : nil
-	other_class = if the_other_class.present? 
-			@db.get_class( the_other_class)
-		      end
-	index =  ap.is_a?(Hash) ?  ap[:index] : nil
-	if other_class.present?
-	  @db.get_class(classname(o_class)).add property,[ field_type, other_class ], { :index => index }
-	else
-	  @db.get_class(classname(o_class)).add property, field_type, { :index => index }
+	if  specification.is_a?(Hash) 
+	  the_other_class =  specification[:other_class].presence || specification[:linked_class] 
+	  other_class =	@db.get_class( the_other_class.to_sym ) if the_other_class.present?
+	  if other_class.present?
+	    @db.get_class(classname(o_class)).add property,[ field_type, other_class ], { :index => index }
+	  else
+	    @db.get_class(classname(o_class)).add property, field_type, { :index => index }
+	  end
 	end
       end
       if block_given?
@@ -189,11 +226,10 @@ module ActiveOrient
 		end
       end
     end
-
     def create_record o_class, attributes: {}
       logger.progname = 'JavaApi#CreateRecord'
       attributes = yield if attributes.empty? && block_given?
-      new_record = insert_document( o_class, attributes.to_orient )
+      new_record = insert_document( classname(o_class), attributes.to_orient )
 
 
     end
@@ -245,56 +281,101 @@ module ActiveOrient
       if record.count.zero?
 	logger.error{ "No record found for rid= #{rid}" }
       else
+	yield( record[0] ) if block_given?
+	puts record[0].inspect
 	update_document record[0]
       end
     end
 
+=begin
+executes a command as sql-query
 
+
+=end
     def execute transaction: true, tolerated_error_code: nil # Set up for classes
       batch = {transaction: transaction, operations: yield}
       unless batch[:operations].blank?
-	batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
-	batch[:operations].map do |command_record|
-	  puts command_record.inspect
+	unless batch[:operations].is_a? Array
+	  batch[:operations] = [batch[:operations]] 	
+	  was_array =  true
+	else
+	  was_array =  false
+	end
+	answer = batch[:operations].map do |command_record|
+	  return if command_record.blank? 
 	  response = @db.run_command  command_record.is_a?(Hash) ?  command_record[:command] : command_record 
 	  if response.is_a? Fixnum
 	    response
 	  else
 	    response.map do | r |
-	       r.rid.rid? ?  update_document( r ) :  r.values
-	    end
-	  end
-	end
-      end
+	      if r.is_a? Document
+		update_document( r )
+	      else 
+		puts "Strange things happen in execute: #{r.inspect}"
+		r.values
+	      end
+	    end  # map response
+	  end	#  branch response_is_a
+	end	# map batch
+	answer.pop if answer.size==1 && answer.first.is_a?(Array)
+      end	# unless
     end
 
 
     def delete_record  *object_or_rid
       object_or_rid.map do |o|
-	d= if o.is_a?( String ) && o.rid?
-	   @db.custom "select from #{o}"
-	elsif o.is_a? ActiveOrient::Model
-	   @db.custom "select from #{o.to_orient}"
+	d= case o
+	   when  String 
+	     @db.custom "select from #{o}" if o.rid?
+	   when  ActiveOrient::Model
+	     @db.custom "select from #{o.to_orient}"
+	   when Array
+	     o.map{|y| delete_record y }
+	     return o
+	   else
+	     o
+	   end
+	puts "D.INSPECT:  "+d.inspect
+	if d.is_a? Java::ComOrientechnologiesOrientCoreSqlQuery::OConcurrentResultSet
+	  puts "deleting all "
+	  d.each &:delete      
 	else
-	    o
+	  logger.progname = 'JavaApi#DeleteRecord'
+	  logger.error{ "Removal Failed: #{d.inspect} " }
 	end
-	o.delete
       end
     end
+
+    def update rid, attributes, version
+      rid = rid.rid if rid.is_a? ActiveOrient::Model
+      get_record( rid ) do | db_obj |
+	db_obj.update_attributes attributes
+#	puts db_obj.inspect
+	db_obj.save
+      end
+    end
+
+
     
-private    def insert_document o_class, attributes
+#private   
+
+def insert_document o_class, attributes
 #      puts "insert_document"
- puts "o_class: #{o_class.inspect  }"
+# puts "o_class: #{o_class.inspect  }"
 #      puts "classname: #{classname( o_class ) }"
 #      puts "attributes: #{ attributes }"
 #
       begin
+      logger.progname = 'JavaApi#InsertDocument'
 	d = Document.new  classname(o_class)
-	attributes.each{|y,x| d[y] = x}
+	d.update_attributes attributes
 	d.save
 	update_document d
+      rescue Java::ComOrientechnologiesOrientCoreException::ODatabaseException => e
+	logger.fatal{ "Insert failed => #{d.inspect}"}
+	logger.error{ "Parameter: Class: #{classname(o_class)} attributes: #{attributes.inspect}" }
+	logger.fatal{ e }
       rescue Java::ComOrientechnologiesOrientCoreException::OSchemaException => e
-      logger.progname = 'JavaApi#InsertDocument'
 	logger.error{ e }
 
 	logger.error{ "Parameter: DB: #{@db.name}, Class: #{classname(o_class)} attributes: #{attributes.inspect}" }
@@ -304,13 +385,14 @@ private    def insert_document o_class, attributes
     #  returns a valid model-instance
     def update_document java_document
       if java_document.is_a? Document
-      o_class =  java_document.class_name
-      d =  java_document
-      attributes = d.values
-      ActiveOrient::Model.get_model_class(o_class).new attributes.merge( { "@rid" => d.rid,
-								      "@version" => d.version,
-								      "@type" => 'd',
-								      "@class" => o_class } )
+	o_class =  java_document.class_name
+	d =  java_document
+	attributes = d.values.merge( { "@rid" => d.rid,
+				"@version" => d.version,
+				"@type" => 'd',
+				"@class" => o_class } )
+
+	ActiveOrient::Model.get_model_class(o_class).new attributes  
       else
       logger.progname = 'JavaApi#UpdateDocument'
 	logger.error{ "Wrong Parameter: #{java_document.inspect} "}

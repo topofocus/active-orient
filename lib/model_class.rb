@@ -105,11 +105,13 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
 
   def create_edge reload: false, **keyword_arguments
+    puts "KEXWORD_ARGUMENTS: "+keyword_arguments.inspect
     new_edge = db.create_edge self, **keyword_arguments
+    new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
     [:from,:to].each do |y|
 #    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"a
       keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
-      end if reload
+      end
       new_edge
   end
 
@@ -349,7 +351,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     db.execute do
-      [sql_cmd[query.to_s]]
+      sql_cmd[query.to_s]
     end
   end
 
@@ -414,7 +416,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
 
   def add_edge_link name:, direction: "out", edge:
-    logger.progname = 'RestEdge#AddEdgeLink'
+    logger.progname = 'Model#AddEdgeLink'
     if direction == "out"
       dir = "in"
     elsif direction == "in"

@@ -7,24 +7,24 @@ module RestCreate
   Returns the name of the working-database
 =end
 
-  def create_database type: 'plocal', database: @database
+  def create_database type: 'plocal', database: nil
     logger.progname = 'RestCreate#CreateDatabase'
-  	old_d = @database
-  	@classes = []
-  	@database = database
+  	old_d = ActiveOrient.database
+  	ActiveOrient.database_classes = []
+  	ActiveOrient.database = database if database.present?
   	begin
-      response = @res["database/#{@database}/#{type}"].post ""
+      response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
       if response.code == 200
-        logger.info{"Database #{@database} successfully created and stored as working database"}
+        logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
       else
-        @database = old_d
-        logger.error{"Database #{name} was NOT created. Working Database is still #{@database}"}
+        ActiveOrient.database = old_d
+        logger.error{"Database #{name} was NOT created. Working Database is still #{ActiveOrient.database}"}
       end
     rescue RestClient::InternalServerError => e
-      @database = old_d
-      logger.error{"Database #{name} was NOT created. Working Database is still #{@database}"}
+      ActiveOrient.database = old_d
+      logger.error{"Database #{name} was NOT created. Working Database is still #{ActiveOrient.database}"}
     end
-    @database
+    ActiveOrient.database
   end
 
   ######### CLASS ##########
@@ -52,7 +52,6 @@ creates a vertex-class, too, but returns the Hash
     def create_classes classes, &b
 
       consts = allocate_classes_in_ruby( classes , &b )
-
       all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
       get_database_classes(requery: true)
       selected_classes =  all_classes.map do | this_class |
@@ -208,7 +207,7 @@ creates a vertex-class, too, but returns the Hash
     post_argument = {'@class' => classname(o_class)}.merge(attributes).to_orient
 
     begin
-      response = @res["/document/#{@database}"].post post_argument.to_json
+      response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
       ActiveOrient::Model.orientdb_class(name: data['@class']).new data
     rescue RestClient::InternalServerError => e
@@ -351,7 +350,7 @@ The method returns the included or the updated dataset
     count=0
     begin
       if all_properties_in_a_hash.is_a?(Hash)
-	response = @res["/property/#{@database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
+	response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
 	# response.body.to_i returns  response.code, only to_f.to_i returns the correrect value
 	count= response.body.to_f.to_i if response.code == 201
       end

@@ -10,9 +10,12 @@ describe ActiveOrient::OrientDB do
    ao =   ActiveOrient::OrientDB.new 
    ao.delete_database database: 'RestTest'
    ActiveOrient.database = 'RestTest'
-   ORD  =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new #database: 'RestTest' 
-   DB= ActiveOrient::Model.db =  ActiveOrient::API.new 
-   #ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
+   ORD = ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new #database: 'RestTest' 
+   DB = if RUBY_PLATFORM == 'java'
+	  ActiveOrient::Model.db =  ActiveOrient::API.new 
+	else
+	  ActiveOrient::Model.db =  ORD
+	end
   #  ORD.database_classes.each{|x| ORD.delete_class x }
   end
 
@@ -132,7 +135,7 @@ describe ActiveOrient::OrientDB do
 	  expect(m[i].ref_name).to eq c.to_s
 	  classes_simple.each_with_index do |c,i|
 	    expect(m[i].ref_name).to eq c.to_s
-	    expect(m[i].superclass ).to be ActiveOrient::Model
+	    expect(m[i].superclass ).to be ActiveOrient::Model::V
 	  end
 	end
 
@@ -198,10 +201,12 @@ describe ActiveOrient::OrientDB do
       end
   end
 
-  context "create and delete records ", focus: true  do
+  context "create and delete records ", focus:true  do
     before(:all) do 
-      TheEdge =  DB.create_edge_class "TheEdge"
-      Vertex1,Vertex2 =  DB.create_classes([:Vertex1,:Vertex2]){:V}
+      ORD.get_database_classes requery: true
+      ["TheEdge", :Vertex1, :Vertex2].each{|x| ORD.delete_class x }
+      TheEdge =  ORD.create_edge_class "TheEdge"
+      Vertex1,Vertex2 =  ORD.create_classes([:Vertex1,:Vertex2]){:V}
     end
     
     it "populate database-table with data and subsequent delete them" do
@@ -209,12 +214,12 @@ describe ActiveOrient::OrientDB do
       expect( Vertex1.count ).to eq 100
       expect( records ).to have(100).items
       Vertex1.delete_record  *records
-      expect( Vertex1.count).to be_zero
+      expect( Vertex1.count ).to be_zero
    end
 
     it "populate database with data and connect them via an edge" do
       record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
-     record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+      record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
       expect(record1).to have(100).items
       expect(record2).to have(26).items
 
@@ -230,18 +235,20 @@ describe ActiveOrient::OrientDB do
 
   end
 
-  context "populate records with data" do
+  context "populate records with data"  do
  before(:all) do
-      Dataset =  ORD.create_vertex_class 'dataset'
-      ORD.create_class 'linked_data'
+      ["dataset", :linked_data].each{|x| DB.delete_class x}
+      Dataset =  DB.create_vertex_class 'dataset'
+      DB.create_class 'linked_data'
 
   end
 
   context "update records "  do
     before(:all) do
-      TheDataset =  ORD.create_vertex_class 'the_dataset'
+      DB.delete_class 'the_dataset'
+      TheDataset =  DB.create_vertex_class 'the_dataset'
       TheDataset.create_property :the_date, type: 'Date', index: :unique
-      TheDataset.create_property :the_value, type: 'String' #, index: :unique
+      TheDataset.create_property :the_value, type: 'String' , index: :unique
       TheDataset.create_property :the_other_element, type: 'String'
 
     end
@@ -258,11 +265,11 @@ describe ActiveOrient::OrientDB do
       TheDataset.create_record  attributes: {the_value: 'TestValue3', the_other_value: 'a string2', 
 				    the_date: Date.new(2015,11,17) }
       ## insert dataset
-      expect{ @orginal= ORD.upsert TheDataset, set: {the_value: 'TestValue4', the_other_value: 'a string2'}, 
+      expect{ @orginal= DB.upsert TheDataset, set: {the_value: 'TestValue4', the_other_value: 'a string2'}, 
 			    where: {the_date: Date.new(2015,11,15) } }.to change{ TheDataset.count }.by 1
       ## update dataset
 #     orginal = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
-     expect{ @updated= ORD.upsert TheDataset, set: {the_value: 'TestValue5', the_other_value: 'a string6'}, 
+     expect{ @updated= DB.upsert TheDataset, set: {the_value: 'TestValue5', the_other_value: 'a string6'}, 
 			      where: { the_date: Date.new(2015,11,14) } }.not_to change { TheDataset.count }
 
      # updated = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
@@ -271,7 +278,7 @@ describe ActiveOrient::OrientDB do
      expect( @orginal.the_value).not_to eq @updated.the_value
 
      # insert dataset and perfom action with created object
-     new_record = ORD.upsert( TheDataset, 
+     new_record = DB.upsert( TheDataset, 
 				   set: {the_value: 'TestValue40', the_other_value: 'a string02'}, 
 				   where: {the_date: Date.new(2015,11,14)} ) do | the_new_record |
 				   expect( the_new_record ).to be_a ActiveOrient::Model

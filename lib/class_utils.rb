@@ -144,35 +144,44 @@ end
 
 
   def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil
-    logger.progname = "ActiveOrient::RestCreate#CreateEdge"
+    logger.progname = "ActiveOrient::ClassUtils#CreateEdge"
 
     if block_given?
       a =  yield(attributes)
       command = if a.is_a? Array
        a.map do | record | 
-	this_attributes =  record[:attributes].present? ? record[:attributes] : attributes
+	this_attributes =  record[:attributes].presence || attributes
        
-       # in batch-mode unique is not supportet	
+       # unique is not supported	in batch-mode 
        create_edge o_class, attributes: this_attributes, from: record[:from], to: record[:to], unique: false, batch: true
       end
       else
 	create_edge o_class, attributes: attributes, from: a[:from], to: a[:to], unique: a[:uniq], batch: true
       end
+
     elsif from.is_a? Array
       command = from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique, batch: true}
     elsif to.is_a? Array
       command = to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique, batch: true}
+
     elsif from.present? && to.present?
       if unique
 	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
 	existing_edge = get_records(from: o_class, where: wwhere)
-	if existing_edge.first.is_a?(ActiveOrient::Model)
+	if existing_edge.size >1 
+	  logger.error{ "Unique specified, but there are #{existing_edge.size} Records in the Database. returning the first"}
+	  command =  existing_edge.first
+	  batch = true
+	elsif existing_edge.size ==1  && existing_edge.first.is_a?(ActiveOrient::Model)
 	  #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-	  existing_edge.first
+	  command=  existing_edge.first
+	  batch= true
 	else
-	  existing_edge
+	  command= create_edge o_class, attributes: attributes, from: :from, to: :to,  batch: true
+	  batch= nil  
 	end
       #logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+
     elsif from.to_orient.nil? || to.to_orient.nil? 
       logger.error{ "Parameter :from or :to is missing"}
     else
@@ -186,10 +195,11 @@ end
       # for or to are not set
       return nil
     end
-    if batch.nil?
+    if batch.nil? 
       response = execute(transaction: false) do
 	command.is_a?(Array) ? command.flatten.compact : [ command ]
       end
+      puts "RESPONSE_RAW:"+response.inspect
       if response.is_a?(Array) && response.size == 1
 	response.pop # RETURN_VALUE
       else

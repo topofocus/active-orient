@@ -74,9 +74,9 @@ describe ActiveOrient::OrientDB do
     before(:all) do
       ORD.create_classes [ :Contract, :Exchange, 'property' ]
     end
-#    before(:each){ ActiveOrient::Model::Property.delete_class; 	Property = ORD.create_class 'property' }
+#    before(:each){ ActiveOrient::Model::Property.delete_class; 	Property = DB.create_class 'property' }
     before(:each){ ORD.delete_class 'property'; ORD.create_class 'property' }
-    # after(:all){ ORD.delete_class 'property' }
+    # after(:all){ DB.delete_class 'property' }
     let( :predefined_property ) do
       rp = ORD.create_properties( ActiveOrient::Model::Property,
 				 symbol: { propertyType: 'STRING' },
@@ -85,6 +85,8 @@ describe ActiveOrient::OrientDB do
 				 details: { propertyType: 'LINK', linkedClass: :Contract },
 				 date: { propertyType: 'DATE' }
 				)
+      ORD.get_database_classes
+      rp
     end
 
     it "define some Properties on class Property" do
@@ -128,14 +130,16 @@ describe ActiveOrient::OrientDB do
     it "add a dataset"   do
       ## without predefined property the test fails because the date is recognized as string.
       predefined_property
-      industries = ORD.open_class :industry
-      linked_record = ActiveOrient::Model::Industry.create_record attributes:{ label: 'TestIndustry' }
-      expect{ ActiveOrient::Model::Property.update_or_create where: { con_id: 12345 }, 
+      industries = DB.open_class :industry
+      linked_record = DB.create_record industries, attributes:{ label: 'TestIndustry' }
+      expect{ DB.update_or_create  ActiveOrient::Model::Property,  where: { con_id: 12345 }, 
 					set: { industry: linked_record.rid, 
 					date: Date.parse( "2011-04-04") } 
 	    }.to change{ ActiveOrient::Model::Property.count }.by 1
 
       ds = ActiveOrient::Model::Property.where con_id: 12345
+      puts "PROPERTY:"
+      puts ds.inspect
       expect( ds ).to be_a Array
       expect( ds.first ).to be_a ActiveOrient::Model::Property
       expect( ds.first.con_id ).to eq 12345
@@ -145,7 +149,7 @@ describe ActiveOrient::OrientDB do
 
 
     it "manage  exchanges in a linklist " do
-      ORD.open_class :Exchange
+      DB.open_class :Exchange
       predefined_property
 
       f = ActiveOrient::Model::Exchange.create :label => 'Frankfurt'
@@ -165,7 +169,7 @@ describe ActiveOrient::OrientDB do
     it "add  an embedded linkmap- entry " , :pending => true do
       pending( "Query Database for last entry does not work in 2.2" )
       predefined_property
-      ORD.open_class :industry
+      DB.open_class :industry
       property_record=  ActiveOrient::Model::Property.create  con_id: 12346
       ['Construction','HealthCare','Bevarage'].each do | industry |
 	property_record.add_item_to_property :property, ActiveOrient::Model::Industry.create( label: industry)
@@ -198,7 +202,7 @@ describe ActiveOrient::OrientDB do
     # disabled for now
     #     it "a new record is initialized with preallocated properties" do
     #	new_record =  Property.create
-    #	ORD.get_class_properties(  Property )['properties'].each do | property |
+    #	DB.get_class_properties(  Property )['properties'].each do | property |
     #	  expect( new_record.attributes.keys ).to include property['name']
     #
     #	end

@@ -21,7 +21,7 @@ describe ActiveOrient::API do
   before(:all) do
     @oRD  = ActiveOrient::Model.orientdb # OrientDB.new database: 'temp', preallocate: false 
     @oDB =  ActiveOrient::Model.db # API.new  database: 'temp', preallocate: false
-   # ORD.delete_class 'model_test'
+    ORD.delete_class 'model_test'
     TestModel = @oRD.open_class "model_test"
     @ecord = TestModel.create
   end
@@ -71,14 +71,31 @@ describe ActiveOrient::API do
     expect{ @oDB.delete_class @testclass }.to change { @oDB.get_database_classes.size}.by -1
   end
 
-  it "add properties to a class" do
+  it "add properties to a class"  do
     @oDB.create_class @testclass
     @oDB.create_properties(@testclass,
 			   con_id: {type: :integer},
-			   details: {type: :link, linked_class: 'Contracts'}) do
+			   details: {type: :link},
+			    other_details: {type: :link_map, other_class: 'Contract'} ) do
 			      { contract_idx: :notunique }
 			  end
-    expect(@oDB.get_properties(@testclass)[:properties]).to have(2).items
+    expect(@oDB.get_properties(@testclass)[:properties]).to have(3).items
+    index =  @oDB.db.get_class( @testclass ).indexes.first
+    expect( index.name ).to eq 'contract_idx'
+    expect( index.type ).to eq 'NOTUNIQUE'
+    properties = @oDB.db.get_class( @testclass ).properties
+    properties.each do  | p |
+      case p.name 
+      when 'con_id'
+	expect( p.type.to_s ).to eq "INTEGER" 
+      when 'details'
+	expect(p.type.to_s ).to eq "LINK"
+      else 'other_details'
+	expect(p.type.to_s ).to eq "LINKMAP"
+	expect(p.linked_class.name ).to eq "Contract"
+      end
+
+    end
   end
 
    ##  todo: add a test to verify the creation of an index
@@ -97,11 +114,38 @@ describe ActiveOrient::API do
 
   it "create a record" do
     test_class =  @oDB.db.get_class @testclass
-puts ActiveOrient::Model.get_model_class(@testclass)
+puts ActiveOrient::Model.get_model_class(test_class.name)
 
     expect{ @new_record=  @oDB.create_record @testclass, attributes: { new_value: 56 } }.to change{  test_class.count }.by 1
     expect( @new_record ).to be_a  ActiveOrient::Model::MyTetClass
     expect( test_class.count ).to eq 1
+
+  end
+
+  it "insert different objects "  do
+    test_class =  @oDB.db.get_class @testclass
+    test_model =  ActiveOrient::Model.get_model_class(test_class.name)
+    puts test_model.inspect
+
+    # string
+    record = test_model.create test_var: 'test_string'
+    expect( record.test_var ).to eq 'test_string'
+    expect( record.test_var ).to be_a String
+
+    # 
+    record = test_model.create test_var: 25
+    expect( record.test_var ).to eq 25
+    expect( record.test_var ).to be_a Fixnum
+    
+    record = test_model.create test_var: 25.23
+    expect( record.test_var ).to eq 25.23
+    expect( record.test_var ).to be_a Float
+    
+    record = test_model.create test_var:  Date.today
+    expect( record.test_var ).to be_a Date
+#
+    ts=    DB.get_record record.rid
+    expect( ts.test_var ).to eq Date.today
 
   end
   end

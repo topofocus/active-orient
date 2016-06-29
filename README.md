@@ -2,18 +2,13 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-You need a ruby 2.3 Installation and a working OrientDB-Instance (Version 2.2 prefered).  
+You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
 For a quick start, clone the project, call bundle install + bundle update, update config/connect.yml, create the documentation by calling »rdoc«
-and start an irb-session 
+and start an irb-session  by calling "orientdb_console t" in the bin-directory.
+[t)est loads or creates the database defined in the test-environment of config/connect.yml"]
 
-```ruby
-  require 'config/boot'
-  require 'active-orient'
-  ORD = ActiveOrient::OrientDB.new database: 'OrientTest'
-  => #<ActiveOrient::OrientDB:0x00000002f924d0 @res=#<RestClient::Resource:0x00000002f922c8 @url="http://localhost:2480", @block=nil, @options={:user=>(...)}, {"name"=>"V", "superClass"=>""}], @classes=["E", "OSequence", "V"]> 
-```
-»ORD« is the Database-Instance itself. Obviously the database is empty.
+»ORD« is the Database-Instance itself.
 
 Let's create some classes
 
@@ -35,11 +30,11 @@ To create, update,  query and remove a Document just write
 ```ruby	
     hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
     hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
-    hugo = M.where name: 'Hugo'
+    hugo = M.where( name: 'Hugo' ).first
     M.delete hugo 
  ```
  
-The database is fully object-orientated and supports inherence.
+The database acts object-orientated and supports inherence.
 
 Create a Tree of Objects
 ```ruby
@@ -50,7 +45,7 @@ Create a Tree of Objects
   S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
  ```
 
-If a populated database is accessed, first all database-classes are preallocated. You can use ActiveOrient::Model::{classname} from the start.
+If a populated database is accessed, all database-classes are preallocated. You can use ActiveOrient::Model::{classname} from the start.
 
 
 The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
@@ -81,11 +76,11 @@ Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is def
 ```ruby
   M = ORD.create_class 'Classname'
   M = ORD.create_class('Classname'){superclass_name: 'SuperClassname'}
-  A,B,C = * ORD.create_classes( [ :a, :b, :c ] )
+  A,B,C = * ORD.create_classes( [ :a, :b, :c ] ){ :V }  # creates 3 vertex-classes
   Vertex = ORD.create_vertex_class 'VertexClassname'
   Edge   = ORD.create_edge_class 'EdgeClassname'
 ```
-and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by Class#NamingConvention
+and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by ModelClass#NamingConvention
 
 Object-Inherence is maintained, thus
 ```ruby
@@ -106,6 +101,7 @@ end
 M and N are Vertexes and inherent methods (and properties) from  F
 
 **notice.** If ActiveOrient::Model::{classname} methods are defined, they have to be required _after_ initalizing the database by calling  ActiveOrient::OrientDB.new. Otherwise the preallocation mechanism fails. 
+This is maintained by using the config/boot script as template
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
@@ -195,7 +191,7 @@ link if stored somewhere.
 
 ```ruby
   TestLinks = ORD.create_class 'Test_link_class'
-  TestBase =  ORD.create_class 'Test_base_class'
+  TestBase  = ORD.create_class 'Test_base_class'
 
   link_document =  TestLinks.create  att: 'one attribute'
   base_document =  TestBase.create  base: 'my_base', single_link: link_document
@@ -228,7 +224,7 @@ the graph elements can be explored by joining the objects (a[6].b[5].c[9].d)
 Edges provide bidirectional Links. They are easily handled
 ```ruby
   Vertex = ORD.create_vertex_class 'd1'
-  Edge = ORD.create_edge_class   'e1'
+  Edge   = ORD.create_edge_class   'e1'
 
   start = Vertex.create something: 'nice'
   the_end  =  Vertex.create something: 'not_nice'
@@ -242,8 +238,8 @@ Edges provide bidirectional Links. They are easily handled
 The create_edge-Method takes a block. Then all statements are transmitted in batch-mode.
 Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, then
 ```ruby
-  record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
-  record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+  record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
+  record2 = (:a .. :z).map{|y| Vertex2.create testentry: y  }
   edges = ORD.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
     ('a'.ord .. 'z'.ord).map do |o| 
 	  { from: record1.find{|x| x.testentry == o },
@@ -337,7 +333,7 @@ or
 ```ruby
   OpenInterest = ORD.open_class 'Openinterest'
   last_12_open_interest_records = OQ.new from: OpenInterest, order: { fetch_date: :desc } , limit: 12
-  bunch_of_contracts =  OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
+  bunch_of_contracts = OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
   distinct_contracts = OQ.new from: bunch_of_contracts, projection: 'expand( distinct(@rid) )'
 
   distinct_contracts.to_s
@@ -345,5 +341,3 @@ or
 
   cq = ORD.get_documents query: distinct_contracts
 ```
-The OrientDB-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-ActiveOrient
-and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel
