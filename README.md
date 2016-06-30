@@ -5,8 +5,11 @@ datasets.
 You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
 For a quick start, clone the project, call bundle install + bundle update, update config/connect.yml, create the documentation by calling »rdoc«
-and start an irb-session  by calling "orientdb_console t" in the bin-directory.
-[t)est loads or creates the database defined in the test-environment of config/connect.yml"]
+and start an irb-session  by calling 
+```
+./orientdb_console test,  # or d)develpoment, p)roduction environment as defined in config/connect.yml
+```
+in the bin-directory.
 
 »ORD« is the Database-Instance itself.
 
@@ -20,23 +23,23 @@ Let's create some classes
     M.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
-»M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
-It's a shortcut for »ActiveOrient::Model::{Classname}«.
+»M« is the ActiveOrient::Model-Class itself, a shortcut for »ActiveOrient::Model::{Classname}«.
 
 Naming-Convention: The name given in the »create-class«-Statement becomes the Database-Classname. 
 In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
 
-To create, update,  query and remove a Document just write
+#### CRUD
+The CRUD-Process (create, read = query, update and remove) is performed with
 ```ruby	
     hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
-    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
     hugo = M.where( name: 'Hugo' ).first
+    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
     M.delete hugo 
  ```
  
-The database acts object-orientated and supports inherence.
+#### Inherence.
 
-Create a Tree of Objects
+Create a Tree of Objects with create_classes
 ```ruby
   ORD.create_classes { :sector => [ :industry, : category, :subcategory ] }
   I =  ActiveOrient::Model::Industry
@@ -45,13 +48,15 @@ Create a Tree of Objects
   S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
  ```
 
-If a populated database is accessed, all database-classes are preallocated. You can use ActiveOrient::Model::{classname} from the start.
+#### Preallocation of Model-Classes
+All database-classes are preallocated after connecting to the database. You can use ActiveOrient::Model::{classname} from the start.
+However, "ORD.open_class classname" works with existing classes as well.
 
-
+#### Properties
 The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
 
  ```ruby
- M.create_property 'symbol'
+ M.create_property 'symbol' 			# the default-case: type: :string, no index
  M.create_property 'con_id', type: 'integer'
  M.create_property 'details', type: 'link', other_class: 'Contracts'
  M.create_property 'name', type: :string, index: :unique
@@ -75,33 +80,12 @@ The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to
 Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is defined  by
 ```ruby
   M = ORD.create_class 'Classname'
-  M = ORD.create_class('Classname'){superclass_name: 'SuperClassname'}
+  M = ORD.create_class('Classname'){'SuperClassname'}
   A,B,C = * ORD.create_classes( [ :a, :b, :c ] ){ :V }  # creates 3 vertex-classes
   Vertex = ORD.create_vertex_class 'VertexClassname'
   Edge   = ORD.create_edge_class 'EdgeClassname'
 ```
 and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by ModelClass#NamingConvention
-
-Object-Inherence is maintained, thus
-```ruby
-  ORD.create_vertex_class :f
-  M = ORD.create_class( :m ){ :f }
-  N = ORD.create_class( :n ){ :f }
-
-```
-allocates the following class-hierarchy:
-```ruby
-class ActiveOrient::Model:F < ActiveOrient::Model:V
-end
-class ActiveOrient::Model:M < ActiveOrient::Model:F
-end
-class ActiveOrient::Model:N < ActiveOrient::Model:F
-end
-```
-M and N are Vertexes and inherent methods (and properties) from  F
-
-**notice.** If ActiveOrient::Model::{classname} methods are defined, they have to be required _after_ initalizing the database by calling  ActiveOrient::OrientDB.new. Otherwise the preallocation mechanism fails. 
-This is maintained by using the config/boot script as template
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
@@ -157,20 +141,18 @@ records. In the simplest version this can be returnd:
 The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
 
 ```ruby
-  I.match( where: { name: 'Communications' }).first.Industries
-```
-
-is the same then
-```ruby
   I.where name: "Communications" 
+  ## is equal to
+  I.match( where: { name: 'Communications' }).first.Industries
 ```
 The Match-Query uses this result-set as start for subsequent queries on connected records.
 If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
 accessed  starting at Industry defining
+
 ```ruby
   var = I.match( where: { name: 'Communications'}) do | query |
     query.connect :in, count: 2, as: 'Subcategories'
-    puts query.to_s  # print the query send to the database
+    puts query.to_s  # print the query prior sending it to the database
     query            # important: block has to return the query 
   end
   => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
