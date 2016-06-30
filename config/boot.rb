@@ -30,6 +30,31 @@ require "#{project_root}/lib/active-orient.rb"
     else
       DB = ORD
     end
+    log_file =   if config_file.present?
+		   dev = YAML.load_file( config_file )[:orientdb][:logger]
+		   if dev.blank? || dev== 'stdout'
+		   '/dev/stdout'
+		   else
+		     project_root+'/log/'+env+'.log'
+		   end
+		 end
+
+
+    logger =  Logger.new log_file
+    logger.level = case env
+			   when 'production' 
+			     Logger::ERROR
+			   when 'development'
+			     Logger::WARN
+			   else
+			     Logger::INFO
+			   end
+logger.formatter = proc do |severity, datetime, progname, msg|
+  "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{progname}:..:#{msg}\n"
+end
+ActiveOrient::Model.logger =  logger
+ActiveOrient::OrientDB.logger =  logger
+
    else
      ActiveOrient::Base.logger = Logger.new('/dev/stdout')
      ActiveOrient::OrientDB.logger.error{ "config/connectyml is  misconfigurated" }

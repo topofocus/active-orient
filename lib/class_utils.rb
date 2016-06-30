@@ -113,7 +113,7 @@ end
 =end
 
   def update_or_create_records o_class, set: {}, where: {}, **args, &b
-    logger.progname = 'RestCreate#UpdateOrCreateRecords'
+    logger.progname = 'ClassUtils#UpdateOrCreateRecords'
     if where.blank?
       [create_record(o_class, attributes: set)]
     else
@@ -144,7 +144,7 @@ end
 
 
   def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil
-    logger.progname = "ActiveOrient::ClassUtils#CreateEdge"
+    logger.progname = "ClassUtils#CreateEdge"
 
     if block_given?
       a =  yield(attributes)

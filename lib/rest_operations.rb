@@ -57,6 +57,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 #puts "Execute# batch::"
 #print "\n ----> #{batch.to_json} <----\n"
     unless batch[:operations].blank?
+      batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
       begin
 	logger.info{"command(s)"+batch[:operations].join(";")}

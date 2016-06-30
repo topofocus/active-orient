@@ -1,6 +1,12 @@
 #!/usr/bin/env ruby
+## loads the active-orient environment 
+## and starts an interactive shell
+## Parameter:  production (p)
+##	       development (d)  [default]
+##	       test (t)
+require 'logger'
+LogLevel = Logger::WARN
 require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
- ActiveOrient::Base.logger.sev_threshold = 3 #LOGGER::WARN #Logger::INFO
   
  require 'orientdb' if RUBY_PLATFORM == 'java'
  require 'yaml'

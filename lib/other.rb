@@ -143,6 +143,23 @@ class String
   def to_or
     "'#{self}'"
   end
+
+
+    def quote
+      str = self.dup
+      if str[0, 1] == "'" && str[-1, 1] == "'"
+	self
+      else
+	last_pos = 0
+	while (pos = str.index("'", last_pos))
+	  str.insert(pos, "\\") if pos > 0 && str[pos - 1, 1] != "\\"
+	  last_pos = pos + 1
+	end
+	"'#{str}'"
+      end
+    end
+
+
 end
 
 class Symbol

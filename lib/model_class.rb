@@ -45,8 +45,8 @@ To overwrite use
       new_class = self.send :const_set, name, klass
       new_class.orientdb = orientdb
       new_class.ref_name =  ref_name
-      logger.info{"created:: Class #{new_class} < #{new_class.superclass} "}
-      logger.info{"database-table:: #{ref_name} "}
+#      logger.debug{"created:: Class #{new_class} < #{new_class.superclass} "}
+#      logger.debug{"database-table:: #{ref_name} "}
       new_class # return_value
     end
   rescue NameError => e
@@ -55,7 +55,7 @@ To overwrite use
       i += 1
       retry
     else
-      logger.error "ActiveOrient::Model::Class #{name} cannot be initialized."
+      logger.error "ModelClass #{name} cannot be initialized."
       logger.error e.inspect
     end
   end
@@ -105,7 +105,6 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
 
   def create_edge reload: false, **keyword_arguments
-    puts "KEXWORD_ARGUMENTS: "+keyword_arguments.inspect
     new_edge = db.create_edge self, **keyword_arguments
     new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
     [:from,:to].each do |y|
