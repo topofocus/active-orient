@@ -12,7 +12,11 @@ and start an irb-session  by calling
 in the bin-directory.
 
 »ORD« is the Database-Instance itself.
-
+A simple SQL-Query can executed providing a Block to »execute«
+ ```ruby
+ result =  ORD.execute { "select * from Stock" } 
+ ```
+Obviously the class »Stock« has to exist. 
 Let's create some classes
 
  ```ruby
