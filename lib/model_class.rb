@@ -8,17 +8,18 @@ module ModelClass
 
 =begin
 NamingConvention provides a translation from database-names to class-names.
+
 Should provide 
    to_s.capitalize_first_letter
 as minimum.
 Can be overwritten to provide different conventions for different classes, eg. Vertexes or edges.
+
 To overwrite use 
   class ActiveOrient::Model::{xxx} < ActiveOrient::Model[:: ...]
     def self.naming_convention
-    ( convention code )
+    ( conversion code )
     end
  end
-# todo(maybe) two directional naming convention,  convert classname to database_name
 =end
   def naming_convention name=nil
     name.present? ? name.to_s.camelize : ref_name.camelize
@@ -31,9 +32,8 @@ To overwrite use
     logger.progname = "ModelClass#OrientDBClass"
     i=0
     ref_name =  name.to_s
-    klass = if superclass.present? 
+    klass = if superclass.present?   # superclass is parameter, use if class, otherwise transfer to class
 	      superclass = self.orientdb_class( name: superclass ) unless superclass.is_a? Class
-	      #	      superclass= self.send( :const_get, naming_convention(superclass) ) if superclass.is_a?( String) || superclass.is_a?( Symbol)
 	      Class.new(superclass)
 	    else
 	      Class.new(self)
@@ -93,7 +93,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 # Used to create multiple records
 
 =begin
-  Only if the Class inherents from »E« instantiate a new Edge between two Vertices
+  Instantiate a new Edge between two Vertices only if the Class inherents from »E« 
 
   Parameter: unique: (true)
   
@@ -108,7 +108,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
     new_edge = db.create_edge self, **keyword_arguments
     new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
     [:from,:to].each do |y|
-#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"a
+#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"
       keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
       end
       new_edge
@@ -127,10 +127,11 @@ Creates or updates a record.
 Parameter: 
   set: A hash of attributes to set
   where: A string or hash as condition which should return just one record.
- The where-part should be covered with an unique-index.
- If where is omitted, a record is added with attributes from set:
 
- returns the affected record
+The where-part should be covered with an unique-index.
+If where is omitted, a record is added with attributes from set.
+
+returns the affected record
 =end
   def upsert set:{}, where:{}, &b
     db.upsert self, set: set, where: where, &b

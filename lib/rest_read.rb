@@ -43,6 +43,9 @@ module RestRead
 
   def get_class_properties o_class
     JSON.parse(@res["/class/#{ActiveOrient.database}/#{classname(o_class)}"].get)
+  rescue => e
+    logger.error  e.message
+    nil
   end
 
 # Print the property of a class
@@ -54,8 +57,10 @@ module RestRead
     if rp['properties'].nil?
       puts "No property available"
     else
-      puts rp['properties'].map{|x| [n+'.'+x['name'], x['type'],x['linkedClass']].compact.join(' -> ')}.join("\n")
+      puts rp['properties'].map{|x| "\t"+[n+'.'+x['name'], x['type'],x['linkedClass']].compact.join("\t-> ")}.join("\n")
     end
+  rescue NoMethodError
+    puts "Class #{o_class} not present in database"
   end
 
   ############## OBJECT #################
