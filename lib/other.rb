@@ -16,16 +16,29 @@ class Array
   end
 end
 
-class Date
+class RecordList
   def from_orient
-    self
-  end
-
-  def to_orient
-    self
+      map &:from_orient
   end
 end
+if RUBY_PLATFORM == 'java'
+  class Java::ComOrientechnologiesOrientCoreDbRecordRidbag::ORidBag
+    def from_orient
+      to_a.from_orient
+    end
+  end
 
+  class Java::JavaUtil::Date
+    def from_orient
+      Date.new(year+1900, month+1, date )
+    end
+    def to_orient
+      self
+    end
+  end
+
+
+end
 class FalseClass
   def from_orient
     self
@@ -39,7 +52,7 @@ end
 class Hash #WithIndifferentAccess
   def from_orient
     substitute_hash = HashWithIndifferentAccess.new
-    keys.each{|k| puts self[k].inspect}
+    #keys.each{|k| puts self[k].inspect}
     keys.each{|k| substitute_hash[k] = self[k].from_orient}
     substitute_hash
   end
@@ -55,9 +68,31 @@ class Hash #WithIndifferentAccess
   end
 end
 
+class Date
+  def to_orient
+    if RUBY_PLATFORM == 'java'
+      java.util.Date.new( year-1900, month-1, day , 0, 0 , 0 )  ## Jahr 0 => 1900
+    else
+      self
+    end
+  end
+  def from_orient
+    self
+  end
+end
+##module OrientDB
+#class Document
+#  def from_orient
+#    ActiveOrient::Model.autoload_object rid
+#  end
+#end
+#end
 class NilClass
   def to_orient
     self
+  end
+  def from_orient
+    nil
   end
 end
 
@@ -84,7 +119,7 @@ class String
 	  if rid?
 	    ActiveOrient::Model.autoload_object self
 	  else
-	    self.capitalize_first_letter
+	    self
 	  end
   end
   alias :reload! from_orient
@@ -108,6 +143,23 @@ class String
   def to_or
     "'#{self}'"
   end
+
+
+    def quote
+      str = self.dup
+      if str[0, 1] == "'" && str[-1, 1] == "'"
+	self
+      else
+	last_pos = 0
+	while (pos = str.index("'", last_pos))
+	  str.insert(pos, "\\") if pos > 0 && str[pos - 1, 1] != "\\"
+	  last_pos = pos + 1
+	end
+	"'#{str}'"
+      end
+    end
+
+
 end
 
 class Symbol

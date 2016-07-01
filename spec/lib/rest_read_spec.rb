@@ -8,9 +8,11 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'RestTest'
-   ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
+#    ORD.database_classes.each{|x| ORD.delete_class x }
+   #ao =   ActiveOrient::OrientDB.new 
+   ORD.delete_database database: 'temp'
+   ActiveOrient.database = 'temp'
+   ORD  =  ActiveOrient::OrientDB.new
 #   @database_name = 'RestTest'
   end
 
@@ -63,7 +65,7 @@ describe ActiveOrient::OrientDB do
      # first close the database by switching to test and then reopen the database
        classes =  ORD.get_classes
        ActiveOrient::OrientDB.new 
-       r= ActiveOrient::OrientDB.new database: 'RestTest' 
+       r= ActiveOrient::OrientDB.new database: 'temp'
        expect( r.get_classes ).to eq classes
 	@cl_hash[:Z].each do | classname |
 	  o =  r.open_class classname
@@ -102,7 +104,7 @@ describe ActiveOrient::OrientDB do
 	  predefined_property
 
 	  ActiveOrient::OrientDB.new 
-	  r= ActiveOrient::OrientDB.new database: 'RestTest' 
+	  r= ActiveOrient::OrientDB.new database: 'temp' 
 
 	  ['symbol','con_id','exchanges','details'].each do |property_name|
 	    expect( r.get_class_properties( 'property')['properties'].map{|y| y['name']}).to include property_name

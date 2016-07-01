@@ -15,18 +15,28 @@ module OrientSupport
       @orient = modelinstance
       super args
       @name = modelinstance.attributes.key(self)
+    #  puts "ORIENT: #{@orient.inspect} "
+      @name =  yield if @name.nil? && block_given?
+    #  puts "NAME: #{@name.inspect}"
+    #  puts "SELF: #{self.inspect}"
     end
+=begin
+Append the argument to the Array, changes the Array itself.
 
+The change is transmitted to the database immediately
+=end
     def << arg
-      print "\n ---> #{@name}, #{arg} <--- \n"
-      @orient.add_item_to_property(@name, arg) if @name.present?
+     # print "\n ---> #{@name}, #{arg} <--- \n"
+      if @name.present?
+	@orient.add_item_to_property(@name, arg)
+      end
       super
     end
 
 =begin
   Updating of single items
 
-  This only works if the hole embedded Array is previosly loaded into the Ruby-array.
+  This only works if the hole embedded Array is previously loaded into the Ruby-array.
 =end
 
     def []= key, value
@@ -70,7 +80,7 @@ module OrientSupport
     #  @orient.orientdb.execute do
 #	  sql_cmd[query.to_s]
 #      end
-       @orient.thx q 
+       @orient.query q 
     end
 
     def method_missing *args

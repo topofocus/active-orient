@@ -10,6 +10,7 @@ module  ActiveOrient
     include ActiveModel::Serialization
     include ActiveModel::Serializers::Xml
     include ActiveModel::Serializers::JSON
+    include OrientDB
 
     define_model_callbacks :initialize
 
@@ -36,6 +37,7 @@ module  ActiveOrient
     end
 
     def self.get_rid rid
+      @@rid_store[rid] 
     end
 
     def self.store_rid obj
@@ -62,45 +64,45 @@ The model instance fields are then set automatically from the opts Hash.
       logger.progname = "ActiveOrient::Base#initialize"
       @metadata = HashWithIndifferentAccess.new
       run_callbacks :initialize do
-        attributes.keys.each do |att|
-	        unless att[0] == "@" # @ identifies Metadata-attributes
-	          att = att.to_sym if att.is_a?(String)
-	          unless self.class.instance_methods.detect{|x| x == att}
-	            self.class.define_property att, nil
-	          else
-              #logger.info{"Property #{att.to_s} NOT assigned"}
-	          end
-	        end
-	      end
-
-        if attributes['@type'] == 'd'  # document
-	        @metadata[:type]       = attributes.delete '@type'
-	        @metadata[:class]      = attributes.delete '@class'
-	        @metadata[:version]    = attributes.delete '@version'
-	        @metadata[:fieldTypes] = attributes.delete '@fieldTypes'
-	        if attributes.has_key?('@rid')
-	          rid = attributes.delete '@rid'
-	          cluster, record = rid[1,rid.size].split(':')
-	          @metadata[:cluster] = cluster.to_i
-	          @metadata[:record]  = record.to_i
-	        end
-
-          if @metadata[:fieldTypes ].present? && (@metadata[:fieldTypes] =~ /=g/)
-	          edges = @metadata['fieldTypes'].split(',').find_all{|x| x=~/=g/}.map{|x| x.split('=').first}
-	          edges.each do |edge|
-	            operator, *base_edge = edge.split('_')
-	            base_edge = base_edge.join('_')
-	            unless self.class.instance_methods.detect{|x| x == base_edge}
-                ## define two methods: out_{Edge}/in_{Edge} -> edge.
-                self.class.define_property base_edge, nil
-                self.class.send :alias_method, base_edge.underscore, edge
-              end
-	          end
-	        end
-	      end
-	      self.attributes = attributes # set_attribute_defaults is now after_init callback
+	attributes.keys.each do |att|
+	  unless att[0] == "@" # @ identifies Metadata-attributes
+	    att = att.to_sym if att.is_a?(String)
+	    unless self.class.instance_methods.detect{|x| x == att}
+	      self.class.define_property att, nil
+	    else
+	      #logger.info{"Property #{att.to_s} NOT assigned"}
 	    end
-#      puts "Storing #{self.rid} to rid-store"
+	  end
+	end
+
+	if attributes['@type'] == 'd'  # document
+	  @metadata[:type]       = attributes.delete '@type'
+	  @metadata[:class]      = attributes.delete '@class'
+	  @metadata[:version]    = attributes.delete '@version'
+	  @metadata[:fieldTypes] = attributes.delete '@fieldTypes'
+	  if attributes.has_key?('@rid')
+	    rid = attributes.delete '@rid'
+	    cluster, record = rid[1,rid.size].split(':')
+	    @metadata[:cluster] = cluster.to_i
+	    @metadata[:record]  = record.to_i
+	  end
+
+	  if @metadata[:fieldTypes ].present? && (@metadata[:fieldTypes] =~ /=g/)
+	    edges = @metadata['fieldTypes'].split(',').find_all{|x| x=~/=g/}.map{|x| x.split('=').first}
+	    edges.each do |edge|
+	      operator, *base_edge = edge.split('_')
+	      base_edge = base_edge.join('_')
+	      unless self.class.instance_methods.detect{|x| x == base_edge}
+		## define two methods: out_{Edge}/in_{Edge} -> edge.
+		self.class.define_property base_edge, nil
+		self.class.send :alias_method, base_edge.underscore, edge
+	      end
+	    end
+	  end
+	end
+	self.attributes = attributes # set_attribute_defaults is now after_init callback
+      end
+      #      puts "Storing #{self.rid} to rid-store"
       ActiveOrient::Base.store_rid self
     end
 
@@ -116,45 +118,41 @@ The model instance fields are then set automatically from the opts Hash.
 
 =begin
   ActiveModel-style read/write_attribute accessors
-  Here we define the autoload mechanism
+  Autoload mechanism and data conversion are defined in the method "to_orient" of each class
 =end
 
     def [] key
       iv = attributes[key.to_sym]
-      if iv.is_a?(String) && iv.rid?
-	      ActiveOrient::Model.autoload_object iv
-      elsif iv.is_a?(Array)
-	      OrientSupport::Array.new self, *iv.map{|y| (y.is_a?(String) && y.rid?) ? ActiveOrient::Model.autoload_object(y) : y}
+      if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?(key.to_s+"=t")
+	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
+      elsif iv.is_a? Array
+	  OrientSupport::Array.new( self, *iv){ key.to_sym }
       else
-        if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?(key.to_s+"=t")
-	        iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
-	      else
-	        iv
-	      end
+	iv.from_orient
       end
     end
 
     def []= key, val
       val = val.rid if val.is_a? ActiveOrient::Model
       attributes[key.to_sym] = case val
-	    when Array
-	      if val.first.is_a?(Hash)
-	        v = val.map do |x|
-	          if x.is_a?(Hash)
-              HashWithIndifferentAccess.new(x)
-	          else
-		          x
-	          end
-	        end
-	        OrientSupport::Array.new(self, *v )
-	      else
-	        OrientSupport::Array.new(self, *val )
-	      end
-	    when Hash
-	      HashWithIndifferentAccess.new(val)
-	    else
-	      val
-	    end
+			       when Array
+				 if val.first.is_a?(Hash)
+				   v = val.map do |x|
+				     if x.is_a?(Hash)
+				       HashWithIndifferentAccess.new(x)
+				     else
+				       x
+				     end
+				   end
+				   OrientSupport::Array.new(self, *v )
+				 else
+				   OrientSupport::Array.new(self, *val )
+				 end
+			       when Hash
+				 HashWithIndifferentAccess.new(val)
+			       else
+				 val
+			       end
     end
 
     def update_attribute key, value

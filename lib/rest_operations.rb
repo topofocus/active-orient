@@ -54,13 +54,13 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
   def execute transaction: true, tolerated_error_code: nil # Set up for classes
     batch = {transaction: transaction, operations: yield}
-#puts "Execute# batch::"
-#print "\n ----> #{batch.to_json} <----\n"
+    logger.progname= "Execute"
     unless batch[:operations].blank?
+      batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
       begin
-#	logger.info{"command(s)"+batch[:operations].join(";")}
-        response = @res["/batch/#{@database}"].post batch.to_json
+	logger.info{ batch[:operations].map{|y|y[:command]}.join("; ") } 
+        response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
       rescue RestClient::InternalServerError => e
         logger.progname = 'RestOperations#Execute'
 	if tolerated_error_code.present? &&  e.response =~ tolerated_error_code

@@ -10,6 +10,24 @@ module RestChange
   end
 
   ############# OBJECTS #################
+=begin
+  Convient update of the dataset by calling sql-patch
+  
+  called from ModelRecord#update
+=end
+
+  def update rid, attributes , version
+    rid =  ActiveOrient::Model.autoload rid unless rid.is_a? ActiveOrient::Model
+    o_class = rid.class.ref_name
+    rid = rid.rid
+
+    result = patch_record(rid) do
+      attributes.merge({'@version' => version, '@class' => classname(o_class)})
+    end
+    # returns a new instance of ActiveOrient::Model and updates any reference on rid
+    ActiveOrient::Model.orientdb_class(name: classname(o_class)).new(JSON.parse(result))  
+  end
+
 
 =begin
   update_documents classname, set: {:symbol => 'TWR'}, where: {con_id: 340}
@@ -33,7 +51,7 @@ module RestChange
     content = yield
     if content.is_a? Hash
       begin
-        @res["/document/#{@database}/#{rid}"].patch content.to_orient.to_json
+        @res["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
       rescue Exception => e
         logger.error{e.message}
       end

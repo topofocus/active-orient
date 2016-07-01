@@ -9,20 +9,20 @@ module RestDelete
 
   def delete_database database:
     logger.progname = 'RestDelete#DeleteDatabase'
-    old_ds = @database
+    old_ds = ActiveOrient.database
     change_database database
     begin
-  	  response = @res["/database/#{@database}"].delete
+  	  response = @res["/database/#{ActiveOrient.database}"].delete
   	  if database == old_ds
   	    change_database  'temp'
   	    logger.info{"Working database deleted, switched to temp"}
   	  else
   	    change_database old_ds
-  	    logger.info{"Database #{database} deleted, working database is still #{@database}"}
+  	    logger.info{"Database #{database} deleted, working database is still #{ActiveOrient.database}"}
   	  end
     rescue RestClient::InternalServerError => e
       change_database old_ds
-  	  logger.info{"Database #{database} NOT deleted, working database is still #{@database}"}
+  	  logger.info{"Database #{database} NOT deleted, working database is still #{ActiveOrient.database}"}
     end
     !response.nil? && response.code == 204 ? true : false
   end
@@ -40,10 +40,10 @@ module RestDelete
     logger.progname = 'RestDelete#DeleteClass'
 
     begin
-      response = @res["/class/#{@database}/#{cl}"].delete
+      response = @res["/class/#{ActiveOrient.database}/#{cl}"].delete
       if response.code == 204
 	logger.info{"Class #{cl} deleted."}
-	@classes.delete(cl)
+	ActiveOrient.database_classes.delete(cl)
       end
     rescue RestClient::InternalServerError => e
       if get_database_classes(requery: true).include?(cl)
@@ -79,32 +79,11 @@ module RestDelete
 
   def delete_record *rid
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
-    ridvec = []
     ridvec= rid.map( &:to_orient).flatten
-    #    old code
-#    do |mm|
-#      case mm
-#      when  String
-#  	     mm if mm.rid?
-#      when  Array
-#        mm.map do |mmarr|
-#	  if mmarr.is_a?(ActiveOrient::Model)
-#           mmarr.rid   
-#	   elsif mmarr.is_a?(String) && mmarr.rid?
-#	     mmarr
-#	   end
-#        end.compact
-#	when ActiveOrient::Model
-#         mm.rid
-#      end
-#    end.flatten
-    puts "RIDVEC"
-    puts ridvec.inspect
-#
     unless ridvec.empty?
       ridvec.each do |rid|
         begin
-          @res["/document/#{@database}/#{rid[1..-1]}"].delete
+          @res["/document/#{ActiveOrient.database}/#{rid[1..-1]}"].delete
         rescue RestClient::InternalServerError => e
 	  puts e.inspect
           logger.error{"Record #{rid} NOT deleted"}
@@ -144,7 +123,7 @@ module RestDelete
   def delete_property o_class, field
     logger.progname = 'RestDelete#DeleteProperty'
     begin
-  	  response =   @res["/property/#{@database}/#{classname(o_class)}/#{field}"].delete
+  	  response =   @res["/property/#{ActiveOrient.database}/#{classname(o_class)}/#{field}"].delete
   	  true if response.code == 204
     rescue RestClient::InternalServerError => e
   	  logger.error{"Property #{field} in  class #{classname(o_class)} NOT deleted" }

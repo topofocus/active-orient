@@ -4,10 +4,13 @@ require 'spec_helper'
 describe OrientSupport::Array do
   before( :all ) do
 
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'ArrayTest'
-    ORD  = ActiveOrient::OrientDB.new database: 'ArrayTest' 
-    ORD.delete_class 'model_test'
+   ORD.delete_database database: ActiveOrient.database
+   ORD =  ActiveOrient::OrientDB.new
+   DB =  if RUBY_PLATFORM == 'java'
+	   ActiveOrient::API.new
+	 else
+	   ORD
+	 end
     TestModel = ORD.open_class "model_test"
     @ecord = TestModel.create
   end
@@ -39,7 +42,7 @@ describe OrientSupport::Array do
       expect( @ecord.ll.first ).to eq "test"
       expect( @ecord.ll[2] ).to eq 8
     end
-    it "modify the Object" , focus: true do
+    it "modify the Object"  do
       expect{ @ecord.add_item_to_property( :ll, 't') ; @ecord.reload! }.to change { @ecord.version }.by 1
       expect{ @ecord.ll << 78 }.to change { @ecord.ll.size }.by 1
       expect{ @ecord.reload! }.to change { @ecord.version }.by 1
@@ -51,6 +54,18 @@ describe OrientSupport::Array do
         expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
 	@ecord.reload!
       end.to change{  @ecord.version }.by 1
+    end
+
+    it "append to the array" , focus: true do
+      @ecord.update set: { new_array: [24,25,26] }
+      @ecord.reload!
+      expect( @ecord.new_array ).to eq [24,25,26]
+      
+      expect{ @ecord.new_array << "rt" }.to change { @ecord.new_array.size }.by 1
+
+      expect( @ecord.new_array ).to eq [24,25,26,'rt']
+
+
     end
     it "update the object"  do
       expect{ @ecord.ll[0]  =  "a new Value " }.to change{ @ecord.version }
@@ -109,11 +124,11 @@ describe OrientSupport::Array do
     end
 
   end
-  context 'work with subsets of the embedded array', focus: true  do
+  context 'work with subsets of the embedded array'  do
     before(:all) do
-      ORD.delete_class  'Test_link_class'
+      DB.delete_class  'Test_link_class'
 
-      LinkClass = ORD.open_class 'Test_link_class'
+      LinkClass = DB.open_class 'Test_link_class'
       @new_record = TestModel.create ll: [ ]
       (1..99).each do |i|
         @new_record.ll << i
@@ -171,12 +186,30 @@ describe OrientSupport::Array do
       expect{ @new_record.aLinkSet << LinkClass.create( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
       #	expect{ @new_record.aLinkSet.delete  LinkClass.last }.to change { @new_record.aLinkSet.size }.by -1
       # gives an Error - its not possible to mix links with other objects
-      #	expect{ @new_record.aLinkSet.<<   9 }.to change { @new_record.aLinkSet.size }.by 1
+     	expect{ @record_with_6 =  @new_record.aLinkSet <<   6 }.to change { @new_record.aLinkSet.size }.by 1
+	puts @record_with_6.inspect
+	### this fails!!
+#     	expect{ @new_record.aLinkSet.delete  @record_with_6 }.to change { @new_record.aLinkSet.size }.by -1
       expect{ @new_record.aLinkSet.delete 19 }.not_to change { @new_record.aLinkSet.size }
       expect{ @new_record.aLinkSet.delete  LinkClass.last, LinkClass.first  }.to change { @new_record.aLinkSet.size }.by -2
-      expect{ @new_record.aLinkSet.delete_if{|x| x == LinkClass.where( att: '5 attribute').pop.link}}.to change {@new_record.aLinkSet.size }.by -1
+      expect{ @new_record.aLinkSet.delete_if{|x| x == LinkClass.where( att: '5 attribute').pop.rid}}.to change {@new_record.aLinkSet.size }.by -1
     end
 
   end
+
+
+#  context 'create an array and save it to a linkmap' do
+#    before( :all ) do
+#      AC= ORD.create_class  'array_class'
+#      TLC= ORD.create_class  'this_link_class'
+#      TLC.create_linkset 'this_set', AC
+#      @item =  TLC.create this_set: [] 
+#
+#    end
+#
+#    set( :the_array ) do
+#      a = OrientSupport::Array.new
+#    end
+#  end
 
 end

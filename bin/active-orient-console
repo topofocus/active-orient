@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+## loads the active-orient environment 
+## and starts an interactive shell
+## Parameter:  production (p)
+##	       development (d)  [default]
+##	       test (t)
+require 'logger'
+LogLevel = Logger::WARN
+require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
+  
+ require 'orientdb' if RUBY_PLATFORM == 'java'
+ require 'yaml'
+
+puts "ORD points to the REST-Instance"
+puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
+
+puts "Allocated Classes (Hierarchy)"
+puts '-'* 35
+io = ORD.class_hierarchy - ORD.system_classes  - [ ["OIdentity", ["ORole", "OUser"]]]
+print io.sort{|x,y| z = y.is_a?(Array)? y.first: y ; a =  x.is_a?(Array)? x.first : x; a<=> z}.to_yaml
+
+
+include OrientDB
+
+require 'irb'
+ARGV.clear
+IRB.start(__FILE__)

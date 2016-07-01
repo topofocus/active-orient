@@ -7,84 +7,28 @@ module RestCreate
   Returns the name of the working-database
 =end
 
-  def create_database type: 'plocal', database: @database
+  def create_database type: 'plocal', database: nil
     logger.progname = 'RestCreate#CreateDatabase'
-  	old_d = @database
-  	@classes = []
-  	@database = database
+  	old_d = ActiveOrient.database
+  	ActiveOrient.database_classes = []
+  	ActiveOrient.database = database if database.present?
   	begin
-      response = @res["database/#{@database}/#{type}"].post ""
+      response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
       if response.code == 200
-        logger.info{"Database #{@database} successfully created and stored as working database"}
+        logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
       else
-        @database = old_d
-        logger.error{"Database #{name} was NOT created. Working Database is still #{@database}"}
+        ActiveOrient.database = old_d
+        logger.error{"Database #{name} was NOT created. Working Database is still #{ActiveOrient.database}"}
       end
     rescue RestClient::InternalServerError => e
-      @database = old_d
-      logger.error{"Database #{name} was NOT created. Working Database is still #{@database}"}
+      ActiveOrient.database = old_d
+      logger.error{"Database #{name} was NOT created. Working Database is still #{ActiveOrient.database}"}
     end
-    @database
+    ActiveOrient.database
   end
 
   ######### CLASS ##########
 
-=begin
-  Creates classes and class-hierarchies in OrientDB and in Ruby.
-  Takes a String,  Array or Hash as argument and returns a (nested) Array of
-  successfull allocated Ruby-Classes.
-  If a block is provided, this is used to allocate the class to this superclass.
-
-  Examples
-
-    create_class  "a_single_class"
-    create_class  :a_single_class
-    create_class(  :a_single_class ){ :a_super_class }
-    create_class(  :a_single_class ){ superclass: :a_super_class, abstract: true }
-    create_class( ["c",:l,:A,:SS] ){ :V } --> vertices
-    create_class( ["c",:l,:A,:SS] ){ superclass: :V, abstract: true } --> abstract vertices
-    create_class( { V: [ :A, :B, C: [:c1,:c3,:c2]  ],  E: [:has_content, :becomes_hot ]} )
-=end
-
-def allocate_classes_in_ruby classes
-    generate_ruby_object = ->( name, superclass, abstract ) do
-	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
-	 m.abstract = abstract
-	 m
-    end
-
-    superclass, abstract  = if block_given? 
-			      s =  yield
-			      if s.is_a? Hash
-				[s[:superclass],s[:abstract]]
-				else
-				  [s,false]
-			      end
-			    else
-			      [nil,false]
-			    end
-    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
-
-    consts = case classes 
-    when  Array
-      classes.map do |singleclass|
-	if singleclass.is_a?( String) || singleclass.is_a?( Symbol)
-	generate_ruby_object[singleclass,superclass,abstract]
-	elsif singleclass.is_a?(Array) || singleclass.is_a?(Hash) 
-	  allocate_classes_in_ruby( singleclass){ {superclass: superclass, abstract: abstract}}
-	end
-      end
-    when Hash
-      classes.keys.map  do| h_superclass |
-[	generate_ruby_object[h_superclass,superclass,abstract], 
-        allocate_classes_in_ruby(classes[ h_superclass ]){{ superclass: h_superclass, abstract: abstract }} ]
-      end
-    when String, Symbol
-      generate_ruby_object[classes,superclass, abstract]
-    end
-    consts.unshift superclass_object if superclass_object.present?  rescue [ superclass_object, consts ]
-    consts
-end
 =begin 
 General method to create database classes
 -----------------------------------------
@@ -108,11 +52,10 @@ creates a vertex-class, too, but returns the Hash
     def create_classes classes, &b
 
       consts = allocate_classes_in_ruby( classes , &b )
-
       all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
       get_database_classes(requery: true)
       selected_classes =  all_classes.map do | this_class |
-	this_class unless get_database_classes(requery: false).include? this_class.ref_name  
+	this_class unless database_classes.include?( this_class.ref_name ) rescue nil
       end.compact.uniq
       command= selected_classes.map do | database_class |
 	## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
@@ -142,23 +85,6 @@ creates a vertex-class, too, but returns the Hash
       end
       consts
     end
-=begin
-create a single class and provide properties as well
-
-  ORB.create_class( the_class_name as String or Symbol (nessesary) ,
-		    properties: a Hash with property- and Index-descriptions (optional)){
-		    {superclass: The name of the superclass as String or Symbol , 
-		     abstract: true|false } (optional Block provides a Hash ) }
-
-=end
- def create_class classname, properties: nil, &b
-   the_class= create_classes( classname, &b )
-   create_properties( the_class.ref_name , properties )  if properties.present?
-   the_class # return_value
- end
-
-  alias open_class create_class
-  alias create_document_class create_class
 
 #        create_general_class singleclass, behaviour: behaviour, extended_class: extended_class, properties: properties
 
@@ -210,20 +136,12 @@ create a single class and provide properties as well
 #  end
 #end
 
-  def create_vertex_class name, properties: nil
-    create_class( :V ) unless database_classes.include? "V"
-    create_class( name, properties: properties){ {superclass: :V } } 
-  end
-
-  def create_edge_class name, superclass: 'E', properties: nil
-    create_class( :E ) unless database_classes.include? "E"
-    create_class( name, properties: properties){ {superclass: :E } }
-  end
 
   ############## OBJECT #############
 
 =begin
   create_edge connects two vertexes
+
   The parameter o_class can be either a class or a string
 
   if batch is specified, the edge-statement is prepared and returned 
@@ -231,78 +149,32 @@ create a single class and provide properties as well
 
   The method takes a block as well. 
   It must provide a Hash with :from and :to- Key's, e.g.
+      Vertex1, Vertex2 = ActiveOrient::Model:Test1, ActiveOrient::Model::Test2
 
-
-      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
+      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes: { testentry: y  }
       record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
 
       edges = ORD.create_edge TheEdge do | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
 	       { from: record1.find{|x| x.testentry == o },
-		 to: record2.find{ |x| x.testentry.ord == o },
+		 to:   record2.find{ |x| x.testentry.ord == o },
+		 attributes: attributes.merge{ key: o.chr } }
+	  end
+  or
+
+      edges = ORD.create_edge TheEdge do | attributes |
+	 ('a'.ord .. 'z'.ord).map do |o| 
+	       { from: Vertex1.where( testentry:  o ).pop ,
+		 to:   Vertex2.where( testentry.ord =>  o).pop ,
 		 attributes: attributes.merge{ key: o.chr } }
 	  end
 
   Benefits: The statements are transmitted as batch.
 
+  The pure-ruby-solution minimizes traffic to the database-server and is prefered.
+
 =end
 
-  def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil
-    logger.progname = "ActiveOrient::RestCreate#CreateEdge"
-
-    if block_given?
-      a =  yield(attributes)
-      command = if a.is_a? Array
-       a.map do | record | 
-	this_attributes =  record[:attributes].present? ? record[:attributes] : attributes
-       
-       # in batch-mode unique is not supportet	
-       create_edge o_class, attributes: this_attributes, from: record[:from], to: record[:to], unique: false, batch: true
-      end
-      else
-	create_edge o_class, attributes: attributes, from: a[:from], to: a[:to], unique: a[:uniq], batch: true
-      end
-    elsif from.is_a? Array
-      command = from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique, batch: true}
-    elsif to.is_a? Array
-      command = to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique, batch: true}
-    elsif from.present? && to.present?
-      if unique
-	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
-	existing_edge = get_records(from: o_class, where: wwhere)
-	if existing_edge.first.is_a?(ActiveOrient::Model)
-	  #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-	  existing_edge.first
-	else
-	  existing_edge
-	end
-      #logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-    elsif from.to_orient.nil? || to.to_orient.nil? 
-      logger.error{ "Parameter :from or :to is missing"}
-    else
-      attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
-      command = { type: "cmd",
-	  language: 'sql',
-	  command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"
-		      }
-      end
-    else 
-      # for or to are not set
-      return nil
-    end
-    if batch.nil?
-      response = execute(transaction: false) do
-	command.is_a?(Array) ? command.flatten.compact : [ command ]
-      end
-      if response.is_a?(Array) && response.size == 1
-	response.pop # RETURN_VALUE
-      else
-	response  # return value (the normal case)
-      end
-    else
-      command # return value (if batch)
-    end
-  end
 
 =begin
   Creates a Record (NOT edge) in the Database and returns this as ActiveOrient::Model-Instance
@@ -335,7 +207,7 @@ create a single class and provide properties as well
     post_argument = {'@class' => classname(o_class)}.merge(attributes).to_orient
 
     begin
-      response = @res["/document/#{@database}"].post post_argument.to_json
+      response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
       ActiveOrient::Model.orientdb_class(name: data['@class']).new data
     rescue RestClient::InternalServerError => e
@@ -415,7 +287,7 @@ Otherwise it's taken unmodified.
 
 The method returns the included or the updated dataset
 =end
-  def upsert o_class, set: {}, where: {}
+  def upsert o_class, set: {}, where: {} 
     logger.progname = 'RestCreate#Upsert'
     if where.blank?
       new_record = create_record(o_class, attributes: set)
@@ -428,9 +300,11 @@ The method returns the included or the updated dataset
 
 
 #	puts "COMMAND: #{command} "
-	result = execute  do # To execute commands
+	result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
 	 [ { type: "cmd", language: 'sql', command: command}]
-	end.pop
+	end 
+	result =result.pop if result.is_a? Array
+
 	case result
 	when ActiveOrient::Model
 	  result   # just return the result
@@ -445,46 +319,6 @@ The method returns the included or the updated dataset
 	  end
     end
   end
-=begin
-  Creating a new Database-Entry (where is omitted)
-  Or updating the Database-Entry (if present)
-
-  The optional Block should provide a hash with attributes (properties). These are used if a new dataset is created.
-  Based on the query specified in :where records are updated according to :set
-
-  Returns an Array of updated documents
-=end
-
-  def update_or_create_records o_class, set: {}, where: {}, **args, &b
-    logger.progname = 'RestCreate#UpdateOrCreateRecords'
-    if where.blank?
-      [create_record(o_class, attributes: set)]
-    else
-  	  set.extract!(where.keys) if where.is_a?(Hash) # removes any keys from where in set
-  	  possible_records = get_records from: classname(o_class), where: where, **args
-    	if possible_records.empty?
-    	  if block_given?
-    	    more_where = yield   # do Preparations prior to the creation of the dataset
-          # if the block returns a Hash, it is merged into the insert_query.
-    	    where.merge! more_where if more_where.is_a?(Hash)
-    	  end
-    	  [create_record(o_class, attributes: set.merge(where))]
-    	else
-    	  possible_records.map{|doc| doc.update(set: set)} unless set.empty?
-    	end
-    end
-  end
-
-  def update_or_create_a_record o_class, set: {}, where: {},   **args, &b
-    result = update_or_create_records( o_class, set: set, where: where, **args, &b) 
-    puts "Attention: update_or_create_a_record is depriciated"
-    result.first
-  end
-
-  alias create_or_update_document update_or_create_a_record
-  alias update_or_create_documents update_or_create_records
-  alias update_or_create update_or_create_records
-
   ############### PROPERTIES #############
 
 =begin
@@ -516,7 +350,7 @@ The method returns the included or the updated dataset
     count=0
     begin
       if all_properties_in_a_hash.is_a?(Hash)
-	response = @res["/property/#{@database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
+	response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
 	# response.body.to_i returns  response.code, only to_f.to_i returns the correrect value
 	count= response.body.to_f.to_i if response.code == 201
       end

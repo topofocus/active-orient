@@ -2,8 +2,10 @@ require 'spec_helper'
 
 describe OrientSupport::OrientQuery do
   before( :all ) do
-    ORD = ActiveOrient::OrientDB.new database: 'ArrayTest'
-   TestQuery = ORD.open_class "model_query"
+#    ORD = ActiveOrient::OrientDB.new database: 'ArrayTest'
+   TestQuery = ORD.open_class "Model_query"
+   TestQuery.delete_class
+   TestQuery = ORD.open_class "Model_query"
   end # before
 
   context "Initialize the QueryClass" do
@@ -17,7 +19,7 @@ describe OrientSupport::OrientQuery do
       expect(q.to_s).to eq "traverse  from Model_query where a = 2 and c = 'ufz' "
     end
 
-    it "where with dates", focus: true do 
+    it "where with dates" do 
       date = Date.today
       q = OrientSupport::OrientQuery.new from: :Openinterest, 
 		where:{"fieldtype.date(\"yyyy-mm-dd\")"=> date.to_s}
@@ -87,15 +89,17 @@ describe OrientSupport::OrientQuery do
         expect( q.compose ).to eq "select  from Model_query let $city = adress.city where $city.country.name = 'Italy' OR $city.country.name = 'France' "
 
       end
-      it "subqurey and expand" do
+      it "subquery and expand" do
+	ORD.open_class 'Openinterest'
         oi_query =  OrientSupport::OrientQuery.new from: 'Openinterest', limit: 10, projection: 'expand( contracts )'
+	puts oi_query.to_s
         contracts_query = OrientSupport::OrientQuery.new from: oi_query, projection: 'expand( distinct(ORDid) )'
         expect( contracts_query.to_s ).to eq 'select expand( distinct(ORDid) ) from  ( select expand( contracts ) from Openinterest   limit 10 )   '
         expect( contracts_query.to_s ).to eq 'select expand( distinct(ORDid) ) from  ( select expand( contracts ) from Openinterest   limit 10 )   '
 
       end
-      it "subquery and subsequent unionall" do
-
+      it "subquery and subsequent unionall", pending: true do
+ pending( "Try's to fetch data from #5:0, if there aren'd any, it fails")
         q =  OrientSupport::OrientQuery.new
         q.let << { a:  OrientSupport::OrientQuery.new( from: '#5:0' ) }
         q.let << { b:  OrientSupport::OrientQuery.new( from: '#5:1' ) }
@@ -114,7 +118,7 @@ describe OrientSupport::OrientQuery do
       end
     end
 
-    context 'Match -syntax' , focus: true do
+    context 'Match -syntax'  do
       before(:all) do
 	MatchQuery = ORD.open_class "match_query"
       end
