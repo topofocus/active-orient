@@ -199,7 +199,6 @@ end
       response = execute(transaction: false) do
 	command.is_a?(Array) ? command.flatten.compact : [ command ]
       end
-      puts "RESPONSE_RAW:"+response.inspect
       if response.is_a?(Array) && response.size == 1
 	response.pop # RETURN_VALUE
       else

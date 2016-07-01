@@ -1,10 +1,6 @@
 # A sample Guardfile
 # More info at https://github.com/guard/guard#readme
-
-interactor :simple
-guard 'jruby-rspec' do  #', :spec_paths => ["spec"]
-
-#guard :rspec, cmd: "bundle exec rspec" do
+def fire
   require "ostruct"
 
   # Generic Ruby apps
@@ -22,3 +18,10 @@ guard 'jruby-rspec' do  #', :spec_paths => ["spec"]
   watch(%r{^spec/support/(.+)\.rb$})                  { "spec" }
 end
 
+
+interactor :simple
+if RUBY_PLATFORM == 'java' 
+guard( 'jruby-rspec') {fire}  #', :spec_paths => ["spec"]
+else
+guard( :rspec, cmd: "bundle exec rspec") { fire }
+end

@@ -125,6 +125,8 @@ The model instance fields are then set automatically from the opts Hash.
       iv = attributes[key.to_sym]
       if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?(key.to_s+"=t")
 	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
+      elsif iv.is_a? Array
+	  OrientSupport::Array.new( self, *iv){ key.to_sym }
       else
 	iv.from_orient
       end

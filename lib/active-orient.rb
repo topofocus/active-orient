@@ -37,13 +37,6 @@ if RUBY_PLATFORM == 'java'
 require_relative "rest.rb"
 require_relative "other.rb"
 
-logger =  Logger.new '/dev/stdout'
-logger.formatter = proc do |severity, datetime, progname, msg|
-  "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{progname}:..:#{msg}\n"
-end
-ActiveOrient::Model.logger =  logger
-ActiveOrient::OrientDB.logger =  logger
-
 module  ActiveOrient
 mattr_accessor :database
 mattr_accessor :database_classes

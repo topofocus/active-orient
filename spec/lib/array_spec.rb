@@ -4,10 +4,13 @@ require 'spec_helper'
 describe OrientSupport::Array do
   before( :all ) do
 
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'ArrayTest'
-    ORD  = ActiveOrient::OrientDB.new database: 'ArrayTest' 
-    ORD.delete_class 'model_test'
+   ORD.delete_database database: ActiveOrient.database
+   ORD =  ActiveOrient::OrientDB.new
+   DB =  if RUBY_PLATFORM == 'java'
+	   ActiveOrient::API.new
+	 else
+	   ORD
+	 end
     TestModel = ORD.open_class "model_test"
     @ecord = TestModel.create
   end
@@ -51,6 +54,18 @@ describe OrientSupport::Array do
         expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
 	@ecord.reload!
       end.to change{  @ecord.version }.by 1
+    end
+
+    it "append to the array" , focus: true do
+      @ecord.update set: { new_array: [24,25,26] }
+      @ecord.reload!
+      expect( @ecord.new_array ).to eq [24,25,26]
+      
+      expect{ @ecord.new_array << "rt" }.to change { @ecord.new_array.size }.by 1
+
+      expect( @ecord.new_array ).to eq [24,25,26,'rt']
+
+
     end
     it "update the object"  do
       expect{ @ecord.ll[0]  =  "a new Value " }.to change{ @ecord.version }
@@ -111,9 +126,9 @@ describe OrientSupport::Array do
   end
   context 'work with subsets of the embedded array'  do
     before(:all) do
-      ORD.delete_class  'Test_link_class'
+      DB.delete_class  'Test_link_class'
 
-      LinkClass = ORD.open_class 'Test_link_class'
+      LinkClass = DB.open_class 'Test_link_class'
       @new_record = TestModel.create ll: [ ]
       (1..99).each do |i|
         @new_record.ll << i
@@ -181,6 +196,7 @@ describe OrientSupport::Array do
     end
 
   end
+
 
 #  context 'create an array and save it to a linkmap' do
 #    before( :all ) do

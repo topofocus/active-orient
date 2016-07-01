@@ -79,28 +79,7 @@ module RestDelete
 
   def delete_record *rid
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
-    ridvec = []
     ridvec= rid.map( &:to_orient).flatten
-    #    old code
-#    do |mm|
-#      case mm
-#      when  String
-#  	     mm if mm.rid?
-#      when  Array
-#        mm.map do |mmarr|
-#	  if mmarr.is_a?(ActiveOrient::Model)
-#           mmarr.rid   
-#	   elsif mmarr.is_a?(String) && mmarr.rid?
-#	     mmarr
-#	   end
-#        end.compact
-#	when ActiveOrient::Model
-#         mm.rid
-#      end
-#    end.flatten
-    puts "RIDVEC"
-    puts ridvec.inspect
-#
     unless ridvec.empty?
       ridvec.each do |rid|
         begin

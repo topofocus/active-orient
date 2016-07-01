@@ -27,10 +27,16 @@ end
 describe ActiveOrient::Model do
   before( :all ) do
 #   ao =   ActiveOrient::OrientDB.new 
-#   ao.delete_database database: 'ModelTest'
+   ORD.delete_database database: ActiveOrient.database
+   ORD =  ActiveOrient::OrientDB.new
+   DB =  if RUBY_PLATFORM == 'java'
+	   ActiveOrient::API.new
+	 else
+	   ORD
+	 end
 #    ORD = ActiveOrient::OrientDB.new database: 'ModelTest'
 #    TestModel = ORD.open_class "Modeltest"
-    ActiveOrient::Model::Modeltest.delete_class if defined? ActiveOrient::Model::Modeltest
+  #  ActiveOrient::Model::Modeltest.delete_class if defined? ActiveOrient::Model::Modeltest
     TestModel = ORD.create_vertex_class "Modeltest"
   end
 
@@ -206,7 +212,6 @@ describe ActiveOrient::Model do
 
     it "get a set of documents queried by where"  , focus:true do
       nr_23=  TestModel.where  test: 23
-      puts "NR_23: "+nr_23.inspect
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23
     end
@@ -223,8 +228,9 @@ describe ActiveOrient::Model do
       the_edge= ActiveOrient::Model::E.create_edge( attributes: { halbwertzeit: 655 },
 					  from: node_1,
 					    to: node_2  )
-      puts "THE_EDDEG: "+the_edge.inspect
-      expect( the_edge).to be_a ActiveOrient::Model
+      expect( the_edge ).to be_a ActiveOrient::Model
+      expect( the_edge.in ).to eq node_2
+      expect( the_edge.out ).to eq node_1
 
       # creation of a second edge with the same properties leads to  reusing the existent edge
       the_edge2= ActiveOrient::Model::E.create_edge(
@@ -240,10 +246,10 @@ describe ActiveOrient::Model do
       expect( the_edge.in ).to eq node_2
       #      expect( the_edge2.out ).to eq in_e
       #      expect( the_edge2.in ).to eq in_e2
-      out_e =  TestModel.where(  test: 23  ).first
-      expect( out_e ).to eq node_1.rid
-      expect( out_e.attributes).to include 'out_Myedge'
-      in_e = TestModel.where(  test: 15  ).first
+#      out_e =  TestModel.where(  test: 23  ).first
+#      expect( out_e ).to eq node_1
+#      expect( out_e.attributes).to include 'out_Myedge'
+#      in_e = TestModel.where(  test: 15  ).first
       #      puts "--------------------------------"
       #      puts node_1.attributes.inspect
       #      expect( in_e.attributes).to include 'in_Myedge'
@@ -252,16 +258,16 @@ describe ActiveOrient::Model do
       #    expect( node_1.in_Myedge[0][:in].test).to eq  15
     end
 
-#    it "deletes an edge"  do
-#      the_edges =  ActiveOrient::Model::E.all
-#      expect(the_edges.size).to  be >=1
-#
-#      the_edges.each do |edge|
-#        edge.delete
-#      end
-#      the_edges =  ActiveOrient::Model::E.all
-#      expect(the_edges.size).to  be_zero
-#    end
+    it "deletes an edge"  do
+      the_edges =  ActiveOrient::Model::E.all
+      expect(the_edges.size).to  be >=1
+
+      the_edges.each do |edge|
+        edge.delete
+      end
+      the_edges =  ActiveOrient::Model::E.all
+      expect(the_edges.size).to  be_zero
+    end
 #
   end
 
