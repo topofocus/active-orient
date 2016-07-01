@@ -7,9 +7,9 @@ You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instanc
 For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
 and start an irb-session  by calling 
 ```
-./orientdb_console test,  # or d)develpoment, p)roduction environment as defined in config/connect.yml
+cd bin
+./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
 ```
-in the bin-directory.
 
 »ORD« is the Database-Instance itself.
 A simple SQL-Query is submitted by providing a Block to »execute«
