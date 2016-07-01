@@ -12,17 +12,15 @@ module RestChange
   ############# OBJECTS #################
 =begin
   Convient update of the dataset by calling sql-patch
-
-  Previously changed attributes are saved to the database.
-  With the optional :set argument ad-hoc attributes can be defined
-    obj = ActiveOrient::Model::Contracts.first
-    obj.name =  'new_name'
-    obj.update set: { yesterdays_event: 35 }
+  
+  called from ModelRecord#update
 =end
 
   def update rid, attributes , version
-    rid =  rid.rid if rid.is_a? ActiveOrient::Model
-    attributes.merge!(set) if set.present?
+    rid =  ActiveOrient::Model.autoload rid unless rid.is_a? ActiveOrient::Model
+    o_class = rid.class.ref_name
+    rid = rid.rid
+
     result = patch_record(rid) do
       attributes.merge({'@version' => version, '@class' => classname(o_class)})
     end
@@ -53,7 +51,7 @@ module RestChange
     content = yield
     if content.is_a? Hash
       begin
-        @res["/document/#{@database}/#{rid}"].patch content.to_orient.to_json
+        @res["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
       rescue Exception => e
         logger.error{e.message}
       end
