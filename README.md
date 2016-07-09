@@ -5,19 +5,18 @@ datasets.
 You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
 For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
-and start an irb-session  by calling 
+and start an irb-session: 
 ```
-./orientdb_console test,  # or d)develpoment, p)roduction environment as defined in config/connect.yml
->>>>>>> jruby
+cd bin
+./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
 ```
-in the bin-directory.
 
 »ORD« is the Database-Instance itself.
 A simple SQL-Query is submitted by providing a Block to »execute«
  ```ruby
  result =  ORD.execute { "select * from Stock" } 
  ```
-Obviously the class »Stock« has to exist. 
+Obviously, the class »Stock« has to exist. 
 Let's create some classes
 
  ```ruby
@@ -42,11 +41,11 @@ The CRUD-Process (create, read = query, update and remove) is performed with
     M.delete hugo 
  ```
  
-#### Inherence.
+#### Inherence
 
 Create a Tree of Objects with create_classes
 ```ruby
-  ORD.create_classes { :sector => [ :industry, : category, :subcategory ] }
+  ORD.create_classes { :sector => [ :industry, :category, :subcategory ] }
   I =  ActiveOrient::Model::Industry
   S =  ActiveOrient::Model::Sector
   I.create name: 'Communications'
@@ -54,11 +53,11 @@ Create a Tree of Objects with create_classes
  ```
 
 #### Preallocation of Model-Classes
-All database-classes are preallocated after connecting to the database. You can use ActiveOrient::Model::{classname} from the start.
+All database-classes are preallocated after connecting to the database. Thus you can use ActiveOrient::Model::{classname} from the start.
 However, "ORD.open_class classname" works with existing classes as well.
 
 #### Properties
-The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
+The schemaless mode has many limitations. ActiveOrient offers a ruby way to define Properties and Indexes
 
  ```ruby
  M.create_property 'symbol' 			# the default-case: type: :string, no index
@@ -146,13 +145,13 @@ records. In the simplest version this can be returnd:
 The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
 
 ```ruby
-  I.where name: "Communications" 
+  I.match where name: "Communications" 
   ## is equal to
   I.match( where: { name: 'Communications' }).first.Industries
 ```
 The Match-Query uses this result-set as start for subsequent queries on connected records.
 If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
-accessed  starting at Industry defining
+accessed starting at Industry defining
 
 ```ruby
   var = I.match( where: { name: 'Communications'}) do | query |
