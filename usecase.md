@@ -1,7 +1,7 @@
 ## Usecase
 Below some typical features are summarized by example
 
-Initialize ActiveOrient by calling »bin/actibe-orient-console t«.
+Initialize ActiveOrient by calling »bin/active-orient-console t«.
 This connects to the Test-Database, specified in »config/connect.yml«.
 
  ```bash
