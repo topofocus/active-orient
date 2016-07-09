@@ -22,7 +22,7 @@ This connects to the Test-Database.
 The database is almost empty. "E" and "V" are base classes for Edges and Vertices.
 "a,b,c" are Vertex-Classes. 
 ```ruby
-A,B,C =  * ORD.create_classes( [ :a, :b, :c ] ){ :V } 
+A,B,C =  * ORD.create_classes( [ :a, :b, :c ] ){ :v } 
 ```
 creates them with a single statement and assignes them to Ruby-classes "A","B" and "C". 
 
@@ -40,16 +40,16 @@ provides a 'to_orient' method. Base-Classes are supported out of the box.
   a.update set: { a_array: aa= [ 1,4,'r' ]  , 
                   a_hash: { :a => 'b', b: 2 } }
   a.to_human
-  => "<MyAClass: a_array: [1, 4, r], a_hash: { a => b , b =>2}, test: 45>" 
+  => <MyAClass: a_array: [1, 4, r], a_hash: { a => b , b =>2}, test: 45> 
 
 ```
 **Notice** Ruby-Symbols are converted to Strings and masked as ":{symbol}:".
 
-Attibutes/properties of the Database-Record  can be handled as normal ruby objects ie.
+Attibutes/properties of the Database-Record  can be handled as normal ruby objects, ie.
  
 ``` ruby
-  a.a_array << "a new element"
-  a.a_hash[ :a_new_element ] =  "value of the new element"
+  a.a_array << "a new element"                                     #  changes are updated in the DB, calling »update« is not nesessary
+  a.a_hash[ :a_new_element ] =  "value of the new element"         #  changes are local, »update« stores them in the DB
   a.test += 3
   a.test =  567
   a.update
