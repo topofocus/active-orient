@@ -4,7 +4,7 @@ Below some typical features are summarized by example
 Initialize ActiveOrient by calling »bin/actibe-orient-console t«.
 This connects to the Test-Database.
 
- ```ruby
+ ```bash
  topo@gamma:~/activeorient/bin$ ./active-orient-console t
  Using test-environment
  30.06.(21:36:09) INFO->OrientDB#Connect:..:Connected to database tempera
