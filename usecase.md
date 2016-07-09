@@ -2,7 +2,7 @@
 Below some typical features are summarized by example
 
 Initialize ActiveOrient by calling »bin/actibe-orient-console t«.
-This connects to the Test-Database.
+This connects to the Test-Database, specified in »config/connect.yml«.
 
  ```bash
  topo@gamma:~/activeorient/bin$ ./active-orient-console t
@@ -24,7 +24,7 @@ The database is almost empty. "E" and "V" are base classes for Edges and Vertice
 ```ruby
 A,B,C =  * ORD.create_classes( [ :a, :b, :c ] ){ :v } 
 ```
-creates them with a single statement and assignes them to Ruby-classes "A","B" and "C". 
+creates them with a single statement and assigns them to Ruby-classes "A","B" and "C". 
 
 #### Object Mapping
 Lets create a class, put some content in it and perform basic oo-steps.
