@@ -20,7 +20,7 @@ module OrientSupport
         case issue
         when String
 	        issue
-        when Hash
+         else
 	        generate_sql_list issue
         end
       end.join(' and ')

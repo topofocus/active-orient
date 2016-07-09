@@ -8,17 +8,18 @@ module ModelClass
 
 =begin
 NamingConvention provides a translation from database-names to class-names.
+
 Should provide 
    to_s.capitalize_first_letter
 as minimum.
 Can be overwritten to provide different conventions for different classes, eg. Vertexes or edges.
+
 To overwrite use 
   class ActiveOrient::Model::{xxx} < ActiveOrient::Model[:: ...]
     def self.naming_convention
-    ( convention code )
+    ( conversion code )
     end
  end
-# todo(maybe) two directional naming convention,  convert classname to database_name
 =end
   def naming_convention name=nil
     name.present? ? name.to_s.camelize : ref_name.camelize
@@ -28,12 +29,12 @@ To overwrite use
   orientdb_class is used to instantiate a ActiveOrient:Model:{class} by providing its name
 =end
   def orientdb_class name:, superclass: nil
+    return if name.nil?
     logger.progname = "ModelClass#OrientDBClass"
     i=0
     ref_name =  name.to_s
-    klass = if superclass.present? 
+    klass = if superclass.present?   # superclass is parameter, use if class, otherwise transfer to class
 	      superclass = self.orientdb_class( name: superclass ) unless superclass.is_a? Class
-	      #	      superclass= self.send( :const_get, naming_convention(superclass) ) if superclass.is_a?( String) || superclass.is_a?( Symbol)
 	      Class.new(superclass)
 	    else
 	      Class.new(self)
@@ -45,8 +46,8 @@ To overwrite use
       new_class = self.send :const_set, name, klass
       new_class.orientdb = orientdb
       new_class.ref_name =  ref_name
-      logger.info{"created:: Class #{new_class} < #{new_class.superclass} "}
-      logger.info{"database-table:: #{ref_name} "}
+#      logger.debug{"created:: Class #{new_class} < #{new_class.superclass} "}
+#      logger.debug{"database-table:: #{ref_name} "}
       new_class # return_value
     end
   rescue NameError => e
@@ -55,7 +56,7 @@ To overwrite use
       i += 1
       retry
     else
-      logger.error "ActiveOrient::Model::Class #{name} cannot be initialized."
+      logger.error "ModelClass #{name} cannot be initialized."
       logger.error e.inspect
     end
   end
@@ -78,7 +79,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 # Create a new Record
 
   def create_record attributes: {}
-    orientdb.create_record self, attributes: attributes
+    db.create_record self, attributes: attributes
   end
   alias create_document create_record
   
@@ -93,7 +94,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 # Used to create multiple records
 
 =begin
-  Only if the Class inherents from »E« instantiate a new Edge between two Vertices
+  Instantiate a new Edge between two Vertices only if the Class inherents from »E« 
 
   Parameter: unique: (true)
   
@@ -105,11 +106,12 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
 
   def create_edge reload: false, **keyword_arguments
-    new_edge = orientdb.create_edge self, **keyword_arguments
+    new_edge = db.create_edge self, **keyword_arguments
+    new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
     [:from,:to].each do |y|
-#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"a
+#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"
       keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
-      end if reload
+      end
       new_edge
   end
 
@@ -118,7 +120,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
 
   def update_or_create_records set: {}, where: {}, **args, &b
-    orientdb.update_or_create_records self, set: set, where: where, **args, &b
+    db.update_or_create_records self, set: set, where: where, **args, &b
   end
 
 =begin 
@@ -126,13 +128,14 @@ Creates or updates a record.
 Parameter: 
   set: A hash of attributes to set
   where: A string or hash as condition which should return just one record.
- The where-part should be covered with an unique-index.
- If where is omitted, a record is added with attributes from set:
 
- returns the affected record
+The where-part should be covered with an unique-index.
+If where is omitted, a record is added with attributes from set.
+
+returns the affected record
 =end
   def upsert set:{}, where:{}, &b
-    orientdb.upsert self, set: set, where: where, &b
+    db.upsert self, set: set, where: where, &b
   end
   alias update_or_create_documents update_or_create_records
   alias create_or_update_document upsert
@@ -177,25 +180,25 @@ Parameter:
 # get elements by rid
 
   def get rid
-    orientdb.get_record rid
+    db.get_record rid
   end
 
 # get all the elements of the class
 
   def all
-    orientdb.get_records from: self
+    db.get_records from: self
   end
 
 # get the first element of the class
 
   def first where: {}
-    orientdb.get_records(from: self, where: where, limit: 1).pop
+    db.get_records(from: self, where: where, limit: 1).pop
   end
 
 # get the last element of the class
 
   def last where: {}
-    orientdb.get_records(from: self, where: where, order: {"@rid" => 'desc'}, limit: 1).pop
+    db.get_records(from: self, where: where, order: {"@rid" => 'desc'}, limit: 1).pop
   end
 
 # Get the properties of the class
@@ -254,7 +257,7 @@ Parameter:
 =end
 
   def get_records **args
-    orientdb.get_records(from: self, **args){self}
+    db.get_records(from: self, **args){self}
   end
   alias get_documents get_records
 
@@ -268,7 +271,8 @@ Parameter:
     => [ #<ActiveOrient::Model::Log:0x0000000480f7d8 @metadata={ ... },  ...
 =end
 
-  def where attributes =  {}
+  def where **attributes 
+    ##puts "ATTRIBUTES: "+attributes.inspect
     q = OrientSupport::OrientQuery.new from: self, where: attributes
     query_database q
   end
@@ -348,8 +352,8 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   def query_database query, set_from: true
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    orientdb.execute do
-      [sql_cmd[query.to_s]]
+    db.execute do
+      sql_cmd[query.to_s]
     end
   end
 
@@ -364,7 +368,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 # Delete a record
 
   def delete_record *rid
-    orientdb.delete_record rid
+    db.delete_record rid
   end
   alias delete_document delete_record
 
@@ -380,7 +384,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 # Update records of a class
 
   def update_records set:, where:
-    orientdb.update_records self, set: set, where: where
+    db.update_records self, set: set, where: where
   end
   alias update_documents update_records
 
@@ -414,7 +418,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
 
   def add_edge_link name:, direction: "out", edge:
-    logger.progname = 'RestEdge#AddEdgeLink'
+    logger.progname = 'Model#AddEdgeLink'
     if direction == "out"
       dir = "in"
     elsif direction == "in"

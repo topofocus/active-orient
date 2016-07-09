@@ -13,17 +13,19 @@ module ModelRecord
     self.class.to_s.split(':')[-1]
   end
 
-  # Obtain the RID of the Record
+  #
+  # Obtain the RID of the Record  (format: "00:00")
+  #
 
   def rid
     begin
       "#{@metadata[:cluster]}:#{@metadata[:record]}"
     rescue
-      "#0:0"
+      "0:0"
     end
   end
 =begin
-The extended representation of rid
+The extended representation of rid (format "#00:00" )
 =end
   def rrid
     "#" + rid
@@ -37,18 +39,35 @@ ActiveOrient::Model-Object  or an Array of Model-Objects as result.
 =end
 
   def query query
+    
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     orientdb.execute do
       sql_cmd[query.to_s]
     end
   end
 
+=begin
+find_all queries the database starting with the current model-record.
+
+its equivalent to to Model#where but uses a single rid as "from" item
+=end
+  def find_all attributes =  {}
+    q = OrientSupport::OrientQuery.new from: self, where: attributes
+    query q
+  end
   # Get the version of the object
 
   def version
-    @metadata[:version]
+    if document.present?
+      document.version
+    else
+      @metadata[:version]
+    end
   end
 
+  def version= version
+    @metadata[:version] = version
+  end
   ########### UPDATE PROPERTY ############
 
 =begin
@@ -61,7 +80,9 @@ ActiveOrient::Model-Object  or an Array of Model-Objects as result.
       Array_of_Objects_to_be_linked_to
       #(actually, the objects must inherent from ActiveOrient::Model, Numeric, String)
     end
-  to_do: use "<<" to add the item to the property
+  
+  The method is aliased by "<<" i.e
+    model.array << new_item
 =end
 
   def method_missing *args
@@ -90,8 +111,8 @@ ActiveOrient::Model-Object  or an Array of Model-Objects as result.
     else
       logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
     end
+    print e.backtrace.join("\n")
     raise
-    #      print e.backtrace.join("\n")
   end
 
 
@@ -102,24 +123,10 @@ ActiveOrient::Model-Object  or an Array of Model-Objects as result.
       self.attributes[array] = Array.new unless attributes[array].present?
 
       add_2_execute_array = -> (it) do
-        case it
-        when ActiveOrient::Model
-          updating = "##{it.rid}"
-        when String
-          updating = "'#{it}'"
-        when Numeric
-          updating = "#{it}"
-        when Array
-          updating = it.map{|x| "##{x.rid}"} if it[0].is_a? ActiveOrient::Model
-        end
-        unless updating.nil?
-          command = "UPDATE ##{rid} #{method} #{array} = #{updating}"
-          command.gsub!(/\"/,"") if updating.is_a? Array
-          execute_array << {type: "cmd", language: "sql", command: command}
-        else
-          logger.error{"Only Basic Formats supported. Cannot Serialize #{it.class} this way"}
-          logger.error{"Try to load the array from the DB, modify it and update the hole record"}
-        end
+	command = "UPDATE ##{rid} #{method} #{array} = #{it.to_orient } " #updating}"
+	command.gsub!(/\"/,"") if it.is_a? Array
+	#puts "COMMAND:: #{command}"
+	execute_array << {type: "cmd", language: "sql", command: command}
       end
 
       items = yield if block_given?
@@ -195,7 +202,8 @@ end
 
 =begin
   Convient update of the dataset by calling sql-patch
-  The attributes are saved to the database.
+
+  Previously changed attributes are saved to the database.
   With the optional :set argument ad-hoc attributes can be defined
     obj = ActiveOrient::Model::Contracts.first
     obj.name =  'new_name'
@@ -203,15 +211,12 @@ end
 =end
 
   def update set: {}
-    attributes.merge!(set) if set.present?
-    result = orientdb.patch_record(rid) do
-      attributes.merge({'@version' => @metadata[:version], '@class' => @metadata[:class]})
-    end
-    # returns a new instance of ActiveOrient::Model
-cl = orientdb.classname self.class
+    self.attributes.merge!(set) if set.present?
+    updated_dataset = db.update self, attributes, @metadata[:version]
+    self.version =  updated_dataset.version
+    updated_dataset # return_value
+#    reload!
 
-    reload! ActiveOrient::Model.orientdb_class(name:  cl).new(JSON.parse(result))
-    # instantiate object, update rid_store and reassign to self
   end
 
 =begin
@@ -219,7 +224,7 @@ cl = orientdb.classname self.class
 =end
 
   def reload! updated_dataset = nil
-    updated_dataset = orientdb.get_record(rid) if updated_dataset.nil?
+    updated_dataset = db.get_record(rid) if updated_dataset.nil?
     @metadata[:version] = updated_dataset.version
     attributes = updated_dataset.attributes
     self  # return_value  (otherwise only the attributes would be returned)

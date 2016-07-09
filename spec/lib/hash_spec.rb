@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe 'Properties and Application of Hashes' do
   before( :all ) do
-    ORD = ActiveOrient::OrientDB.new database: 'HashTest'
+#    ORD = ActiveOrient::OrientDB.new database: 'HashTest'
     ORD.delete_class 'model_test'
     TestModel = ORD.open_class "model_test"
     @ecord = TestModel.create
@@ -30,7 +30,7 @@ describe 'Properties and Application of Hashes' do
 
   context "verify a proper TestEnvironment" do
     it{ expect( TestModel.count ).to eq 1 }
-    it{ expect( @ecord ).to be_a ActiveOrient::Model::Model_test }
+    it{ expect( @ecord ).to be_a ActiveOrient::Model::ModelTest }
   end
 
   context "add and populate an Hash" do

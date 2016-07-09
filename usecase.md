@@ -1,32 +1,51 @@
 ## Usecase
 Below some typical features are summarized by example
 
-Start a irb-session and initialize ActiveOrient
+Initialize ActiveOrient by calling »bin/actibe-orient-console t«.
+This connects to the Test-Database.
+
  ```ruby
-topo@gamma:~/new_hctw$ irb
-2.2.1 :001 > require './config/boot'
-  Using development-environment
-  -------------------- initialize -------------------- => true 
-2.2.1 :002 > ActiveOrient::Model.orientdb = ror = ActiveOrient::OrientDB.new
-    => #<ActiveOrient::OrientDB:0x000000046f1a90 @res=#<RestClient::Resource:0x000000046c0af8 @url="http://localhost:2480", @block=nil, @options={:user=>"hctw", :password=>"**"}>, @database="hc_database", @classes=[]> 
+ topo@gamma:~/activeorient/bin$ ./active-orient-console t
+ Using test-environment
+ 30.06.(21:36:09) INFO->OrientDB#Connect:..:Connected to database tempera
+ ORD points to the REST-Instance
+ Allocated Classes (Hierarchy)
+ -----------------------------------
+ ---
+ -   E
+ - - V
+   - - a
+     - b
+     - c
+
 ```
+The database is almost empty. "E" and "V" are base classes for Edges and Vertices.
+"a,b,c" are Vertex-Classes. 
+```ruby
+A,B,C =  * ORD.create_classes( [ :a, :b, :c ] ){ :V } 
+```
+creates them with a single statement and assignes them to Ruby-classes "A","B" and "C". 
+
 #### Object Mapping
 Lets create a class, put some content in it and perform basic oo-steps.
 
-Attributes(Properties) do not have to be formaly declared. However it is nessessary to introduce them properly. This is done with the »attributes«-Argument during the initialisation step or via
+Attributes(Properties) do not have to be formaly declared. One can save any Object, which
+provides a 'to_orient' method. Base-Classes are supported out of the box.
 »update«  
 
 ``` ruby
-  A =  r.create_class 'my_a_class'
-  => ActiveOrient::Model::Myaclass
-  a = A.new_document attributes: { test: 45}
-  a.update set: { a_array: aa= [ 1,4,'r', :r ]  , 
+  A =  ORD.create_class 'my_a_class'
+  => ActiveOrient::Model::MyAClass
+  a = A.create test: 45
+  a.update set: { a_array: aa= [ 1,4,'r' ]  , 
                   a_hash: { :a => 'b', b: 2 } }
   a.to_human
-  => <Myaclass: a_array: [1, 4, "r", :r] a_hash: {:a=>"b", :b=>2} test: 45>
+  => "<MyAClass: a_array: [1, 4, r], a_hash: { a => b , b =>2}, test: 45>" 
 
 ```
-Then the attibutes/properties can be handled as normal ruby objects ie.
+**Notice** Ruby-Symbols are converted to Strings and masked as ":{symbol}:".
+
+Attibutes/properties of the Database-Record  can be handled as normal ruby objects ie.
  
 ``` ruby
   a.a_array << "a new element"
@@ -35,33 +54,27 @@ Then the attibutes/properties can be handled as normal ruby objects ie.
   a.test =  567
   a.update
 ```
-Objects are synchronized with the database with »update«. To revert changes, a »reload!« method is available. 
 
 #### Contracts-Example
 Assume a Database, which is defined as
 ```
-  create class Industries
-  create class Categories
-  create class SubCategories
-  create class OpenInterest ABSTRACT
-  create class Stocks extends Contracts
-  create class Futures extends Contracts
-  create class Options extends Contracts
-  create class Forexes extends Contracts
-  create property Industries.categories linkset
-  create property Categories.subcategories linkset
-  create property Categories.industry link
-  create property SubCategories.category link
-  create property SubCategories.contracts linkset
+  ORD.create_classes [ :Industry, :Category, :SubCategory ]
+  ORD.create_class  :OpenInterest, abstract: true
+  ORD.create_classes { :Contract => [ :Stock, Future, Option, Forex ]}
+  ORD.create_property Industry.categories linkset
+  ORD.create_property Category.subcategories linkset
+  ORD.create_property Category.industry link
+  ORD.create_property SubCategory.category link
+  ORD.create_property SubCategory.contracts linkset
 
-  create property Contracts.subcategory link
-  create property Contracts.details link
-  create property OpenInterest.contracts linkset
+  ORD.create_property Contracts.subcategory link
+  ORD.create_property Contracts.details link
+  ORD.create_property OpenInterest.contracts linkset
 
 ```
 This defines some conventional relations:
 
-OpenInterest -> Contracts <- Subcategory <- Category <- Industry
+OpenInterest -> Contract <- Subcategory <- Category <- Industry
 
 with some oo-Behavior
 ```ruby

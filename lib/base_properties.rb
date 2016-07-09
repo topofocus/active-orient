@@ -14,10 +14,10 @@ module ActiveOrient
 	   when ActiveOrient::Model
 	     value.to_human
 	   else
-	     value
+	     value.from_orient
 	   end
-        "#{attr}: #{v}" unless v.nil?
-      end.compact.sort.join(', ') + ">"
+        "%s : %s" % [ attr, v]  unless v.nil?
+      end.compact.sort.join(', ') + ">".gesub('"' , ' ')
     end
 
 # Comparison support
@@ -99,6 +99,8 @@ module ActiveOrient
             :validate => body[2]
 
         when Hash # recursion base case
+#	  puts "NAME: "+name.to_S
+#		     puts "BODY::"+body.inspect
           getter = case # Define getter
           when body[:get].respond_to?(:call)
             body[:get]

@@ -9,24 +9,6 @@ module RestRead
   end
 
 =begin
-  Returns an array with all names of the classes of the database
-  caches the result.
-  Parameters: include_system_classes: false|true, requery: false|true
-=end
-
-  def get_database_classes include_system_classes: false, requery: false
-    requery = true if @classes.nil? || @classes.empty?
-    if requery
-  	  get_class_hierarchy requery: true
-  	  all_classes = get_classes('name').map(&:values).flatten
-  	  @classes = include_system_classes ? all_classes : all_classes - system_classes
-    end
-    @classes
-  end
-  alias inspect_classes get_database_classes
-  alias database_classes get_database_classes
-
-=begin
   Returns an Array with (unmodified) Class-attribute-hash-Elements
 
   get_classes 'name', 'superClass' returns
@@ -38,7 +20,7 @@ module RestRead
 
   def get_classes *attributes
     begin
-    	response = @res["/database/#{@database}"].get
+    	response = @res["/database/#{ActiveOrient.database}"].get
     	if response.code == 200
     	  classes = JSON.parse(response.body)['classes']
     	  unless attributes.empty?
@@ -55,80 +37,15 @@ module RestRead
     end
   end
 
-=begin
-preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
-=end
- def preallocate_classes
-
-   get_classes( 'name', 'superClass').each do | name_and_superclass |
-     if database_classes.include? name_and_superclass['name']
-       if name_and_superclass['superClass'].blank?
-	 allocate_classes_in_ruby name_and_superclass['name']
-       else
-	 allocate_classes_in_ruby( {name_and_superclass["superClass"] => name_and_superclass['name'] } )
-       end
-     end 
-   end
- end
-=begin
-  Returns the class_hierachy
-
-  To fetch all Vertices uses:
-   get_class_hiearchie(base_class: 'V').flatten
-  To fetch all Edges uses:
-   get_class_hierachy(base_class: 'E').flatten
-
-  Notice: base_class has to be noted as String! There is no implicit conversion from Symbol or Class
-  To retrieve the class hierarchy from Objects avoid calling classname,  because it depends on class_hierarchy.
-=end
-
-  def get_class_hierarchy base_class: '', requery: false
-    @all_classes = get_classes('name', 'superClass') if requery || @all_classes.blank?
-    def fv s   # :nodoc:
-  	  @all_classes.find_all{|x| x['superClass']== s}.map{|v| v['name']}
-    end
-
-    def fx v # :nodoc:
-  	  fv(v).map{|x| ar = fx(x); ar.empty? ? x : [x, ar]}
-    end
-    fx base_class
-  end
-  alias class_hierarchy get_class_hierarchy
 
   ############### CLASS ################
-
-=begin
-  Returns a valid database-class name, nil if the class does not exists
-=end
-
-  def classname name_or_class
-    name = case  name_or_class
-	when ActiveOrient::Model
-              name_or_class.class.ref_name
-	when Class
-              name_or_class.ref_name
-#	      name_or_class.to_s.split('::').last
-	else
-	  name_or_class.to_s #.to_s.camelcase # capitalize_first_letter
-    end
-    ## 16/5/31  : reintegrating functionality to check wether the classname is 
-    #		  present in the database or not
-          if database_classes.include?(name)
-	             name
-	  elsif database_classes.include?(name.underscore)
-	           name.underscore
-	  else
-	     logger.progname =  'RestRead#Classname'
-	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in active Database" }
-	  nil
-
-	  end
-  end
-
 # Return a JSON of the property of a class
 
   def get_class_properties o_class
-    JSON.parse(@res["/class/#{@database}/#{classname(o_class)}"].get)
+    JSON.parse(@res["/class/#{ActiveOrient.database}/#{classname(o_class)}"].get)
+  rescue => e
+    logger.error  e.message
+    nil
   end
 
 # Print the property of a class
@@ -140,8 +57,10 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
     if rp['properties'].nil?
       puts "No property available"
     else
-      puts rp['properties'].map{|x| [n+'.'+x['name'], x['type'],x['linkedClass']].compact.join(' -> ')}.join("\n")
+      puts rp['properties'].map{|x| "\t"+[n+'.'+x['name'], x['type'],x['linkedClass']].compact.join("\t-> ")}.join("\n")
     end
+  rescue NoMethodError
+    puts "Class #{o_class} not present in database"
   end
 
   ############## OBJECT #################
@@ -156,24 +75,29 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
   def get_record rid
     begin
       logger.progname = 'RestRead#GetRecord'
-      rid = rid[1..rid.length] if rid[0]=='#'
-      response = @res["/document/#{@database}/#{rid}"].get
-      raw_data = JSON.parse(response.body) #.merge( "#no_links" => "#no_links" )
-      ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+      if rid.rid?
+	rid = rid[1..rid.length] if rid[0]=='#'
+	response = @res["/document/#{ActiveOrient.database}/#{rid}"].get
+	raw_data = JSON.parse(response.body) #.merge( "#no_links" => "#no_links" )
+	ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+      else
+	logger.error { "Wrong parameter #{rid.inspect}. " }
+	nil
+      end
     rescue RestClient::InternalServerError => e
       if e.http_body.split(':').last =~ /was not found|does not exist in database/
-        nil
+	nil
       else
-        logger.error "Something went wrong"
-        logger.error e.http_body.inspect
-        raise
+	logger.error { "Something went wrong" }
+	logger.error { e.http_body.inspect }
+	raise
       end
     rescue RestClient::ResourceNotFound => e
-      logger.error "Not data found"
-      logger.error e.message
+      logger.error { "Not data found" }
+      logger.error { e.message }
     rescue Exception => e
-      logger.error "Something went wrong"
-      logger.error "RID: #{rid} - #{e.message}"
+      logger.error { "Something went wrong" }
+      logger.error { "RID: #{rid} - #{e.message}" }
     end
   end
   alias get_document get_record
@@ -189,7 +113,7 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
     query = OrientSupport::OrientQuery.new(args) if query.nil?
     begin
       logger.progname = 'RestRead#GetRecords'
-  	  url = "/query/#{@database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
+  	  url = "/query/#{ActiveOrient.database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
 #	  puts "URL"
 #	  puts query.compose( destination: :rest).to_s
 #	  puts url.to_s

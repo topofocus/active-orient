@@ -2,21 +2,22 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-You need a ruby 2.3 Installation and a working OrientDB-Instance (Version 2.2 prefered).  
+You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).  
 
-*notice* There is a experimental branch using jruby and java-api-calls 
-
-For a quick start, clone the project, call bundle install + bundle update, update config/connect.yml, create the documentation by calling »rdoc«
-and start an irb-session 
-
-```ruby
-  require 'config/boot'
-  require 'active-orient'
-  ORD = ActiveOrient::OrientDB.new database: 'OrientTest'
-  => #<ActiveOrient::OrientDB:0x00000002f924d0 @res=#<RestClient::Resource:0x00000002f922c8 @url="http://localhost:2480", @block=nil, @options={:user=>(...)}, {"name"=>"V", "superClass"=>""}], @classes=["E", "OSequence", "V"]> 
+For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
+and start an irb-session  by calling 
 ```
-»ORD« is the Database-Instance itself. Obviously the database is empty.
+./orientdb_console test,  # or d)develpoment, p)roduction environment as defined in config/connect.yml
+>>>>>>> jruby
+```
+in the bin-directory.
 
+»ORD« is the Database-Instance itself.
+A simple SQL-Query is submitted by providing a Block to »execute«
+ ```ruby
+ result =  ORD.execute { "select * from Stock" } 
+ ```
+Obviously the class »Stock« has to exist. 
 Let's create some classes
 
  ```ruby
@@ -27,23 +28,23 @@ Let's create some classes
     M.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
-»M« is the ActiveOrient::Model-Class itself, a constant pointing to the class-definition of the ruby-class.
-It's a shortcut for »ActiveOrient::Model::{Classname}«.
+»M« is the ActiveOrient::Model-Class itself, a shortcut for »ActiveOrient::Model::{Classname}«.
 
 Naming-Convention: The name given in the »create-class«-Statement becomes the Database-Classname. 
 In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
 
-To create, update,  query and remove a Document just write
+#### CRUD
+The CRUD-Process (create, read = query, update and remove) is performed with
 ```ruby	
     hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    hugo = M.where( name: 'Hugo' ).first
     hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
-    hugo = M.where name: 'Hugo'
     M.delete hugo 
  ```
  
-The database is fully object-orientated and supports inherence.
+#### Inherence.
 
-Create a Tree of Objects
+Create a Tree of Objects with create_classes
 ```ruby
   ORD.create_classes { :sector => [ :industry, : category, :subcategory ] }
   I =  ActiveOrient::Model::Industry
@@ -52,13 +53,15 @@ Create a Tree of Objects
   S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
  ```
 
-If a populated database is accessed, first all database-classes are preallocated. You can use ActiveOrient::Model::{classname} from the start.
+#### Preallocation of Model-Classes
+All database-classes are preallocated after connecting to the database. You can use ActiveOrient::Model::{classname} from the start.
+However, "ORD.open_class classname" works with existing classes as well.
 
-
+#### Properties
 The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to define Properties and Indexes
 
  ```ruby
- M.create_property 'symbol'
+ M.create_property 'symbol' 			# the default-case: type: :string, no index
  M.create_property 'con_id', type: 'integer'
  M.create_property 'details', type: 'link', other_class: 'Contracts'
  M.create_property 'name', type: :string, index: :unique
@@ -82,32 +85,12 @@ The schemaless mode has many limitations. Thus ActiveOrient offers a ruby way to
 Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is defined  by
 ```ruby
   M = ORD.create_class 'Classname'
-  M = ORD.create_class('Classname'){superclass_name: 'SuperClassname'}
-  A,B,C = * ORD.create_classes( [ :a, :b, :c ] )
+  M = ORD.create_class('Classname'){'SuperClassname'}
+  A,B,C = * ORD.create_classes( [ :a, :b, :c ] ){ :V }  # creates 3 vertex-classes
   Vertex = ORD.create_vertex_class 'VertexClassname'
   Edge   = ORD.create_edge_class 'EdgeClassname'
 ```
-and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by Class#NamingConvention
-
-Object-Inherence is maintained, thus
-```ruby
-  ORD.create_vertex_class :f
-  M = ORD.create_class( :m ){ :f }
-  N = ORD.create_class( :n ){ :f }
-
-```
-allocates the following class-hierarchy:
-```ruby
-class ActiveOrient::Model:F < ActiveOrient::Model:V
-end
-class ActiveOrient::Model:M < ActiveOrient::Model:F
-end
-class ActiveOrient::Model:N < ActiveOrient::Model:F
-end
-```
-M and N are Vertexes and inherent methods (and properties) from  F
-
-**notice.** If ActiveOrient::Model::{classname} methods are defined, they have to be required _after_ initalizing the database by calling  ActiveOrient::OrientDB.new. Otherwise the preallocation mechanism fails. 
+and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by ModelClass#NamingConvention
 
 As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
 
@@ -163,20 +146,18 @@ records. In the simplest version this can be returnd:
 The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
 
 ```ruby
-  I.match( where: { name: 'Communications' }).first.Industries
-```
-
-is the same then
-```ruby
   I.where name: "Communications" 
+  ## is equal to
+  I.match( where: { name: 'Communications' }).first.Industries
 ```
 The Match-Query uses this result-set as start for subsequent queries on connected records.
 If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
 accessed  starting at Industry defining
+
 ```ruby
   var = I.match( where: { name: 'Communications'}) do | query |
     query.connect :in, count: 2, as: 'Subcategories'
-    puts query.to_s  # print the query send to the database
+    puts query.to_s  # print the query prior sending it to the database
     query            # important: block has to return the query 
   end
   => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
@@ -197,7 +178,7 @@ link if stored somewhere.
 
 ```ruby
   TestLinks = ORD.create_class 'Test_link_class'
-  TestBase =  ORD.create_class 'Test_base_class'
+  TestBase  = ORD.create_class 'Test_base_class'
 
   link_document =  TestLinks.create  att: 'one attribute'
   base_document =  TestBase.create  base: 'my_base', single_link: link_document
@@ -230,7 +211,7 @@ the graph elements can be explored by joining the objects (a[6].b[5].c[9].d)
 Edges provide bidirectional Links. They are easily handled
 ```ruby
   Vertex = ORD.create_vertex_class 'd1'
-  Edge = ORD.create_edge_class   'e1'
+  Edge   = ORD.create_edge_class   'e1'
 
   start = Vertex.create something: 'nice'
   the_end  =  Vertex.create something: 'not_nice'
@@ -244,8 +225,8 @@ Edges provide bidirectional Links. They are easily handled
 The create_edge-Method takes a block. Then all statements are transmitted in batch-mode.
 Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, then
 ```ruby
-  record1 = (1 .. 100).map{|y| Vertex1.create_document attributes:{ testentry: y } }
-  record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+  record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
+  record2 = (:a .. :z).map{|y| Vertex2.create testentry: y  }
   edges = ORD.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
     ('a'.ord .. 'z'.ord).map do |o| 
 	  { from: record1.find{|x| x.testentry == o },
@@ -339,7 +320,7 @@ or
 ```ruby
   OpenInterest = ORD.open_class 'Openinterest'
   last_12_open_interest_records = OQ.new from: OpenInterest, order: { fetch_date: :desc } , limit: 12
-  bunch_of_contracts =  OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
+  bunch_of_contracts = OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
   distinct_contracts = OQ.new from: bunch_of_contracts, projection: 'expand( distinct(@rid) )'
 
   distinct_contracts.to_s
@@ -347,5 +328,3 @@ or
 
   cq = ORD.get_documents query: distinct_contracts
 ```
-The OrientDB-API documentation can be found here: https://github.com/orientechnologies/orientdb-docs/wiki/OrientDB-ActiveOrient
-and the ActiveModel-documentation is here: http://www.rubydoc.info/gems/activemodel

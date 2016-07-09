@@ -1,3 +1,4 @@
+ARGV << 'test'
 require './config/boot'
 #bundler/setup'
 require 'rspec'
@@ -9,12 +10,11 @@ project_root = File.expand_path('../..', __FILE__)
 require File.expand_path('../../lib/rest', __FILE__)
 #require 'my_spec_helper'
 
+unless defined?(SPEC_HELPER_LOADED)
+SPEC_HELPER_LOADED =  true
 RSpec.configure do |config|
 	config.mock_with :rspec
 	config.color = true
-	#		config.order = "random"
-
-
 	# ermöglicht die Einschränkung der zu testenden Specs
 	# durch  >>it "irgendwas", :focus => true do <<
 	config.filter_run :focus => true
@@ -38,3 +38,9 @@ RSpec.shared_context 'private', private: true do
 	      end
 
 end
+else
+  puts "***  ---- *** \n"*3
+  puts "Reusing rspec configuration "
+  puts "***  ---- *** \n"*3
+end
+#require 'model_helper'
