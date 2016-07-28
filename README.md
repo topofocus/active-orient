@@ -48,13 +48,19 @@ Create a Tree of Objects with create_classes
   ORD.create_classes { :sector => [ :industry, :category, :subcategory ] }
   I =  ActiveOrient::Model::Industry
   S =  ActiveOrient::Model::Sector
-  I.create name: 'Communications'
+  I.create name: 'Communications'  #--->   Create an Industry-Record with the attribute "name"
   S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
  ```
 
 #### Preallocation of Model-Classes
 All database-classes are preallocated after connecting to the database. Thus you can use ActiveOrient::Model::{classname} from the start.
 However, "ORD.open_class classname" works with existing classes as well.
+
+If the "rid" is known, any Object can be retrieved and correctly allocated by
+```ruby
+  the_object =  ActiveOrient::Model.autoload_object "xx:yy" # or "#xx:yy"
+  --->  ActiveOrient::Model::{ClassName} Object 
+```
 
 #### Properties
 The schemaless mode has many limitations. ActiveOrient offers a ruby way to define Properties and Indexes
@@ -85,7 +91,8 @@ Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is def
 ```ruby
   M = ORD.create_class 'Classname'
   M = ORD.create_class('Classname'){'SuperClassname'}
-  A,B,C = * ORD.create_classes( [ :a, :b, :c ] ){ :V }  # creates 3 vertex-classes
+  # classnames may be specified with symbols, too
+  A,B,C = * ORD.create_classes( [ :a, :b, :c ] ){ :v }  # creates 3 vertex-classes
   Vertex = ORD.create_vertex_class 'VertexClassname'
   Edge   = ORD.create_edge_class 'EdgeClassname'
 ```
@@ -96,7 +103,8 @@ As for ActiveRecord-Tables, the Class itself provides methods to inspect and to 
 ```ruby
   M.all   
   M.first
-  M.last
+  M.last  	# notice: last does not work in orientdb version 2.2, because the sorting algorithm for rid's is damaged
+  M.all.last    # or M.where( ... ).last  walkaround for  Orientdb V 2.2
   M.where town: 'Berlin'
 
   M.count where: { town: 'Berlin' }
@@ -105,14 +113,14 @@ As for ActiveRecord-Tables, the Class itself provides methods to inspect and to 
 
 A »normal« Query is submitted via
 ```ruby
-  M.get_records projection: { projection-parameter }
-		  distinct: { some parameters }
-		  where: { where-parameter }
-		  order: { sorting-parameters }
-		  group_by: { one grouping-parameter}
-		  unwind:
-		  skip:
-		  limit:
+  M.get_records projection: { projection-parameter },
+		  distinct: { some parameters },
+		  where: { where-parameter },
+		  order: { sorting-parameters },
+		  group_by: { one grouping-parameter},
+		  unwind:  ,
+		  skip:    ,
+		  limit:  
 
 #  or
  query = OrientSupport::OrientQuery.new {paramter}  
@@ -164,7 +172,7 @@ accessed starting at Industry defining
 
 The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
 
-By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be clearly constructed. 
+By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be constructed. 
 
 #### Links
 
@@ -189,7 +197,7 @@ base_document.single_link just contains the rid. When accessed, the ActiveOrient
 ```
 reads the stored content of link_document.
 
-To store a list of links to other Database-Objects a simple Array is allocated
+To store a list of links to other Database-Objects, a simple Array is allocated
 ``` ruby
   # predefined linkmap-properties
   base_document =  TestBase.create links: []
@@ -197,6 +205,7 @@ To store a list of links to other Database-Objects a simple Array is allocated
   end
   #or in schemaless-mode
   base_document = TestBase.create links: (0..20).map{|y| TestLinks.create nr: y}
+  base_document.update
 ```
 base_document.links behaves like a ruby-array.
 
@@ -307,8 +316,8 @@ or
 
 ```ruby
   q =  OQ.new
-  q.let << {a: OrientSupport::OrientQuery.new( from: '#5:0' ) }
-  q.let << {b: OrientSupport::OrientQuery.new( from: '#5:1' ) }
+  q.let << {a: OQ.new( from: '#5:0' ) }
+  q.let << {b: OQ.new( from: '#5:1' ) }
   q.let << '$c= UNIONALL($a,$b) '
   q.projection << 'expand( $c )'
   q.to_s  # => select expand( $c ) let $a = ( select from #5:0 ), $b = ( select from #5:1 ), $c= UNIONALL($a,$b)
