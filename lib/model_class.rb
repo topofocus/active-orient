@@ -313,12 +313,11 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   def match where: {}
     query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
     query.match_statements[0].where =  where unless where.empty?
-    query= yield( query ) if block_given?
-    if query.is_a? OrientSupport::OrientQuery
-      query_database query, set_from: false
+    if block_given?
+      query_database yield(query), set_from: false
     else
       logger.progname = 'ActiveOrient::Model#Match'
-      logger.error{ "the block must return a OrientSupport::OrientQuery" }
+      logger.error{ "Query-Details have to be specified in a Block" }
     end
 
   end

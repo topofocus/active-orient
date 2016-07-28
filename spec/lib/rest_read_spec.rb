@@ -16,11 +16,11 @@ describe ActiveOrient::OrientDB do
 #   @database_name = 'RestTest'
   end
 
-  context "empty dataset" , :pending => true do 
-    pending( 'Database Version 2.2 proviedes E,V and OSequence in Addition to Field in V2.1')
+  context "empty dataset"  do 
+    pending( 'Database Version 2.2 provides E,V and OSequence in Addition to Field in V2.1')
   
     it "the database has been created" do
-      expect( ORD.get_databases ).to include 'RestTest'
+      expect( ORD.get_databases ).to include 'temp'
     end
     it "the database is empty" do
       expect( ORD.get_database_classes requery: true).to be_empty

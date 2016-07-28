@@ -305,7 +305,11 @@ executes a command as sql-query
 	  else
 	    response.map do | r |
 	      if r.is_a? Document
-		update_document( r )
+		if r.rid.rid? 
+		  update_document r 
+		else
+		  ActiveOrient::Model.orientdb_class( name: 'query').new  r
+		end
 	      else 
 		puts "Strange things happen in execute: #{r.inspect}"
 		r.values
