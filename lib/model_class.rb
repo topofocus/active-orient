@@ -28,6 +28,7 @@ To overwrite use
 =begin
   orientdb_class is used to instantiate a ActiveOrient:Model:{class} by providing its name
 =end
+
   def orientdb_class name:, superclass: nil
     return if name.nil?
     logger.progname = "ModelClass#OrientDBClass"
@@ -39,11 +40,13 @@ To overwrite use
 	    else
 	      Class.new(self)
 	    end
+
+    # namespace is defined in config/boot
     name = klass.naming_convention ref_name #
-    if self.send :const_defined?, name
-      retrieved_class = self.send :const_get, name
+    if namespace.send :const_defined?, name
+      retrieved_class = namespace.send :const_get, name
     else
-      new_class = self.send :const_set, name, klass
+      new_class = namespace.send :const_set, name, klass
       new_class.orientdb = orientdb
       new_class.ref_name =  ref_name
 #      logger.debug{"created:: Class #{new_class} < #{new_class.superclass} "}
@@ -205,7 +208,7 @@ returns the affected record
 
   def get_properties
     object = orientdb.get_class_properties self
-    {:properties => object['properties'], :indexes => object['indexes']}
+    HashWithIndifferentAccess.new :properties => object['properties'], :indexes => object['indexes']
   end
   alias get_class_properties get_properties
 
@@ -378,6 +381,11 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   end
   alias delete_documents delete_records
 
+
+
+  def delete_edge *rid
+
+  end
   ########### UPDATE #############
 
 # Update records of a class

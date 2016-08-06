@@ -30,6 +30,21 @@ if RUBY_PLATFORM == 'java'
   
   class Java::ComOrientechnologiesOrientCoreDbRecord::OTrackedList
  #  class  RecordList
+    #   Basisklasse
+    #   Java::ComOrientechnologiesOrientCoreDbRecord::ORecordLazyList
+    #	Methode get(Index):  gibt das Dokument (Java::ComOrientechnologiesOrientCoreRecordImpl::ODocument) zurück
+    ## base = ActiveOrient::Model::Base.first
+    ## base.document.first_list
+    # => #<OrientDB::RecordList:[#21:0, #22:0, #23:0, #24:0, #21:1, #22:1, #23:1, #24:1, #21:2, #22:2]> 
+    ## base.first_list.get(3)
+    # => <OrientDB::Document:first_list:#24:0 second_list:#<OrientDB::RecordList:[#27:17, #28:17, #25:18, #26:18, #27:18, #28:18, #25:19, #26:19, #27:19, #28:19]> label:3> 
+    ## base.first_list[3]
+    #  => #<ActiveOrient::Model::FirstList:0x18df26a1  (...)
+    ## base.first_list[3].second_list[5]
+    #   => #<ActiveOrient::Model::SecondList: (...)
+    ##  base.first_list.get(3).second_list.get(5)
+    #    => <OrientDB::Document:second_list:#28:18 label:5> 
+    #
     def from_orient
       map &:from_orient
       self
@@ -58,6 +73,7 @@ if RUBY_PLATFORM == 'java'
 
     def << value
       puts "I will perform the insert"
+      value =  value.document if value.is_a?( ActiveOrient::Model ) && value.document.present?
       add value
       #save
 

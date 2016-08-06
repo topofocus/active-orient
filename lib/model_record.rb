@@ -86,40 +86,42 @@ its equivalent to to Model#where but uses a single rid as "from" item
 =end
 
   def method_missing *args
-    #puts "MethodMissing TEST, #{args} "
-    if args.is_a? Array
-      if attributes.keys.include? args.first.to_s
-	if args.size == 1
-	  attributes[args.first]
-	else
-	  if args[1] == "<<" or args[1] == "|="
-	    update_item_property "ADD", "#{args[0][0..-2]}", args[2]
-	  elsif args[0][-1] == "="
-	    update_item_property "SET", "#{args[0][0..-2]}", args[1]
-	  elsif args[1] == ">>"
-	    update_item_property "REMOVE", "#{args[0][0..-2]}", args[2]
-	  end
-	end
-      else
-	raise NameError
+    # if the first entry of the parameter-array is a known attribute
+    # proceed with the assignment
+    if args.size == 1
+      attributes.keys.include?( args.first.to_s ) ? attributes[args.first] : nil
+    else
+      if args[1] == "<<" or args[1] == "|="
+	puts "update_item_property ADD, #{args[0][0..-2]}, #{args[2]}"
+	update_item_property "ADD", "#{args[0][0..-2]}", args[2]
+      elsif args[0][-1] == "="
+	update_item_property "SET", "#{args[0][0..-2]}", args[1]
+      elsif args[1] == ">>"
+	update_item_property "REMOVE", "#{args[0][0..-2]}", args[2]
       end
     end
-  rescue NameError => e
-    logger.progname = 'ActiveOrient::Model#MethodMissing'
-    if args.size == 1
-      logger.error{"Unknown Attribute: #{args.first} "}
-    else
-      logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
-    end
-    print e.backtrace.join("\n")
-    raise
+    # else
+    #   raise NameError
+    # end
   end
+  # rescue NameError => e
+  #   logger.progname = 'ActiveOrient::Model#MethodMissing'
+  #   if args.size == 1
+  #     logger.error{"Unknown Attribute: #{args.first} "}
+  #   else
+  #     logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
+  #   end
+  #   puts "Method Missing: Args: #{args.inspect}"
+  #   print e.backtrace.join("\n")
+  #   raise
+#end
 
 
   def update_item_property method, array, item = nil, &b
     begin
       logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
       execute_array = Array.new
+      #self.attributes[array] = OrientSupport::Array.new(self) unless attributes[array].present?
       self.attributes[array] = Array.new unless attributes[array].present?
 
       add_2_execute_array = -> (it) do
@@ -128,26 +130,30 @@ its equivalent to to Model#where but uses a single rid as "from" item
 	#puts "COMMAND:: #{command}"
 	execute_array << {type: "cmd", language: "sql", command: command}
       end
+      items = if item.present?
+		item.is_a?(Array)? item : [item]  
+	      elsif block_given?
+		yield
+	      end
 
-      items = yield if block_given?
+      if RUBY_PLATFORM == 'java'
+	items.each{|x| document[array] << x}
+	document.save
+      else
+	items.each{|x|
+	  add_2_execute_array[x];
+	  self.attributes[array] << x}
 
-      if items.present?
-	#puts "items present: #{items}"
-        items.each{|x|
-          add_2_execute_array[x];
-          self.attributes[array] << x}
-      elsif item.present?
-        add_2_execute_array[item]
-        self.attributes[array] << item
+	orientdb.execute do
+	  execute_array
+	  #	reload!
+	end
       end
-      orientdb.execute do
-        execute_array
+      rescue RestClient::InternalServerError => e
+	logger.error{"Duplicate found in #{array}"}
+	logger.error{e.inspect}
       end
-    rescue RestClient::InternalServerError => e
-      logger.error{"Duplicate found in #{array}"}
-      logger.error{e.inspect}
     end
-  end
 =begin
 Add Items to a linked or embedded class
 Parameter
@@ -195,7 +201,7 @@ Parameter
 
 def delete
   orientdb.delete_record self
-  ActiveOrient::Base.remove_rid self if is_edge? # removes the obj from the rid_store
+  ActiveOrient::Base.remove_rid self ##if is_edge? # removes the obj from the rid_store
 end
 
 ########### UPDATE ############

@@ -7,6 +7,7 @@ module RestChange
   def change_database name
     @classes = []
     @database = name
+    ActiveOrient.database = name
   end
 
   ############# OBJECTS #################
@@ -38,9 +39,7 @@ module RestChange
 
   def update_records o_class, set:, where: {}
     url = "UPDATE #{classname(o_class)} SET #{generate_sql_list(set)} #{compose_where(where)}"
-
-
-    response = @res[URI.encode("/command/#{@database}/sql/" << url)].post ''
+    response = @res[URI.encode("/command/#{ActiveOrient.database}/sql/" << url)].post ''
   end
   alias update_documents update_records
 

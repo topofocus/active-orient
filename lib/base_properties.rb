@@ -17,7 +17,7 @@ module ActiveOrient
 	     value.from_orient
 	   end
         "%s : %s" % [ attr, v]  unless v.nil?
-      end.compact.sort.join(', ') + ">".gesub('"' , ' ')
+      end.compact.sort.join(', ') + ">".gsub('"' , ' ')
     end
 
 # Comparison support

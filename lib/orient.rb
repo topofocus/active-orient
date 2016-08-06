@@ -25,10 +25,10 @@ Append the argument to the Array, changes the Array itself.
 
 The change is transmitted to the database immediately
 =end
-    def << arg
+    def << arg, &b
 #      print "\n <<---> #{@name}, #{arg} <--- \n"
       if @name.present?
-	@orient.add_item_to_property(@name, arg)
+	@orient.add_item_to_property(@name, arg, &b)
       end
       super
     end

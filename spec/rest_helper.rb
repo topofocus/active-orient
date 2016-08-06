@@ -1,3 +1,20 @@
+# deletes the working database and recreates it 
+# reassignes ORD and DB
+def reset_database
+  db =  ActiveOrient.database
+  ORD.delete_database database: db
+  Object.send :remove_const, :ORD 
+  Object.send :remove_const, :DB
+  ActiveOrient.database =  db
+  Object.send :const_set, :ORD, ActiveOrient::OrientDB.new( preallocate: true )
+  if UsingJave
+    Object.send :const_set, :DB,  ActiveOrient::API.new( preallocate: false)
+  else
+    Object.send :const_set,  :DB, ActiveOrient::OrientDB.new( preallocate: true )
+  end
+end
+
+
  shared_examples_for 'correct allocated classes' do |input|
    it "has allocated all classes" do
     case input

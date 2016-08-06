@@ -20,63 +20,65 @@ Obviously, the class »Stock« has to exist.
 Let's create some classes
 
  ```ruby
-    M = ORD.open_class          'Classname'  #
-    M = ORD.create_class        'ClassDocumentName'  # creates or opens a basic document-class
-    M = ORD.create_vertex_class 'ClassVertexName'  # creates or opens a vertex-class
-    M = ORD.create_edge_class   'ClassEdgeName'  # creates or opens an edge-class, providing bidirectional links between documents
-    M.delete_class			 # removes the class in the database and destroys the ruby-object
+    ORD.create_class        'ClassDocumentName'  # creates or opens a basic document-class
+    ORD.create_vertex_class 'ClassVertexName'  # creates or opens a vertex-class
+    ORD.create_edge_class   'ClassEdgeName'  # creates or opens an edge-class, providing bidirectional links between documents
+    {Classname}.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
-»M« is the ActiveOrient::Model-Class itself, a shortcut for »ActiveOrient::Model::{Classname}«.
+Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to 
+database-classes. For simplicity we omit any namespace ( :namespace: :object in config.yml). Thus the
+Model-Obects are accessible directly.
 
-Naming-Convention: The name given in the »create-class«-Statement becomes the Database-Classname. 
+
+**Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
 In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
 
+This can be customized in the "naming_convention"-class-method 
+
 #### CRUD
-The CRUD-Process (create, read = query, update and remove) is performed with
+The CRUD-Process (create, read = query, update and remove) is performed as
 ```ruby	
-    hugo = M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    ORD.create_class :M
+    M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
     hugo = M.where( name: 'Hugo' ).first
-    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) }
+    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) } # we create an internal link
+    hugo.father.name	# --> volker
     M.delete hugo 
+    M.delete_class	# removes the class from OrientDB and deletes the ruby-object-definition
  ```
  
 #### Inherence
 
 Create a Tree of Objects with create_classes
 ```ruby
-  ORD.create_classes { :sector => [ :industry, :category, :subcategory ] }
-  I =  ActiveOrient::Model::Industry
-  S =  ActiveOrient::Model::Sector
-  I.create name: 'Communications'  #--->   Create an Industry-Record with the attribute "name"
-  S.where  name: 'Communications'  #--->   Active::Model::Industry-Object
+  ORD.create_classes  sector: [ :industry, :category, :subcategory ] 
+  => {Sector=>[Industry, Category, Subcategory]}
+  Industry.create name: 'Communications'   #--->   Create an Industry-Record with the attribute "name"
+  Sector.where  name: 'Communications'	   #--->   an Array with the Industry-Object
+  => [#<Industry:0x0000000225e098 @metadata= (...) ] 
  ```
+ ***notice*** to create inherent Vertices use ORD.create_classes( sector: [ :industry, :category, :subcategory ]){ :V  } 
 
 #### Preallocation of Model-Classes
-All database-classes are preallocated after connecting to the database. Thus you can use ActiveOrient::Model::{classname} from the start.
-However, "ORD.open_class classname" works with existing classes as well.
+All database-classes are preallocated after connecting to the database. Thus you can use Model-Classes from the start.
 
 If the "rid" is known, any Object can be retrieved and correctly allocated by
 ```ruby
   the_object =  ActiveOrient::Model.autoload_object "xx:yy" # or "#xx:yy"
-  --->  ActiveOrient::Model::{ClassName} Object 
+  --->  {ActiveOrient::Model} Object 
 ```
 
 #### Properties
-The schemaless mode has many limitations. ActiveOrient offers a ruby way to define Properties and Indexes
+The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
 
  ```ruby
+ ORD.create_class :M
  M.create_property 'symbol' 			# the default-case: type: :string, no index
  M.create_property 'con_id', type: 'integer'
  M.create_property 'details', type: 'link', other_class: 'Contracts'
- M.create_property 'name', type: :string, index: :unique
+ M.create_property 'name',  index: :unique	# or  M.create_property( 'name' ){ :unique }
  ```
-
-(Experimental) You can assign a property, directly when you create a class.
-
-```ruby
-  M = ORD.create_vertex_class "Hour", properties: {value_string: {type: :string}, value: {type: :integer}}
-```
 
 (Experimental) You can put restrictions on your properties with the command "alter_property":
 
@@ -87,18 +89,7 @@ The schemaless mode has many limitations. ActiveOrient offers a ruby way to defi
 
 #### Active Model interface
 
-Every OrientDB-Database-Class is mirrored as Ruby-Class. The Class itself is defined  by
-```ruby
-  M = ORD.create_class 'Classname'
-  M = ORD.create_class('Classname'){'SuperClassname'}
-  # classnames may be specified with symbols, too
-  A,B,C = * ORD.create_classes( [ :a, :b, :c ] ){ :v }  # creates 3 vertex-classes
-  Vertex = ORD.create_vertex_class 'VertexClassname'
-  Edge   = ORD.create_edge_class 'EdgeClassname'
-```
-and is of TYPE ActiveOrient::Model::{classname}  # classname is altered by ModelClass#NamingConvention
-
-As for ActiveRecord-Tables, the Class itself provides methods to inspect and to filter datasets form the database.
+As for ActiveRecord-Tables, the Model-class itself provides methods to inspect and filter datasets form the database.
 
 ```ruby
   M.all   
@@ -131,50 +122,18 @@ A »normal« Query is submitted via
 Graph-support:
 
 ```ruby
+  ORD.create_vertex_class :vertex
+  ORD.create_edge_class :edge
   vertex_1 = Vertex.create  color: "blue"
   vertex_2 = Vertex.create  flower: "rose"
   Edge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 It connects the vertexes and assigns the attributes to the edge.
 
-To query a graph,  SQL-like-Queries can be used. However, this is done very elegant using MATCH
+To query a graph,  SQL-like-Queries and Match-statements can be used (see below). 
 
-#### Match
 
-A Match-Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
-records. In the simplest version this can be returnd:
-  
-```ruby
-  I= ActiveOrient::Model::Industry
-  I.match where:{ name: "Communications" }
-  => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
-```
-
-The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
-
-```ruby
-  I.match where name: "Communications" 
-  ## is equal to
-  I.match( where: { name: 'Communications' }).first.Industries
-```
-The Match-Query uses this result-set as start for subsequent queries on connected records.
-If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
-accessed starting at Industry defining
-
-```ruby
-  var = I.match( where: { name: 'Communications'}) do | query |
-    query.connect :in, count: 2, as: 'Subcategories'
-    puts query.to_s  # print the query prior sending it to the database
-    query            # important: block has to return the query 
-  end
-  => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
-```
-
-The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
-
-By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be constructed. 
-
-#### Links
+#### Links and LinkLists
 
 A record in a database-class is defined by a »rid«. If this is stored in a class, a link is set.
 In OrientDB links are used to realize unidirectional 1:1 and 1:n relationships.
@@ -184,8 +143,8 @@ If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the 
 link if stored somewhere.
 
 ```ruby
-  TestLinks = ORD.create_class 'Test_link_class'
-  TestBase  = ORD.create_class 'Test_base_class'
+  ORD.create_class 'test_links'
+  ORD.create_class 'test_base'
 
   link_document =  TestLinks.create  att: 'one attribute'
   base_document =  TestBase.create  base: 'my_base', single_link: link_document
@@ -200,9 +159,10 @@ reads the stored content of link_document.
 To store a list of links to other Database-Objects, a simple Array is allocated
 ``` ruby
   # predefined linkmap-properties
-  base_document =  TestBase.create links: []
-  (0 .. 20).each{|y| base_document.links << TestLinks.create  nr: y}
-  end
+  ORD.create_property :test_base, :links,  type: :linklist, linkedClass: :test_links 
+  base_document =  TestBase.create links: []  
+  (0 .. 20).each{|y| base_document.links << TestLinks.create( nr: y )}
+  
   #or in schemaless-mode
   base_document = TestBase.create links: (0..20).map{|y| TestLinks.create nr: y}
   base_document.update
@@ -215,11 +175,12 @@ If you got an undirectional graph
 
 the graph elements can be explored by joining the objects (a[6].b[5].c[9].d)
 
+
 #### Edges
 Edges provide bidirectional Links. They are easily handled
 ```ruby
-  Vertex = ORD.create_vertex_class 'd1'
-  Edge   = ORD.create_edge_class   'e1'
+  ORD.create_vertex_class :vertex
+  ORD.create_edge_class  :edge
 
   start = Vertex.create something: 'nice'
   the_end  =  Vertex.create something: 'not_nice'
@@ -326,13 +287,50 @@ or
 or
 
 ```ruby
-  OpenInterest = ORD.open_class 'Openinterest'
-  last_12_open_interest_records = OQ.new from: OpenInterest, order: { fetch_date: :desc } , limit: 12
-  bunch_of_contracts = OQ.new from: last_12_open_interest_records, projection: 'expand( contracts )'
-  distinct_contracts = OQ.new from: bunch_of_contracts, projection: 'expand( distinct(@rid) )'
+  last_12_open_interest_records = OQ.new from: OpenInterest, 
+					order: { fetch_date: :desc } , limit: 12
+  bunch_of_contracts = OQ.new from: last_12_open_interest_records, 
+			      projection: 'expand( contracts )'
+  distinct_contracts = OQ.new from: bunch_of_contracts, 
+			      projection: 'expand( distinct(@rid) )'
 
   distinct_contracts.to_s
-   => "select expand( distinct(@rid) ) from ( select expand( contracts ) from ( select  from Openinterest order by fetch_date desc limit 12 ) ) "
+   => "select expand( distinct(@rid) ) from ( select expand( contracts ) from ( select  from open_interest order by fetch_date desc limit 12 ) ) "
 
   cq = ORD.get_documents query: distinct_contracts
 ```
+this executes the query and returns the adressed rid's, which are eventually retrieved from the rid-cache.
+#### Match
+
+A Match-Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
+records. In the simplest version this can be returnd:
+  
+```ruby
+  ORD.create_class :Industry
+  Industry.match where:{ name: "Communications" }
+  => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
+```
+
+The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
+
+```ruby
+  Industry.match where name: "Communications" 
+  ## is equal to
+  Industry.match( where: { name: 'Communications' }).first.Industries
+```
+The Match-Query uses this result-set as start for subsequent queries on connected records.
+If a linear graph: Industry <- Category <- Subcategory <- Stock  is build, Subcategories can 
+accessed starting at Industry defining
+
+```ruby
+  var = Industry.match( where: { name: 'Communications'}) do | query |
+    query.connect :in, count: 2, as: 'Subcategories'
+    puts query.to_s  # print the query prior sending it to the database
+    query            # important: block has to return the query 
+  end
+  => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
+```
+
+The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
+
+By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be constructed. 

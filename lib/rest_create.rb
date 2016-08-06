@@ -299,7 +299,7 @@ The method returns the included or the updated dataset
 	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
 
 
-#	puts "COMMAND: #{command} "
+	puts "COMMAND: #{command} "
 	result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
 	 [ { type: "cmd", language: 'sql', command: command}]
 	end 
@@ -370,7 +370,7 @@ The method returns the included or the updated dataset
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
 	else
 	  index_hash =  HashWithIndifferentAccess.new(type: :unique, on: all_properties_in_a_hash.keys).merge index
-	  create_index o_class, **index_hash # i [:name], on: index_hash[:on], type: index_hash[:type]
+	  create_index o_class, **index_hash #  [:name], on: index_hash[:on], type: index_hash[:type]
 	end
       end
     end
@@ -387,18 +387,19 @@ The method returns the included or the updated dataset
 
   def create_property o_class, field, index: nil, **args, &b
     logger.progname = 'RestCreate#CreateProperty'
-  	c = create_properties o_class, {field => args}
-  	if index.nil? && block_given?
-  	  index = yield
-  	end
-  	if c == 1 && index.present?
-  	  if index.is_a?(String) || index.is_a?(Symbol)
-  	    create_index o_class, name: field, type: index
-  	  elsif index.is_a? Hash
-  	    bez = index.keys.first
-        create_index o_class, name: bez, type: index[bez], on: [field]
+    args= { type: :integer} if args.blank?  # the default case
+    c = create_properties o_class, {field => args}
+    if index.nil? && block_given?
+      index = yield
+    end
+    if index.present?
+      if index.is_a?(String) || index.is_a?(Symbol)
+	create_index o_class, name: field, type: index
+      elsif index.is_a? Hash
+	bez = index.keys.first
+	create_index o_class, name: bez, type: index[bez], on: [field]
       end
-  	end
+    end
   end
 
   ################# INDEX ###################

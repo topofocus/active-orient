@@ -44,7 +44,8 @@ Deletes the database class and removes the ruby-class
 =end
     def self.delete_class
       orientdb.delete_class self
-      ActiveOrient::Model.send(:remove_const, naming_convention.to_sym)
+      ## namespace is defined in config/boot
+      namespace.send(:remove_const, naming_convention.to_sym)
     end
 
     # provides an unique accessor on the Class
@@ -54,6 +55,8 @@ Deletes the database class and removes the ruby-class
     mattr_accessor :db	      # points to the instance of the Client used for Database-Queries
     mattr_accessor :api
     mattr_accessor :logger
+    mattr_accessor :namespace # Namespace in which  Model records are initialized, defined in config.yml
+
 #    mattr_accessor  :ref_name    
     # Used to read the metadata
     attr_reader :metadata

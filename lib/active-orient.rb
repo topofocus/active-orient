@@ -1,5 +1,6 @@
 
 module OrientDB
+  UsingJava = RUBY_PLATFORM == 'java' ?  true : false
   unless RUBY_PLATFORM == 'java'
    DocumentDatabase       = nil
    DocumentDatabasePool   = nil

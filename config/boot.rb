@@ -7,8 +7,10 @@ project_root = File.expand_path('../..', __FILE__)
 require "#{project_root}/lib/active-orient.rb"
 
 begin
-  config_file = File.expand_path('../../config/connect.yml', __FILE__)
-  connectyml  = YAML.load_file( config_file )[:orientdb][:admin] if config_file.present?
+  connect_file = File.expand_path('../../config/connect.yml', __FILE__)
+  config_file = File.expand_path('../../config/config.yml', __FILE__)
+  connectyml  = YAML.load_file( connect_file )[:orientdb][:admin] if connect_file.present?
+  configyml  = YAML.load_file( config_file )[:active_orient] if config_file.present?
 rescue Errno::ENOENT => e
   ActiveOrient::Base.logger = Logger.new('/dev/stdout')
   ActiveOrient::OrientDB.logger.error{ "config/connectyml not present"  }
@@ -25,9 +27,23 @@ env =  if e =~ /^p/
 	 'development'
        end
 puts "Using #{env}-environment"
-databaseyml   = YAML.load_file( config_file )[:orientdb][:database]
+##in test-mode, always use ActiceOrient as Prefix for Model-classes
+ActiveOrient::Model.namespace = if env == 'test'
+				    Object
+				else
+				  n= configyml.present? ? configyml[:namespace] : :self
+				  case n
+				  when :self
+				    ActiveOrient::Model
+				  when :object
+				    Object
+				  when :active_orient
+				    ActiveOrient
+				  end
+				end
+databaseyml   = YAML.load_file( connect_file )[:orientdb][:database]
 log_file =   if config_file.present?
-	       dev = YAML.load_file( config_file )[:orientdb][:logger]
+	       dev = YAML.load_file( connect_file )[:orientdb][:logger]
 	       if dev.blank? || dev== 'stdout'
 		 '/dev/stdout'
 	       else
