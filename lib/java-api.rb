@@ -288,8 +288,10 @@ executes a command as sql-query
 
 
 =end
-    def execute transaction: true, tolerated_error_code: nil # Set up for classes
+    def execute transaction: true, tolerated_error_code: nil , process_error: true# Set up for classes
       batch = {transaction: transaction, operations: yield}
+
+      logger.progname= "Execute"
       unless batch[:operations].blank?
 	unless batch[:operations].is_a? Array
 	  batch[:operations] = [batch[:operations]] 	
@@ -299,7 +301,26 @@ executes a command as sql-query
 	end
 	answer = batch[:operations].map do |command_record|
 	  return if command_record.blank? 
+	  begin
 	  response = @db.run_command  command_record.is_a?(Hash) ?  command_record[:command] : command_record 
+	  rescue Java::ComOrientechnologiesOrientCoreStorage::ORecordDuplicatedException => e
+#	    puts e.inspect
+#	    puts "GetMESSAGE: "+e.getMessage.split(/\r/).first
+#	    puts "GetComponentName: "+e.getComponentName.to_s
+#	    puts  e.getMessage =~ tolerated_error_code
+#	    puts "----"
+	    if tolerated_error_code.present? &&  e.getMessage =~ tolerated_error_code
+	      logger.info{ "tolerated_error::#{ e.get_message.split(/\r/).first }"}
+	      next
+	    else
+#	    if process_error
+	      logger.progname = 'JavaApi#Execute'
+	      logger.error{ e }
+#	    else 
+#	      puts e.inspect
+#	      raise ArgumentError, e, caller
+	    end
+	  end
 	  if response.is_a? Fixnum
 	    response
 	  else

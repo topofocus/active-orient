@@ -1,6 +1,6 @@
 
 require 'spec_helper'
-#require 'model_helper'
+require 'rest_helper'
 #require 'active_support'
  shared_examples_for 'basic class properties' do |bez|
      
@@ -26,18 +26,8 @@ end
 
 describe ActiveOrient::Model do
   before( :all ) do
-#   ao =   ActiveOrient::OrientDB.new 
-   ORD.delete_database database: ActiveOrient.database
-   ORD =  ActiveOrient::OrientDB.new
-   DB =  if RUBY_PLATFORM == 'java'
-	   ActiveOrient::API.new
-	 else
-	   ORD
-	 end
-#    ORD = ActiveOrient::OrientDB.new database: 'ModelTest'
-#    TestModel = ORD.open_class "Modeltest"
-  #  ActiveOrient::Model::Modeltest.delete_class if defined? ActiveOrient::Model::Modeltest
-    TestModel = ORD.create_class "Modeltest"
+    reset_database
+    ORD.create_vertex_class "test_model"  # creates class TestModel
   end
 
   context "ActiveOrient::Model classes got a logger and a database-reference"  do
@@ -84,7 +74,7 @@ describe ActiveOrient::Model do
 #      it_behaves_like 'basic class properties' , this_class
 #    end
 #  end
-  context "add properties and indexes" , focus:true do
+  context "add properties and indexes"  do
 
     let (:testIndex1) { ORD.create_class( :my_indexed_class_1) }
     let (:testIndex2) { ORD.create_class( :my_indexed_class_2) }
@@ -116,9 +106,9 @@ describe ActiveOrient::Model do
     end
     it "create several  properties with a composite index"  do
       ORD.create_class :industry
-      count= testIndex4.create_properties(	 test:  {type: :integer},
-					  symbol: { type: :string },
-					  industries: { type: 'LINKMAP', linked_class: 'Industry' }   ) do
+      count= testIndex4.create_properties( test:  {type: :integer},
+					   symbol: { type: :string },
+					   industries: { type: 'LINKMAP', linked_class: 'Industry' }   ) do
 					    { sumindex: :unique }
 					  end
       expect( count ).to eq 3  # three properties
@@ -128,16 +118,34 @@ describe ActiveOrient::Model do
     end
   end   ## properties 
 
+  context "Create a new document" do
+    before( :all ){ ORD.create_class 'working_class' }
+    let( :n ){  WorkingClass.new w_att: 'Attribute' }
+
+    it "new document"  do
+      expect( n ).to be_a WorkingClass
+      expect( n.w_att ).to eq 'Attribute'
+      expect( n.rid.rid? ).to be_falsy
+
+    end
+
+    it "save new document" do
+      expect{ n.save }.to change{ n.rid }
+      n.w_att = "New_Attribute"
+      expect{ n.save }.to change{ n.version }.by 1
+
+    end
+  end
+
+
   context "Add and modify documents"  do
     before( :all ) do
-      ActiveOrient::Model::Documenttest.delete_class if ActiveOrient.database_classes.include?( 'Documenttest')
-      Doc_class = ORD.open_class "Documenttest"
-
+      ORD.open_class "doc_class"
     end
     it "put some data into the class"  do
 
-      (0..45).each{|x|  Doc_class.create  test_cont: x  }
-      expect( Doc_class.count ).to eq 46
+      (0..45).each{|x|  DocClass.create  test_cont: x  }
+      expect( DocClass.count ).to eq 46
     end
 
     it "the database is empty before we start"  do
@@ -150,7 +158,7 @@ describe ActiveOrient::Model do
     it "create a document"  do
       expect( new_document.test ).to eq 45
       puts new_document.inspect
-      expect(new_document).to be_a ActiveOrient::Model::Modeltest
+      expect(new_document).to be_a ActiveOrient::Model
       expect( ActiveOrient::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end
 
@@ -159,19 +167,18 @@ describe ActiveOrient::Model do
       all = TestModel.all
       expect(all).to be_a Array
       expect(all.size).to eq 1
-      expect(all.first).to  be_a ActiveOrient::Model::Modeltest
+      expect(all.first).to  be_a ActiveOrient::Model
       expect(all.first.test).to eq 45
     end
 
     it "the document can be retrieved by first" do
-      expect( TestModel.first ).to be_a ActiveOrient::Model::Modeltest
+      expect( TestModel.first ).to be_a ActiveOrient::Model
       expect( TestModel.first.test ).to eq 45
     end
 ##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
-    #und nicht von dr Datenbank abgefragt
+    #und nicht von der Datenbank abgefragt
     it "the document can be updated"   do
       obj =  TestModel.create test: 77
-      puts obj.inspect
       expect{ obj.update set: { test: 76, new_entry: "This is a new Entry" } }.to change{ obj.version }.by 1
       expect( obj.test ).to eq 76
       expect( obj.new_entry).to be_a String
@@ -187,7 +194,7 @@ describe ActiveOrient::Model do
     it "a value can be added to the array" do
       obj =  TestModel.first
       obj.add_item_to_property 'a_array', 56
-      expect(obj.a_array).to eq [ 1,4,'r', 'r', 56 ]
+      expect(obj.a_array).to eq [ 1,4,'r', :r, 56 ]
 
     end
 
@@ -199,9 +206,8 @@ describe ActiveOrient::Model do
 
   context "ActiveRecord mimics"   do
     before(:all) do 
-	  ORD.delete_class 'E'
-          MyEdge = ORD.create_edge_class  'Myedge'
-	  MyNode = ORD.create_vertex_class  'Mynode'
+          ORD.create_edge_class  'my_edge'
+	  ORD.create_vertex_class  'my_node'
 	  (0..45).each{|x| TestModel.create  test: x  }
 	  DB.get_database_classes requery:true
     end
@@ -217,17 +223,17 @@ describe ActiveOrient::Model do
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23
     end
-    it "datasets are unique only  on update" do
-      expect{ TestModel.update_or_create(  :where => { test: 45 }) }. not_to change { TestModel.count }
+    it "datasets are unique only  on update"   do
+      expect{ TestModel.upsert(  :where => { test: 45 }) }. not_to change { TestModel.count }
       expect{ TestModel.create  test: 45 }.to change { TestModel.count }
     end
 
 
     it "creates an edge between two documents"  do
-      node_1 =  TestModel.where( test: 45 ).first
-      node_2 =  TestModel.where( test: 2 ).first
+      node_1 = TestModel.where( test: 45 ).first
+      node_2 = TestModel.where( test: 2 ).first
       node_3 = TestModel.where( test: 16 ).first
-      the_edge= ActiveOrient::Model::E.create_edge( attributes: { halbwertzeit: 655 },
+      the_edge = E.create_edge( attributes: { halbwertzeit: 655 },
 					  from: node_1,
 					    to: node_2  )
       expect( the_edge ).to be_a ActiveOrient::Model
@@ -235,7 +241,7 @@ describe ActiveOrient::Model do
       expect( the_edge.out ).to eq node_1
 
       # creation of a second edge with the same properties leads to  reusing the existent edge
-      the_edge2= ActiveOrient::Model::E.create_edge(
+      the_edge2= E.create_edge(
 		    attributes: { halbwertzeit: 655 },
 		    from: node_1,
 		    to:   node_2 , unique: true )
@@ -261,14 +267,12 @@ describe ActiveOrient::Model do
     end
 
     it "deletes an edge"  do
-      the_edges =  ActiveOrient::Model::E.all
+      the_edges =  E.all
       expect(the_edges.size).to  be >=1
-
       the_edges.each do |edge|
         edge.delete
       end
-      the_edges =  ActiveOrient::Model::E.all
-      expect(the_edges.size).to  be_zero
+      expect(E.count).to  be_zero
     end
 #
   end

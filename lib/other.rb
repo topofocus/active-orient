@@ -103,6 +103,12 @@ if RUBY_PLATFORM == 'java'
 
 
 end
+
+class Symbol
+  def from_orient
+    self
+  end
+end
 class FalseClass
   def from_orient
     self

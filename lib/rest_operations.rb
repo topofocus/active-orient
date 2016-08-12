@@ -52,7 +52,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
 =end
 
-  def execute transaction: true, tolerated_error_code: nil # Set up for classes
+  def execute transaction: true, tolerated_error_code: nil, process_error: true # Set up for classes
     batch = {transaction: transaction, operations: yield}
     logger.progname= "Execute"
     unless batch[:operations].blank?
@@ -66,8 +66,12 @@ Multible statements are transmitted at once if the Block provides an Array of st
 	if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
 	  logger.info{ "tolerated_error::#{e.message}"}
 	else
+	  if process_error
 	  logger.error{e.response}
 	  logger.error{e.inspect}
+	  else 
+	    raise
+	  end
 	end 
       end
       if response.present? && response.code == 200

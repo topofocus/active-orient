@@ -1,11 +1,11 @@
 require_relative "model_class.rb"
-require_relative "model_record.rb"
+require_relative "record.rb"
 
 module ActiveOrient
   class Model < ActiveOrient::Base
 
     include BaseProperties
-    include ModelRecord # For objects
+    include ModelRecord # For objects (file: lib/record.rb)
     extend ModelClass # For classes
 
 =begin
@@ -55,7 +55,7 @@ Deletes the database class and removes the ruby-class
     mattr_accessor :db	      # points to the instance of the Client used for Database-Queries
     mattr_accessor :api
     mattr_accessor :logger
-    mattr_accessor :namespace # Namespace in which  Model records are initialized, defined in config.yml
+    mattr_accessor :namespace # Namespace in which  Model records are initialized, a constant ( defined in config.yml )
 
 #    mattr_accessor  :ref_name    
     # Used to read the metadata

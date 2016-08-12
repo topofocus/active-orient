@@ -7,7 +7,7 @@ def reset_database
   Object.send :remove_const, :DB
   ActiveOrient.database =  db
   Object.send :const_set, :ORD, ActiveOrient::OrientDB.new( preallocate: true )
-  if UsingJave
+  if OrientDB::UsingJava
     Object.send :const_set, :DB,  ActiveOrient::API.new( preallocate: false)
   else
     Object.send :const_set,  :DB, ActiveOrient::OrientDB.new( preallocate: true )

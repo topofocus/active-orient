@@ -343,12 +343,13 @@ end
   	  unless @let.empty?
   	    "let " << @let.map do |s|
   	      case s
-  	      when Hash
-  	        s.map{|x,y| "$#{x} = (#{y})"}.join(', ')
+  	      when String
+  	        s
   	      when Array
   	        s.join(',  ')
-  	      else
-  	        s
+#	      when Hash  ### is not recognized in jruby
+	      else
+  	        s.map{|x,y| "$#{x} = (#{y})"}.join(', ')
   	      end
   	    end.join(', ')
   	  end

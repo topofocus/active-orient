@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'rest_helper'
 require 'active_support'
 require 'pp'
 
@@ -7,54 +8,51 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-   ao =   ActiveOrient::OrientDB.new 
-   ao.delete_database database: 'RestTest'
-   ActiveOrient.database = 'RestTest'
-   ORD = ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new #database: 'RestTest' 
-   DB = if RUBY_PLATFORM == 'java'
-	  ActiveOrient::Model.db =  ActiveOrient::API.new 
-	else
-	  ActiveOrient::Model.db =  ORD
-	end
-  #  ORD.database_classes.each{|x| ORD.delete_class x }
+    reset_database
   end
 
 
   context "create ActiveOrient::Model classes"  do
-    let( :abstract ){ ActiveOrient::Model.orientdb_class name: 'abstract' }
-    let( :depends ){ ActiveOrient::Model.orientdb_class name: 'depends', superclass: abstract }
-    let( :dependson ){ ActiveOrient::Model.orientdb_class name: 'depends_on', superclass: 'depends' }
+    before(:all) do
+      # create classes Abstract, Depends and DependsOn
+     ActiveOrient::Model.orientdb_class name: 'abstract' 
+     ActiveOrient::Model.orientdb_class name: 'depends', superclass: Abstract 
+     ActiveOrient::Model.orientdb_class name: 'depends_on', superclass: 'depends' 
+    end
 
    it 'create a abstract class' do
-     expect( abstract.superclass ).to be ActiveOrient::Model 
+     expect( Abstract.superclass ).to be ActiveOrient::Model 
    end
-   it 'create a class_hierachie' do
-     expect(depends).to be ActiveOrient::Model::Depends
-     expect(depends.superclass ).to be ActiveOrient::Model::Abstract
+   it 'create a class_hierachie'  do
+     expect(Depends.new).to be_a ActiveOrient::Base
+     expect(Depends.new).to be_a ActiveOrient::Model
+     expect(Depends.superclass ).to be Abstract
+     expect(Depends.superclass.superclass ).to be ActiveOrient::Model
+     expect(Depends.superclass.superclass.superclass ).to be ActiveOrient::Base
    end
    it 'ensure that methods defined later are passed through the object-tree' do
-     class ActiveOrient::Model::Abstract
+     class Abstract
        def test
 	  "test"
        end
      end
-      doa = ActiveOrient::Model::Depends.new
+      doa = Depends.new
       expect(  doa.test).to eq "test"
    end
 
    it "operations on dependson" do
-     expect( dependson ).to be ActiveOrient::Model::DependsOn
-     expect( dependson.superclass).to be ActiveOrient::Model::Depends
-     doa  = dependson.new
+     expect( DependsOn.new ).to be_a ActiveOrient::Model
+     expect( DependsOn.superclass).to be Depends
+     doa  = DependsOn.new
      expect( doa.test).to eq "test" ## this works only if the previous test is performed prior to this one
    end
 
 
    it "allocate with a non existing superclass" do
-     quatsch =  ActiveOrient::Model.orientdb_class name: 'quatsch', superclass: 'unsinn'
-     expect( quatsch ).to be ActiveOrient::Model::Quatsch
-     expect( quatsch.superclass ).to be ActiveOrient::Model::Unsinn
-     expect( ActiveOrient::Model::Unsinn.superclass).to be ActiveOrient::Model
+     ActiveOrient::Model.orientdb_class name: 'quatsch', superclass: 'unsinn'
+     expect( Quatsch.new ).to be_a ActiveOrient::Model
+     expect( Quatsch.superclass ).to be Unsinn
+     expect( Unsinn.superclass).to be ActiveOrient::Model
    end
   end
 
@@ -81,62 +79,58 @@ describe ActiveOrient::OrientDB do
 
   context "play with naming conventions" do
     it "database-free mode" do
-      m = ActiveOrient::Model.orientdb_class  name:"zweiter_test"
+     m = ActiveOrient::Model.orientdb_class  name:"zweiter_test"
      n = ActiveOrient::Model.orientdb_class  name:"drittertest"
-      expect(m).to be ActiveOrient::Model::ZweiterTest
+      expect(m).to be ZweiterTest
       expect(m.ref_name).to eq "zweiter_test"
-      expect(n).to be ActiveOrient::Model::Drittertest
+      expect(n).to be Drittertest
       expect(n.ref_name).to eq "drittertest"
 
     end
 
     it "the standard case" do
       m = ORD.open_class "erster_test"
-      expect(m).to be ActiveOrient::Model::ErsterTest
+      expect(m).to be ErsterTest
       expect(m.ref_name).to eq "erster_test"
 #      n = ORD.open_class "
     end
 
     it "change the naming convention"  do
       ## We want to represent all Edges with Uppercase-Letters
-      class ActiveOrient::Model::E < ActiveOrient::Model
+      class E < ActiveOrient::Model
 	def self.naming_convention name=nil
 	  name.present? ? name.upcase : ref_name.upcase
 	end
       end
 
-      m = ORD.create_class( "zweiter"){ :E }
+      m = ORD.create_class( "zweiter" ){ :E }
       puts m.classname
-      expect(m.superclass).to be ActiveOrient::Model::E
-      expect(m).to be ActiveOrient::Model::ZWEITER
+      expect(m.superclass).to be E
+      expect(m).to be ZWEITER
       expect(m.ref_name).to eq "zweiter"
      
     end
   end
 
 
-  context "create classes"  do
-      let( :classes_simple ) { ["one", "two" , "trhee"] }
-      let( :classes_vertex ) { { V: [ :one_v, :two_v,  :trhee_v] } }
+  context "create classes", focus:true do
     
     it "create a single class" do
-      m = ORD.create_class "erste_klasse"
-      expect(m).to be ActiveOrient::Model::ErsteKlasse
-      expect(m.ref_name).to eq "erste_klasse"
-      m = ORD.create_class "erste_SYMBOL_klasse"
-      expect(m).to be ActiveOrient::Model::ErsteSymbolKlasse
+       ORD.create_class "erste_klasse"
+      expect( ErsteKlasse.new ).to be_a ActiveOrient::Model
+      expect( ErsteKlasse.ref_name).to eq "erste_klasse"
+      m= ORD.create_class "erste_SYMBOL_klasse"
+      expect(m).to be ErsteSymbolKlasse
       expect(m.ref_name).to eq "erste_SYMBOL_klasse"
     end
 
-    it "create a bunch of abstract classes" do
-	m =  ORD.create_classes classes_simple 
+    it "create a bunch of simple classes"  do
+	m =  ORD.create_classes  :one, :two, :three 
 	expect(m).to have(3).items
-	classes_simple.each_with_index do |c,i|
+	[:one, :two, :three].each_with_index do |c,i|
+	  puts m[i].class.to_s
 	  expect(m[i].ref_name).to eq c.to_s
-	  classes_simple.each_with_index do |c,i|
-	    expect(m[i].ref_name).to eq c.to_s
-	    expect(m[i].superclass ).to be ActiveOrient::Model::V
-	  end
+	  expect(m[i].superclass ).to be ActiveOrient::Model
 	end
 
 	    m.each{|x| x.delete_class } # remove const to enable reusing 
@@ -151,8 +145,8 @@ describe ActiveOrient::OrientDB do
       expect(m).to be_a Hash
       expect(m.keys).to have(2).items
       expect(m[m.keys.first]).to be_a Array
-      m[m.keys.first].each{|x|  expect( x.to_s ).to match /ActiveOrient::Model/ }
-      expect( m[m.keys.last].to_s).to match /ActiveOrient::Model/
+      m[m.keys.first].each{|x|  expect( x.to_s ).to match /Test/ }
+      expect( m[m.keys.last].to_s).to match /Reisser/
     end
 
     it "complex hierarchy" do
@@ -166,36 +160,31 @@ describe ActiveOrient::OrientDB do
       #	ActiveOrient::Model::EIZR=>[ActiveOrient::Model::HasContent, ActiveOrient::Model::BecomesHot]}
     end
       it "create  vertex classes through block" do
-	classes_simple.each{|x| ORD.delete_class x }
+	classes_simple = [ :one_z, :two_z, :three_z]
         klasses = ORD.create_classes( classes_simple ){ 'V' }
         classes_simple.each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
 	expect( klasses ).to have( 3 ).items
-        klasses.each{|x| expect(x.superclass).to eq ActiveOrient::Model::V }
+        klasses.each{|x| expect(x.superclass).to eq V }
       end
       ## When creating multible classes through a hash, the allocated
       ## class-hierarchy is returned
       it "create Vertex classes through hash"  do
 #	classes_simple.each{|x| ORD.delete_class x }
-        klasses = ORD.create_classes( classes_vertex ) 
-        classes_vertex[:V].each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
-	# klasses : {ActiveOrient::Model =>
-	#	[ ActiveOrient::Model::V, ActiveOrient::Model::V, ActiveOrient::Model::V]]
-	expect( klasses.keys.first).to be ActiveOrient::Model::V 
-	expect( klasses.values.first ).to have(3).items
-        klasses.values[0].each do |x|
-          expect(x.superClass).to eq ActiveOrient::Model::V  => 'V'
-        end
+	classes_vertex = [:one_v, :two_v, :three_v]
+        klasses = ORD.create_classes( classes_vertex) { :V } 
+        classes_vertex.each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
+	# klasses : {ActiveOrient::Model =>	[ V, V, V]]
+	klasses.each{|x| expect( x.superclass).to be V }
       end
       it "create and delete an Edge " do
 	edge_name = 'the_edge'
 #	ActiveOrient::Model::E.delete_class
         model = ORD.create_edge_class  edge_name
         expect( model.new ).to be_a ActiveOrient::Model
-        expect( model.superClass ).to eq ActiveOrient::Model::E =>  "E"
-        expect( model.to_s ).to eq "ActiveOrient::Model::#{edge_name.upcase}"
+        expect( model.superClass ).to eq E =>  "E"
         ## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
         expect( model.new.is_edge? ).to be_falsy
-        expect( ORD.classname  model ).to eq edge_name
+        expect( ORD.classname  model ).to eq edge_name.underscore
         model.delete_class
         expect( ORD.database_classes ).not_to include edge_name 
       end

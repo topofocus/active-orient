@@ -1,4 +1,5 @@
 module ClassUtils
+  # ClassUitils is included in Rest- and Java-Api-classes
 
 =begin
   Returns a valid database-class name, nil if the class does not exists
@@ -41,9 +42,6 @@ create a single class and provide properties as well
    create_properties( the_class.ref_name , properties )  if properties.present?
    the_class # return_value
  end
-
-  alias open_class create_class
-  alias create_document_class create_class
 
 
 =begin
@@ -196,13 +194,18 @@ end
       return nil
     end
     if batch.nil? 
-      response = execute(transaction: false) do
+      begin
+      response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
 	command.is_a?(Array) ? command.flatten.compact : [ command ]
       end
       if response.is_a?(Array) && response.size == 1
 	response.pop # RETURN_VALUE
       else
 	response  # return value (the normal case)
+      end
+      rescue ArgumentError => e
+	puts "ArgumentError "
+	puts e.inspect
       end
     else
       command # return value (if batch)

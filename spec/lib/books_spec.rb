@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'rest_helper'
 require 'pp'
 =begin
 BOOKs EXAMPLE
@@ -50,33 +51,47 @@ The generated Query »q« for two words that should appear in any book:
 select expand( $z ) let $a = ( select expand(in('HasContent')) from Word where item = 'Land' ), $b = ( select expand(in('HasContent')) from Word where item = 'Quartal' ), $z = Intersect($a, $b)
 
 =end
+ class E < ActiveOrient::Model
+    def  self.uniq_index
+      create_link  :in  => :V 
+      create_link  :out => :V 
+      create_property  :in,  type: :link, linked_class: :V 
+     create_property  :out, type: :link, linked_class: :V 
+      create_index :edge_idx, on: [ :in, :out ]
+      
+    end
+ end  
+
 
 describe OrientSupport::OrientQuery do
   before( :all ) do
-    ao =   ActiveOrient::OrientDB.new 
-    ao.delete_database database: 'BookTest'
-    ORD  = ActiveOrient::OrientDB.new database: 'BookTest' 
+    reset_database
   end # before
 
   context "Books Words example" do
     before(:all) do
-      Book, Word = *ORD.create_classes([ :Book, :Word ]){ :V }
+      ORD.create_classes( :book, :word ){ :V }
       Book.create_property( :title, type: :string, index: :unique )
       Word.create_property( :item , type: :string, index: :unique )
-      HC= ORD.create_edge_class :HasContent
+      HC = ORD.create_edge_class :has_content
+      HC.uniq_index
+#      ORD.create_properties( :has_content, in: { type: :link}, out: { type: :link } ) do
+#	{ name: 'edge_idx', on: [ :in, :out ] }
+#      end
+#      #ORD.create_index :has_content, name: 'edge_idx', on: [ :in, :out ]
 
     end
     # there are only the allocated classes present in the database!
     # otherwise we have to use the "include" test
-    it "check structure", focus:true do
-      expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["Book","Word"]
-      expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["HasContent"]
+    it "check structure" do
+      expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["book","word"]
+      expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["has_content"]
     end
    
     # we test the lambda "fill database"
-    it "put test-content" , focus: true do
+    it "put test-content"  do
       fill_database = ->(sentence, this_book ) do
-	  ORD.create_edge HC do 
+	  DB.create_edge( HC  ) do 
 	    sentence.split(' ').map do |x|
           this_word = Word.upsert where: { item: x } 
 	  { :from => this_book, :to => this_word } if this_word.present?  # return value for the iteration
@@ -101,13 +116,13 @@ describe OrientSupport::OrientQuery do
       expect( result).to be_a Array
       expect( result).to have_at_least(1).item
       queried_book =  result.first
-      expect( queried_book ).to be_a ActiveOrient::Model::Book
+      expect( queried_book ).to be_a Book
       expect( queried_book.title ).to eq 'second'
 
     end
     it "Subquery Initialisation" do
       # search for books wiht contain all given words
-      query = OrientSupport::OrientQuery.new  from: Word, projection: "expand(in('HasContent'))"
+      query = OrientSupport::OrientQuery.new  from: Word, projection: "expand(in('has_content'))"
 
       q =  OrientSupport::OrientQuery.new projection: 'expand( $z )'
       intersects = Array.new
@@ -115,14 +130,15 @@ describe OrientSupport::OrientQuery do
       desired_words.each_with_index do | word, i |
         symbol = ( i+97 ).chr   #  convert 1 -> 'a'
         query.where = { item: word  }
-        q.let << { symbol =>  query }
+        q.let << { symbol =>  query.compose }
         intersects << "$#{symbol}"
       end
       q.let << "$z = Intersect(#{intersects.join(', ')}) "
       puts "generated Query:"
-      puts q.to_s
+      puts q.compose
       result = Word.query_database  q, set_from: false
-      expect( result.pop ).to be_a ActiveOrient::Model::Book
+      expect( result.first ).to be_a Book
+      puts result.inspect
     end
 
   end

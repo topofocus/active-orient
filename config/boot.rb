@@ -69,7 +69,7 @@ ActiveOrient::OrientDB.logger =  logger
 if connectyml.present? and connectyml[:user].present? and connectyml[:pass].present?
   ActiveOrient.default_server= { user: connectyml[:user], password: connectyml[:pass] ,
 				 server: 'localhost', port: 2480  }
-  ActiveOrient.database = databaseyml[env.to_sym]
+  ActiveOrient.database = @configDatabase.presence || databaseyml[env.to_sym]
   ORD = ActiveOrient::OrientDB.new  preallocate: true
   if RUBY_PLATFORM == 'java'
     DB =  ActiveOrient::API.new   preallocate: false

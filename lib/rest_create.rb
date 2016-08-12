@@ -41,16 +41,17 @@ Accepts
   then creates a hierarchy of database-classes and returns them as hash
 
 takes an optional block to specify a superclass.
-This is NOT retruned 
+This is NOT returned 
 eg  
   create_classes( :test ){ :V } 
 creates a vertex-class, but returns just ActiveOrient::Model::Test
   create_classes( :V => :test)
-creates a vertex-class, too, but returns the Hash
+creates a vertex-class, too, returns the Hash
 =end
 
-    def create_classes classes, &b
-
+    def create_classes *classes, &b
+      return if classes.empty?
+      classes =  classes.pop if classes.size == 1
       consts = allocate_classes_in_ruby( classes , &b )
       all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
       get_database_classes(requery: true)
@@ -149,12 +150,12 @@ creates a vertex-class, too, but returns the Hash
 
   The method takes a block as well. 
   It must provide a Hash with :from and :to- Key's, e.g.
-      Vertex1, Vertex2 = ActiveOrient::Model:Test1, ActiveOrient::Model::Test2
+  Vertex1, Vertex2 are two vertex-classes and TheEdge is an edge-class
 
-      record1 = (1 .. 100).map{|y| Vertex1.create_document attributes: { testentry: y  }
-      record2 = (:a .. :z).map{|y| Vertex2.create_document attributes:{ testentry: y } }
+      record1 = ( 1 .. 100 ).map{ |y| Vertex1.create( testentry: y } }
+      record2 = ( :a .. :z ).map{ |y| Vertex2.create( testentry: y } }
 
-      edges = ORD.create_edge TheEdge do | attributes |
+      edges = ORD.create_edge( TheEdge ) do | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
 	       { from: record1.find{|x| x.testentry == o },
 		 to:   record2.find{ |x| x.testentry.ord == o },
@@ -162,7 +163,7 @@ creates a vertex-class, too, but returns the Hash
 	  end
   or
 
-      edges = ORD.create_edge TheEdge do | attributes |
+      edges = ORD.create_edge( TheEdge ) do | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
 	       { from: Vertex1.where( testentry:  o ).pop ,
 		 to:   Vertex2.where( testentry.ord =>  o).pop ,
@@ -299,7 +300,7 @@ The method returns the included or the updated dataset
 	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
 
 
-	puts "COMMAND: #{command} "
+	#puts "COMMAND: #{command} "
 	result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
 	 [ { type: "cmd", language: 'sql', command: command}]
 	end 
@@ -366,11 +367,12 @@ The method returns the included or the updated dataset
     if block_given?# && count == all_properties_in_a_hash.size
       index = yield
       if index.is_a?(Hash)
+	  puts "index: "+index.inspect
 	if index.size == 1
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
 	else
 	  index_hash =  HashWithIndifferentAccess.new(type: :unique, on: all_properties_in_a_hash.keys).merge index
-	  create_index o_class, **index_hash #  [:name], on: index_hash[:on], type: index_hash[:type]
+	  create_index o_class,  name: index_hash[:name], on: index_hash[:on], type: index_hash[:type]
 	end
       end
     end

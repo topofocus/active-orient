@@ -218,12 +218,24 @@ end
 
   def update set: {}
     self.attributes.merge!(set) if set.present?
+    self.attributes['updated_at'] =  Time.new
     updated_dataset = db.update self, attributes, @metadata[:version]
     self.version =  updated_dataset.version
     updated_dataset # return_value
 #    reload!
 
   end
+  ########## SAVE   ############
+  
+def save
+  if rid.rid?
+    update
+  else
+     db_object=  self.class.create_record( attributes: attributes )
+     @metadata[:cluster], @metadata[:record] = db_object.rid[0,db_object.rid.size].split(':').map( &:to_i)
+     reload! db_object
+  end
+end
 
 =begin
   Overwrite the attributes with Database-Contents (or attributes provided by the updated_dataset.model-instance)

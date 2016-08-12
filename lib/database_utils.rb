@@ -92,12 +92,12 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
     end
   def create_vertex_class name, properties: nil
     create_class( :V ) unless database_classes.include? "V"
-    create_class( name, properties: properties){ {superclass: :V } } 
+    create_class( name, properties: properties){ :V } 
   end
 
   def create_edge_class name, superclass: 'E', properties: nil
     create_class( :E ) unless database_classes.include? "E"
-    create_class( name, properties: properties){ {superclass: :E } }
+    create_class( name, properties: properties){ :E  }
   end
 
 

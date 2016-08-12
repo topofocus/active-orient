@@ -77,12 +77,26 @@ Only classes noted in the @classes-Array of orientdb are fetched.
   end
 
 
-  ########## CREATE ############
 
-# Create a new Record
+
+  ########## CREATE ############
+=begin
+Create
+
+To create a record or a document two methods are available
+
+* create_record  attributes:  a Hash with  attribute: VALUE  items 
+* create_document atttributes:  same
+
+or 
+create  item1: Value , item2: Value2 
+
+=end
+
 
   def create_record attributes: {}
-    db.create_record self, attributes: attributes
+    attributes.merge :created_at => Time.new
+    db.create_record self, attributes: attributes 
   end
   alias create_document create_record
   
@@ -108,13 +122,13 @@ Only classes noted in the @classes-Array of orientdb are fetched.
     self.create_edge from:, to:, unique: false, attributes:{}
 =end
 
-  def create_edge reload: false, **keyword_arguments
+  def create_edge  **keyword_arguments
     new_edge = db.create_edge self, **keyword_arguments
     new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
-    [:from,:to].each do |y|
+  #  [:from,:to].each do |y|
 #    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"
-      keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
-      end
+ #     keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
+#      end
       new_edge
   end
 
@@ -150,6 +164,12 @@ returns the affected record
     :call-seq:  self.create_property(field (required), type:'string', linked_class: nil, index: nil) do
     	index
     end
+
+    Examples:
+
+      create_property  :customer_id, type: integer, index: :unique
+      create_property  :name, type: :string, index: :not_unique
+      create_property  :in,  type: :link, linked_class: :V    (used by edges)
 =end
 
   def create_property field, **keyword_arguments, &b
@@ -162,16 +182,10 @@ returns the affected record
     orientdb.create_properties self, argument_hash, &b
   end
 
-# Add a link property
 
-  def create_link name, classname
-    orientdb.create_property self, name, type: 'link', linked_class: classname
-  end
-
-# Add a linkset property
-
-  def create_linkset name, classname
-    orientdb.create_property self, name, type: 'linkset', linked_class: classname
+# Add an Index
+  def create_index name, **attributes
+    orientdb.create_index self, name: name, **attributes
   end
 
   ########## GET ###############
