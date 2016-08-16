@@ -1,14 +1,10 @@
-require_relative "database_utils.rb" #common methods without rest.specific content
-require_relative "class_utils.rb" #common methods without rest.specific content
-require_relative "orientdb_private.rb" # manage private functions
-require_relative "rest_read.rb" # manage get
-require_relative "rest_create.rb" # manage create
-require_relative "rest_change.rb" # manage update
-require_relative "rest_operations.rb" # manage count, functions and execute
-require_relative "rest_delete.rb" # manage delete
+require_relative "read.rb" # manage get
+require_relative "create.rb" # manage create
+require_relative "change.rb" # manage update
+require_relative "operations.rb" # manage count, functions and execute
+require_relative "delete.rb" # manage delete
 require 'cgi'
 require 'rest-client'
-require 'active_support/core_ext/string' # provides blank?, present?, presence etc
 
 module ActiveOrient
 

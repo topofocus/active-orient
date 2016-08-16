@@ -30,13 +30,17 @@ require_relative "support.rb"
 require_relative "base.rb"
 require_relative "base_properties.rb"
 require_relative "orient.rb"
-require_relative "model.rb"
 #require_relative "query.rb"
 if RUBY_PLATFORM == 'java'
   require_relative 'java-api.rb'
   end
-require_relative "rest.rb"
+require_relative "orientdb_private.rb" # manage private functions
+require_relative "database_utils.rb" #common methods without rest.specific content
+require_relative "class_utils.rb" #common methods without rest.specific content
 require_relative "other.rb"
+require_relative "rest/rest.rb"
+require_relative "model/model.rb"
+require 'active_support/core_ext/string' # provides blank?, present?, presence etc
 
 module  ActiveOrient
 mattr_accessor :database

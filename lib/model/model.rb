@@ -1,5 +1,5 @@
-require_relative "model_class.rb"
-require_relative "record.rb"
+require_relative "the_class.rb"
+require_relative "the_record.rb"
 
 module ActiveOrient
   class Model < ActiveOrient::Base
