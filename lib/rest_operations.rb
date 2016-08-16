@@ -88,7 +88,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 #      batch[:transaction] = transaction & batch[:operations].size >1
       begin
 # puts batch[:operations].map{|y|y[:command]}.join("; ") 
-	logger.info{ batch[:operations].map{|y|y[:command]}.join("; ") } 
+	logger.debug{ batch[:operations].map{|y|y[:command]}.join("; ") } 
         response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
       rescue RestClient::InternalServerError => e
         logger.progname = 'RestOperations#Execute'

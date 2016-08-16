@@ -141,27 +141,57 @@ its equivalent to to Model#where but uses a single rid as "from" item
 =begin
 Add Items to a linked or embedded class
 Parameter
+
   array : the name of the property to work on
   item :  what to add (optional)
   block:  has to provide an array of elements to add to the property
 
-  example:
+example:
+
    add_item_to_property :second_list do
        (0 .. 9).map do | s |
-               ActiveOrient::Model::SecondList.create label: s
+               SecondList.create label: s
        end  
    end
    adds 10 Elements to the property.
+
+
+   The method returns the model record itself. Thus nested initialisations are possible:
+   
+       ORD.create_classes([:base, :first_list, :second_list ]){ "V" }
+       ORD.create_property :base, :first_list,  type: :linklist, linkedClass: :first_list
+       ORD.create_property :base, :label, index: :unique
+       ORD.create_property :first_list,  :second_list , type: :linklist, linkedClass: :second_list
+       ORD.create_vertex_class :log
+       (0 .. 9).each do | b |
+          base= Base.create label: b, first_list: []
+          base.add_item_to_property :first_list do
+             (0 .. 9).map do | f |
+                first = FirstList.create label: f, second_list: []
+	         base.add_item_to_property :first_list , first
+	         first.add_item_to_property :second_list do
+	           (0 .. 9).map{| s |  SecondList.create label: s }
+	         end    # add item  second_list
+	      end      # 0..9 -> f
+	   end        # add item  first_list
+	end        # 0..9 -> b
+
+
+Record#AddItemToProperty shines with its feature to specify records to insert in a block.
+If only single Items are to insert, use
+  model_record.linklist << item 
+
 =end
 
   def add_item_to_property array, item = nil, &b
     items = block_given? ? yield : nil
     update_item_property "ADD", array, item, &b
+    self # return_value
   end
-  alias add_items_to_property add_item_to_property
+#  alias add_items_to_property add_item_to_property
   ## historical aliases
-  alias update_linkset  add_item_to_property
-  alias update_embedded  add_item_to_property
+#  alias update_linkset  add_item_to_property
+#  alias update_embedded  add_item_to_property
 
   def set_item_to_property array, item = nil, &b
     update_item_property "SET", array, item, &b
@@ -177,6 +207,7 @@ Parameter
         a.delete item
         self.attributes[array].delete(item)
       end
+    self # return_value
   end
 
   ############# DELETE ###########

@@ -5,10 +5,6 @@ describe ActiveOrient::OrientDB do
 
   before( :all ) do
     reset_database
-  end
-
-  context "create and manage a 2 layer 1:n relation" do
-    before(:all) do
       ORD.create_classes([:base, :first_list, :second_list ]){ "V" }
       ORD.create_property :base, :first_list,  type: :linklist, linkedClass: :first_list 
       ORD.create_property :base, :label, index: :unique 
@@ -30,6 +26,8 @@ describe ActiveOrient::OrientDB do
       end		   # branch 
     end		  # before
 
+  context "create and manage a 2 layer 1:n relation" do
+
     it "check base"  do
       (0..9).each do | b |
 	base =  Base.where( label: b)
@@ -47,14 +45,14 @@ describe ActiveOrient::OrientDB do
     end
 
     it "query local structure" do
-      sleep 2
-      Base.all.each do | base |
-	puts "base: #{base.to_human}"
-	(0 ..9 ).each do | c |
-	  puts "First_List: #{base.first_list[c].to_human}"
-	(0 .. 9).each do | d |
-	  puts "c: #{c} ; d: #{d}"
-	  expect( base.first_list[c].second_list[d].label ).to eq d
+      Base.all.each do | b |
+#	puts "base: #{b.to_human}"
+	(0..9).each do | c |
+#	  puts "First_List #{c}:: #{b.first_list[c].to_human}"
+	(0..9).each do | d |
+#	  puts "Second_List: #{b.first_list[c].second_list.to_human}"
+#	  puts "c: #{c} ; d: #{d}"
+	  expect( b.first_list[c].second_list[d].label ).to eq d
 	end
       end
       end

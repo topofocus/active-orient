@@ -53,12 +53,9 @@ select expand( $z ) let $a = ( select expand(in('HasContent')) from Word where i
 =end
  class E < ActiveOrient::Model
     def  self.uniq_index
-      create_link  :in  => :V 
-      create_link  :out => :V 
       create_property  :in,  type: :link, linked_class: :V 
-     create_property  :out, type: :link, linked_class: :V 
+      create_property  :out, type: :link, linked_class: :V 
       create_index :edge_idx, on: [ :in, :out ]
-      
     end
  end  
 

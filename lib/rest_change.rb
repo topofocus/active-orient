@@ -34,7 +34,7 @@ module RestChange
     end
     # returns a new instance of ActiveOrient::Model and updates any reference on rid
     # if the patch is not successfull no string is returned and thus no record is fetched
-    puts JSON.parse(result) if result.is_a?(String)
+ #   puts JSON.parse(result) if result.is_a?(String)
     ActiveOrient::Model.orientdb_class(name: r.class.ref_name).new(JSON.parse(result))  if result.is_a?(String)
   end
 

@@ -421,7 +421,7 @@ No SQL involved
 
 
     def manipulate_relation record,  method, array, items
-      java_document = record.dokument
+      java_document = record.document
       method =  method.to_s.downcase.to_sym
       case method 
       when :add

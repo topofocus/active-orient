@@ -72,7 +72,7 @@ if RUBY_PLATFORM == 'java'
     end
 
     def << value
-      puts "I will perform the insert"
+      #put "I will perform the insert"
       value =  value.document if value.is_a?( ActiveOrient::Model ) && value.document.present?
       add value
       #save
