@@ -14,15 +14,15 @@ describe ActiveOrient::OrientDB do
       ORD.create_property :base, :label, index: :unique 
       ORD.create_property :first_list,  :second_list , type: :linklist, linkedClass: :second_list 
       ORD.create_vertex_class :log
-      if ActiveOrient::Model::Base.count.zero?  # omit if structure is present
+      if Base.count.zero?  # omit if structure is present
 	(0 .. 9).each do | b |
-	  base= ActiveOrient::Model::Base.create label: b, first_list: []
+	  base= Base.create label: b, first_list: []
 	  base.add_item_to_property :first_list do 
 	    (0 .. 9).map do | f |
-	      first = ActiveOrient::Model::FirstList.create label: f, second_list: []
+	      first = FirstList.create label: f, second_list: []
 	      #	    base.add_item_to_property :first_list , first
 	      first.add_item_to_property :second_list do
-		(0 .. 9).map{| s |  ActiveOrient::Model::SecondList.create label: s }
+		(0 .. 9).map{| s |  SecondList.create label: s }
 	      end    # add item  second_list
 	    end      # 0..9 -> f
 	  end        # add item  first_list
@@ -32,7 +32,7 @@ describe ActiveOrient::OrientDB do
 
     it "check base"  do
       (0..9).each do | b |
-	base =  ActiveOrient::Model::Base.where( label: b)
+	base =  Base.where( label: b)
 	expect( base).to be_a Array
 	expect( base.size ).to eq 1
 	base= base.first
@@ -48,7 +48,7 @@ describe ActiveOrient::OrientDB do
 
     it "query local structure" do
       sleep 2
-      ActiveOrient::Model::Base.all.each do | base |
+      Base.all.each do | base |
 	puts "base: #{base.to_human}"
 	(0 ..9 ).each do | c |
 	  puts "First_List: #{base.first_list[c].to_human}"
@@ -65,13 +65,13 @@ describe ActiveOrient::OrientDB do
       expect( q.to_s ).to eq 'select first_list[5].second_list[9] as second_list from base where label = 9 '
       # two different query approaches
       # the first attempt gets just the rid, the record is autoloaded (or taken from the cache)
-      result1 = ActiveOrient::Model::Base.query_database( q ).first
-      expect( result1.second_list).to be_a ActiveOrient::Model::SecondList
+      result1 = Base.query_database( q ).first
+      expect( result1.second_list).to be_a SecondList
       q =  OrientSupport::OrientQuery.new  from: :base
       # the second attempt fetches the record directly
       q.projection << 'expand( first_list[5].second_list[9])'
-      result2 = ActiveOrient::Model::Base.query_database( q ).first
-      expect( result2).to be_a ActiveOrient::Model::SecondList
+      result2 = Base.query_database( q ).first
+      expect( result2).to be_a SecondList
 
     end
 
@@ -96,22 +96,18 @@ describe ActiveOrient::OrientDB do
   end
   context "document-handling"   do
     before(:all) do
-      classname = "Documebntklasse10"
-      ORD.delete_class classname
-      ORDest_class = ORD.create_class classname
-      ORD.create_class 'Contract'
-      ORD.create_properties( ORDest_class,
-			    { symbol: { type: :string },
-	 con_id: { type: :integer } ,
-	 details: { type: :link, linkedClass: 'Contract' } } )
-
-
+      classname = "doc_klasse10"
+      ORD.create_class :doc_klasse10
+      ORD.create_class :contract
+      DocKlasse10.create_properties( 
+				    symbol: { type: :string },
+				    con_id: { type: :integer } ,
+				    details: { type: :link, linkedClass: 'Contract' }  )
     end
-    #          after(:all){  ORD.delete_class ORDest_class }
 
 
     it "create a single document"  do
-      res=  ORD.create_document ORDest_class , attributes: {con_id: 345, symbol: 'EWQZ' }
+      res=  ORD.create_document DocKlasse10 , attributes: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a ActiveOrient::Model
       expect( res.con_id ).to eq 345
       expect( res.symbol ).to eq 'EWQZ'
@@ -120,22 +116,22 @@ describe ActiveOrient::OrientDB do
 
 
     it "create through create_or_update"  do
-      res=  ORD.upsert   ORDest_class , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
-      expect( res ).to be_a ORDest_class
+      res=  ORD.upsert   DocKlasse10 , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
+      expect( res ).to be_a DocKlasse10
       expect(res.a_new_property).to eq 34
-      res2= ORD.upsert  ORDest_class , set: { a_new_property: 35 } , where: {con_id: 345 }
+      res2= ORD.upsert  DocKlasse10 , set: { a_new_property: 35 } , where: {con_id: 345 }
       expect( res2.a_new_property).to eq 35
       expect( res2.version).to eq res.version+1
     end
 
     it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!
       expect do
-	ORDes=  ORD.create_or_update_document( ORDest_class ,
+	ORDes=  ORD.create_or_update_document( DocKlasse10 ,
 					      set: { a_new_property: 36 } ,
 					      where: {con_id: 345, symbol: 'EWQZ' } ) do
 						{ another_wired_property: "No time for tango" }
 					      end
-      end.not_to change{ ORDest_class.count }
+      end.not_to change{ DocKlasse10.count }
 
       ###check 
       expect( ORDes.a_new_property).to eq 36
@@ -145,12 +141,12 @@ describe ActiveOrient::OrientDB do
     end
     it   "uses create_or_update and a block on a new document" do
       expect do
-	@ord  = ORD.create_or_update_document( ORDest_class ,
+	@ord  = ORD.create_or_update_document( DocKlasse10 ,
 					      set: { a_new_property: 37 } ,
 					      where: {con_id: 345, symbol: 'EWQrGZ' }) do
 						{ another_wired_property: "No time for tango" }
 					      end
-      end.to change{ ORDest_class.count }.by 1
+      end.to change{ DocKlasse10.count }.by 1
 
       expect( @ord.a_new_property).to eq 37
       expect( @ord.attributes.keys ).to include 'another_wired_property'  ## block is executed, because its a new document
@@ -160,7 +156,7 @@ describe ActiveOrient::OrientDB do
     it "update strange text"  do  # from the orientdb group
       strange_text = { strange_text: "'@type':'d','a':'some \\ text'"}
 
-      res=  ORD.create_or_update_document   ORDest_class , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do
+      res=  ORD.create_or_update_document   DocKlasse10 , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do
 	strange_text
       end
       expect( res.strange_text ).to eq strange_text[:strange_text]
@@ -168,34 +164,34 @@ describe ActiveOrient::OrientDB do
       expect( document_from_db.strange_text ).to eq strange_text[:strange_text]
     end
     it "read that document" do
-      r=  ORD.create_document  ORDest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
-      expect( r.class ).to eq ORDest_class
-      res = ORD.get_documents  from: ORDest_class, where: { con_id: 343, symbol: 'EWTZ' }
+      r=  ORD.create_document  DocKlasse10, attributes: { con_id: 343, symbol: 'EWTZ' }
+      expect( r.class ).to eq DocKlasse10
+      res = ORD.get_documents  from: DocKlasse10, where: { con_id: 343, symbol: 'EWTZ' }
       expect(res.first.symbol).to eq r.symbol
       expect(res.first.version).to eq  r.version
 
     end
 
     it "count datasets in class" do
-      r =  ORD.count_documents  from: ORDest_class
+      r =  ORD.count_documents  from: DocKlasse10
       expect( r ).to eq  4
     end
 
     it "updates that document"   do
-      r=  ORD.create_document  ORDest_class, attributes: { con_id: 340, symbol: 'EWZ' }
-      rr =  ORD.update_documents  ORDest_class,
+      r=  ORD.create_document  DocKlasse10, attributes: { con_id: 340, symbol: 'EWZ' }
+      rr =  ORD.update_documents  DocKlasse10,
 	set: { :symbol => 'TWR' },
 	where: { con_id: 340 }
 
-      res = ORD.get_documents   from: ORDest_class, where:{ con_id: 340 }
+      res = ORD.get_documents   from: DocKlasse10, where:{ con_id: 340 }
       expect( res.size ).to eq 1
       expect( res.first['symbol']).to eq 'TWR'
 
     end
     it "deletes that document" do
-      ORD.create_document  ORDest_class , attributes: { con_id: 3410, symbol: 'EAZ' }
-      r=  ORD.delete_documents  ORDest_class , where: { con_id: 3410 }
-      res = ORD.get_documents  from: ORDest_class, where: { con_id: 3410 }
+      ORD.create_document  DocKlasse10 , attributes: { con_id: 3410, symbol: 'EAZ' }
+      r=  ORD.delete_documents  DocKlasse10 , where: { con_id: 3410 }
+      res = ORD.get_documents  from: DocKlasse10, where: { con_id: 3410 }
       expect(r.size).to eq 1
       expect(res).to be_empty
     end

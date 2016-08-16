@@ -68,6 +68,10 @@ its equivalent to to Model#where but uses a single rid as "from" item
   def version= version
     @metadata[:version] = version
   end
+
+  def increment_version
+    @metadata[:version] += 1
+  end
   ########### UPDATE PROPERTY ############
 
 =begin
@@ -118,41 +122,21 @@ its equivalent to to Model#where but uses a single rid as "from" item
 
 
   def update_item_property method, array, item = nil, &b
-    begin
+ #   begin
       logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
-      execute_array = Array.new
       #self.attributes[array] = OrientSupport::Array.new(self) unless attributes[array].present?
       self.attributes[array] = Array.new unless attributes[array].present?
 
-      add_2_execute_array = -> (it) do
-	command = "UPDATE ##{rid} #{method} #{array} = #{it.to_orient } " #updating}"
-	command.gsub!(/\"/,"") if it.is_a? Array
-	#puts "COMMAND:: #{command}"
-	execute_array << {type: "cmd", language: "sql", command: command}
-      end
       items = if item.present?
 		item.is_a?(Array)? item : [item]  
 	      elsif block_given?
 		yield
 	      end
-
-      if RUBY_PLATFORM == 'java'
-	items.each{|x| document[array] << x}
-	document.save
-      else
-	items.each{|x|
-	  add_2_execute_array[x];
-	  self.attributes[array] << x}
-
-	orientdb.execute do
-	  execute_array
-	  #	reload!
-	end
-      end
-      rescue RestClient::InternalServerError => e
-	logger.error{"Duplicate found in #{array}"}
-	logger.error{e.inspect}
-      end
+      db.manipulate_relation self, method, array, items
+      #rescue RestClient::InternalServerError => e
+#	logger.error{"Duplicate found in #{array}"}
+#	logger.error{e.inspect}
+#      end
     end
 =begin
 Add Items to a linked or embedded class
@@ -217,12 +201,18 @@ end
 =end
 
   def update set: {}
+    logger.progname = 'ActiveOrient::Model#Update'
     self.attributes.merge!(set) if set.present?
     self.attributes['updated_at'] =  Time.new
     updated_dataset = db.update self, attributes, @metadata[:version]
+    # if the updated dataset changed, drop the changes made siently
+    if updated_dataset.is_a? ActiveOrient::Model
     self.version =  updated_dataset.version
     updated_dataset # return_value
-#    reload!
+    else
+    logger.error("Version Conflict: reloading database values")
+    reload!
+    end
 
   end
   ########## SAVE   ############

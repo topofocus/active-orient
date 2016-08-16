@@ -141,7 +141,7 @@ The model instance fields are then set automatically from the opts Hash.
       if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?(key.to_s+"=t")
 	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
       elsif iv.is_a? Array
-	  OrientSupport::Array.new( self, *iv.from_orient){ key.to_sym }
+	  OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
      elsif iv.is_a? Hash
 	  OrientSupport::Hash.new( self, iv){ key.to_sym }
 #     elsif iv.is_a? RecordMap 
@@ -164,9 +164,9 @@ The model instance fields are then set automatically from the opts Hash.
 				       x
 				     end
 				   end
-				   OrientSupport::Array.new(self, *v )
+				   OrientSupport::Array.new(work_on: self, work_with: v )
 				 else
-				   OrientSupport::Array.new(self, *val )
+				   OrientSupport::Array.new(work_on: self, work_with: val )
 				 end
 			       when Hash
 				 HashWithIndifferentAccess.new(val)

@@ -24,6 +24,32 @@ module RestOperations
   alias count_documents count_records
   alias count count_records
 
+
+  def manipulate_relation record,  method, array, items
+    execute_array = Array.new
+    method =  method.to_s.upcase
+
+    add_2_execute_array = -> (it) do
+      command = "UPDATE ##{record.rid} #{method} #{array} = #{it.to_orient } " #updating}"
+      command.gsub!(/\"/,"") if it.is_a? Array
+      #puts "COMMAND:: #{command}"
+      execute_array << {type: "cmd", language: "sql", command: command}
+    end
+
+    items.each{|x| add_2_execute_array[x] }
+    r= execute{ execute_array }
+
+    if r.present?
+      case  method
+      when 'ADD'
+	items.each{|x| record.attributes[array] << x}
+      when 'REMOVE'
+	items.map{|x| record.attributes[array].delete x.is_a?(ActiveOrient::Model) ? x.rid : x}
+      else
+      end
+      record.increment_version
+    end
+  end
 =begin
 Executes a list of commands and returns the result-array (if present)
 
@@ -58,7 +84,10 @@ Multible statements are transmitted at once if the Block provides an Array of st
     unless batch[:operations].blank?
       batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
+      # transaction is true only for multible statements
+#      batch[:transaction] = transaction & batch[:operations].size >1
       begin
+# puts batch[:operations].map{|y|y[:command]}.join("; ") 
 	logger.info{ batch[:operations].map{|y|y[:command]}.join("; ") } 
         response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
       rescue RestClient::InternalServerError => e

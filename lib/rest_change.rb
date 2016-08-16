@@ -13,20 +13,29 @@ module RestChange
   ############# OBJECTS #################
 =begin
   Convient update of the dataset by calling sql-patch
+
+  The argument record can be specified as ActiveOrient::Model-instance or as rid-string( #0:0 )
   
   called from ModelRecord#update
+
+  if the update was successful, the updated ActiveOrient::Model-record is returned.
 =end
 
-  def update rid, attributes , version
-    rid =  ActiveOrient::Model.autoload rid unless rid.is_a? ActiveOrient::Model
-    o_class = rid.class.ref_name
-    rid = rid.rid
-
-    result = patch_record(rid) do
-      attributes.merge({'@version' => version, '@class' => classname(o_class)})
+  def update record, attributes , version=0
+    r = if record.is_a?(String) && record.rid?
+	     ActiveOrient::Model.autoload record 
+	else
+	  record
+	end
+    return(false) unless r.is_a?(ActiveOrient::Model)
+    version = r.version if version.zero?
+    result = patch_record(r.rid) do
+      attributes.merge({'@version' => version, '@class' => r.class.ref_name })
     end
     # returns a new instance of ActiveOrient::Model and updates any reference on rid
-    ActiveOrient::Model.orientdb_class(name: classname(o_class)).new(JSON.parse(result))  
+    # if the patch is not successfull no string is returned and thus no record is fetched
+    puts JSON.parse(result) if result.is_a?(String)
+    ActiveOrient::Model.orientdb_class(name: r.class.ref_name).new(JSON.parse(result))  if result.is_a?(String)
   end
 
 

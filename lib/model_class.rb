@@ -34,6 +34,7 @@ To overwrite use
     logger.progname = "ModelClass#OrientDBClass"
     i=0
     ref_name =  name.to_s
+    superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
     klass = if superclass.present?   # superclass is parameter, use if class, otherwise transfer to class
 	      superclass = self.orientdb_class( name: superclass ) unless superclass.is_a? Class
 	      Class.new(superclass)
@@ -54,14 +55,14 @@ To overwrite use
       new_class # return_value
     end
   rescue NameError => e
-    if i.zero?
-      self.orientdb_class( name: superclass )
-      i += 1
-      retry
-    else
+    #if i.zero?
+    #  self.orientdb_class( name: superclass )
+    #  i += 1
+    #  retry
+    #else
       logger.error "ModelClass #{name} cannot be initialized."
       logger.error e.inspect
-    end
+    #end
   end
 =begin
 Retrieves the preallocated class derived from ActiveOrient::Model

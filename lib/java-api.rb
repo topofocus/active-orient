@@ -418,5 +418,20 @@ No SQL involved
 	logger.error{ "Wrong Parameter: #{java_document.inspect} "}
       end
     end  #def
+
+
+    def manipulate_relation record,  method, array, items
+      java_document = record.dokument
+      method =  method.to_s.downcase.to_sym
+      case method 
+      when :add
+	items.each{|x| java_document[array] << x}
+      when :remove
+	items.each{|x| java_document[array].delete x}
+      else
+
+      end
+	java_document.save
     end
   end
+end

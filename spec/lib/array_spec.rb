@@ -1,22 +1,17 @@
 require 'spec_helper'
-####  Work in progress
-#### specs are not working at all
+require 'rest_helper'
+## works well with rest-api
 describe OrientSupport::Array do
   before( :all ) do
-
-   ORD.delete_database database: ActiveOrient.database
-   ORD =  ActiveOrient::OrientDB.new
-   DB =  if RUBY_PLATFORM == 'java'
-	   ActiveOrient::API.new
-	 else
-	   ORD
-	 end
-    TestModel = ORD.open_class "model_test"
-    @ecord = TestModel.create
+    reset_database
+    ORD.create_class "test_model"
+    ORD.create_class 'link_class'
+    ORD.create_class 'base_class'
   end
 
-  context "check isolated" do
-    let( :basic ) { OrientSupport::Array.new @ecord, 'test', 6, 5 }
+  let( :testrecord ){ TestModel.create }
+  context "check isolated"  do
+    let( :basic ) { OrientSupport::Array.new work_on: testrecord, work_with: [ 'test', 6, 5 ]  }
     it { expect( basic ).to be_a OrientSupport::Array }
 
     it { expect( basic ).to have(3).items }
@@ -29,56 +24,51 @@ describe OrientSupport::Array do
   end
 
 
-  context "verify a proper TestEnvironment" do
-    it{ expect( TestModel.count ).to eq 1 }
-    it{ expect( @ecord ).to be_a ActiveOrient::Model::ModelTest }
-  end
 
   context "add and populate an Array" do
-    before(:each){ @ecord.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
+    before(:each){ testrecord.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
 
     it "initialize the Object"  do
-      expect( @ecord.ll ).to be_a OrientSupport::Array
-      expect( @ecord.ll.first ).to eq "test"
-      expect( @ecord.ll[2] ).to eq 8
+      expect( testrecord.ll ).to be_a OrientSupport::Array
+      expect( testrecord.ll.first ).to eq "test"
+      expect( testrecord.ll[2] ).to eq 8
     end
     it "modify the Object"  do
-      expect{ @ecord.add_item_to_property( :ll, 't') ; @ecord.reload! }.to change { @ecord.version }.by 1
-      expect{ @ecord.ll << 78 }.to change { @ecord.ll.size }.by 1
-      expect{ @ecord.reload! }.to change { @ecord.version }.by 1
+      expect{ testrecord.add_item_to_property( :ll, 't') ; testrecord.reload! }.to change { testrecord.version }.by 1
+      expect{ testrecord.ll << 78 }.to change { testrecord.ll.size }.by 1
+      expect{ testrecord.ll << 79 }.to change { testrecord.version }.by 1
 
-      expect{ @ecord.ll.delete_at(2) }.to change { @ecord.ll.size }.by -1
-      expect{ @ecord.ll.delete 'test' }.to change { @ecord.ll.size }.by -1
-      expect{ @ecord.reload! }.to change { @ecord.version }.by 2
+      expect{ testrecord.ll.delete_at(2) }.to change { testrecord.ll.size }.by -1
+      expect{ testrecord.ll.delete 'test' }.to change { testrecord.ll.size }.by -1
+      # multible deletions result in only one version increment
       expect do
-        expect{ @ecord.ll.delete 7988, 'uzg' }.to change { @ecord.ll.size }.by( -2 )
-	@ecord.reload!
-      end.to change{  @ecord.version }.by 1
+        expect{ testrecord.ll.delete 7988, 'uzg', 788, 79  }.to change { testrecord.ll.size }.by( -3 )
+	puts testrecord.ll.inspect
+	puts testrecord.version
+	testrecord.reload!
+      end.to change{  testrecord.version }.by 1
     end
 
-    it "append to the array" , focus: true do
-      @ecord.update set: { new_array: [24,25,26] }
-      @ecord.reload!
-      expect( @ecord.new_array ).to eq [24,25,26]
+    it "append to the array"   do
+      testrecord.update set: { new_array: [24,25,26] }
+      expect( testrecord.new_array ).to eq [24,25,26]
       
-      expect{ @ecord.new_array << "rt" }.to change { @ecord.new_array.size }.by 1
+      expect{ testrecord.new_array << "rt" }.to change { testrecord.new_array.size }.by 1
 
-      expect( @ecord.new_array ).to eq [24,25,26,'rt']
+      expect( testrecord.new_array ).to eq [24,25,26,'rt']
 
 
     end
     it "update the object"  do
-      expect{ @ecord.ll[0]  =  "a new Value " }.to change{ @ecord.version }
-      expect( @ecord.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
+      expect{ testrecord.ll[0]  =  "a new Value " }.to change{ testrecord.version }
+      expect( testrecord.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
 
     end
 
 
     context "Work with arrays containing links" do
       before(:all) do
-        ORD.delete_class  'Test_link_class'
 
-        LinkClass = ORD.open_class 'Test_link_class'
         @new_record = TestModel.create ll: [ ]
         (1..9).each do |i|
           @new_record.ll << i
@@ -95,7 +85,7 @@ describe OrientSupport::Array do
 
       it "add and remove records" do
         expect{ @new_record.ll << LinkClass.create( new: "Neu" ) }.to change { @new_record.ll.size }.by 1
-        expect{ @new_record.ll.delete  LinkClass.last }.to change { @new_record.ll.size }.by -1
+        expect{ @new_record.ll.delete  LinkClass.all.last }.to change { @new_record.ll.size }.by -1
         expect{ @new_record.ll.delete  9 }.to change { @new_record.ll.size }.by -1
         expect{ @new_record.ll.delete 19 }.not_to change { @new_record.ll.size }
         expect{ @new_record.ll.delete  1,8 }.to change { @new_record.ll.size }.by -2
@@ -110,7 +100,7 @@ describe OrientSupport::Array do
     let( :multi_array ){ a = [1,2,3];  b = [ :a, :b, :c ]; [ a, b ] }
     it 'intitialize' do
       new_record = TestModel.create ll: multi_array
-      expect( new_record.ll ).to eq [[1, 2, 3], ["a", "b", "c"]]
+      expect( new_record.ll ).to eq [[1, 2, 3], [:a, :b, :c]]
 
     end
 
@@ -119,16 +109,14 @@ describe OrientSupport::Array do
       expect{ dataset.update set: {ll: multi_array  } }.to change{ dataset.version }
       # explicit reread the dataset
       data_set =  TestModel.all.last  # last does not work in Vers. 2.2
-      expect( data_set.ll ).to eq [[1, 2, 3], ['a', 'b', 'c']]
+      expect( data_set.ll ).to eq [[1, 2, 3], [:a, :b, :c]]
 
     end
 
   end
   context 'work with subsets of the embedded array'  do
     before(:all) do
-      DB.delete_class  'Test_link_class'
 
-      LinkClass = DB.open_class 'Test_link_class'
       @new_record = TestModel.create ll: [ ]
       (1..99).each do |i|
         @new_record.ll << i
@@ -165,12 +153,8 @@ describe OrientSupport::Array do
 
   context 'work with a hard-coded linkmap' do
     before(:all) do
-      ORD.delete_class  'Test_link_class'
-      ORD.delete_class  'Test_base_class'
 
-      BaseClass = ORD.open_class 'Test_base_class'
-      LinkClass = ORD.open_class 'Test_link_class'
-      BaseClass.create_linkset  'aLinkSet',  LinkClass
+      BaseClass.create_property 'aLinkSet',  type: :linkset, linked_class: LinkClass
       @new_record = BaseClass.create  aLinkSet: []
       (1..9).each do |i|
         @new_record.aLinkSet << LinkClass.create( att: "#{i} attribute" )
@@ -180,19 +164,18 @@ describe OrientSupport::Array do
     it "verify the datastructure" do
       #	puts @new_record.aLinkSet.map{|y| y.is_a?( ActiveOrient::Model )? y.att : y }.join(' ; ')
       expect( @new_record.aLinkSet ).to have(9).items
-      expect( @new_record.aLinkSet.at(0)).to eq LinkClass.first
+      expect( @new_record.aLinkSet.at(0).att ).to eq "1 attribute"
     end
-    it "add and remove records" do
+    it "add and remove records"   do
       expect{ @new_record.aLinkSet << LinkClass.create( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
-      #	expect{ @new_record.aLinkSet.delete  LinkClass.last }.to change { @new_record.aLinkSet.size }.by -1
+      	expect{ @new_record.aLinkSet.delete  LinkClass.all.last }.to change { @new_record.aLinkSet.size }.by -1
       # gives an Error - its not possible to mix links with other objects
-     	expect{ @record_with_6 =  @new_record.aLinkSet <<   6 }.to change { @new_record.aLinkSet.size }.by 1
-	puts @record_with_6.inspect
+     	expect{ @new_record.aLinkSet <<   6 }.not_to change { @new_record.aLinkSet.size }
 	### this fails!!
 #     	expect{ @new_record.aLinkSet.delete  @record_with_6 }.to change { @new_record.aLinkSet.size }.by -1
       expect{ @new_record.aLinkSet.delete 19 }.not_to change { @new_record.aLinkSet.size }
-      expect{ @new_record.aLinkSet.delete  LinkClass.last, LinkClass.first  }.to change { @new_record.aLinkSet.size }.by -2
-      expect{ @new_record.aLinkSet.delete_if{|x| x == LinkClass.where( att: '5 attribute').pop.rid}}.to change {@new_record.aLinkSet.size }.by -1
+      expect{ @new_record.aLinkSet.delete  @new_record.aLinkSet[2], @new_record.aLinkSet[3] }.to change { @new_record.aLinkSet.size }.by -2
+      expect{ @new_record.aLinkSet.delete_if{|x| LinkClass.where( att: '5 attribute').include?(x)} }.to change {@new_record.aLinkSet.size }.by -1
     end
 
   end

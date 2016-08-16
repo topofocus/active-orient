@@ -39,6 +39,15 @@ create a single class and provide properties as well
 =end
  def create_class classname, properties: nil, &b
    the_class= create_classes( classname, &b )
+    # if multible classes are specified, don't process properties
+    # (if multible classes need the same properties, consider a nested class-design 
+   if the_class.is_a?(Array)
+     if the_class.size == 1
+       the_class = the_class.first
+     else
+       properties =  nil
+     end
+    end
    create_properties( the_class.ref_name , properties )  if properties.present?
    the_class # return_value
  end

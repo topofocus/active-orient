@@ -90,23 +90,31 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
       end
       [basic_classes, nested_classes ].compact
     end
-  def create_vertex_class name, properties: nil
+  def create_vertex_class *name, properties: nil 
     create_class( :V ) unless database_classes.include? "V"
-    create_class( name, properties: properties){ :V } 
+    r= name.map{|n| create_class( n, properties: properties){ :V } }
+    @actual_class_hash = get_classes( 'name', 'superClass')
+ r.size == 1 ? r.pop : r
   end
 
-  def create_edge_class name, superclass: 'E', properties: nil
+  def create_edge_class *name,  properties: nil
     create_class( :E ) unless database_classes.include? "E"
-    create_class( name, properties: properties){ :E  }
+    r = name.map{|n| create_class( n, properties: properties){ :E  } }
+    @actual_class_hash = get_classes( 'name', 'superClass')
+    r.size == 1 ? r.pop : r  # returns the created classes as array
   end
 
+  def get_db_superclass name
+    @actual_class_hash.find{|x,y|  x['name'] == name.to_s }['superClass']
+  end
 
 =begin
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
  def preallocate_classes
 
-   get_classes( 'name', 'superClass').each do | name_and_superclass |
+   @actual_class_hash = get_classes( 'name', 'superClass')
+   @actual_class_hash.each do | name_and_superclass |
      if database_classes.include? name_and_superclass['name']
        if name_and_superclass['superClass'].blank?
 	 allocate_classes_in_ruby name_and_superclass['name']
