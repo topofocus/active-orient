@@ -41,6 +41,10 @@ The CRUD-Process (create, read = query, update and remove) is performed as
 ```ruby	
     ORD.create_class :M
     M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    # or
+    new_record =  M.new  age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    new_record.save   # alternative: new_record.update
+    ##
     hugo = M.where( name: 'Hugo' ).first
     hugo.update set: { :father => M.create( name: "Volker", age: 76 ) } # we create an internal link
     hugo.father.name	# --> volker
@@ -73,11 +77,12 @@ If the "rid" is known, any Object can be retrieved and correctly allocated by
 The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
 
  ```ruby
- ORD.create_class :M
- M.create_property 'symbol' 			# the default-case: type: :string, no index
- M.create_property 'con_id', type: 'integer'
- M.create_property 'details', type: 'link', other_class: 'Contracts'
- M.create_property 'name',  index: :unique	# or  M.create_property( 'name' ){ :unique }
+ ORD.create_class  :M, :item
+ M.create_property :symbol 			# the default-case: type: :string, no index
+ M.create_property :con_id,   type: :integer
+ M.create_property :details,  type: :link, other_class: 'Contracts'
+ M.create_property :items,    type: :linklist, :linklist: Item
+ M.create_property :name,    index: :unique	# or  M.create_property( 'name' ){ :unique }
  ```
 
 (Experimental) You can put restrictions on your properties with the command "alter_property":
@@ -159,7 +164,7 @@ reads the stored content of link_document.
 To store a list of links to other Database-Objects, a simple Array is allocated
 ``` ruby
   # predefined linkmap-properties
-  ORD.create_property :test_base, :links,  type: :linklist, linkedClass: :test_links 
+  TestLinks.create_property  :links,  type: :linklist, linkedClass: :test_links 
   base_document =  TestBase.create links: []  
   (0 .. 20).each{|y| base_document.links << TestLinks.create( nr: y )}
   
