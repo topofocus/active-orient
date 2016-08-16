@@ -41,6 +41,10 @@ The CRUD-Process (create, read = query, update and remove) is performed as
 ```ruby	
     ORD.create_class :M
     M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    # or
+    new_record =  M.new  age: 46, interests: [ 'swimming', 'biking', 'reading' ]
+    new_record.save   # alternative: new_record.update
+    ##
     hugo = M.where( name: 'Hugo' ).first
     hugo.update set: { :father => M.create( name: "Volker", age: 76 ) } # we create an internal link
     hugo.father.name	# --> volker
