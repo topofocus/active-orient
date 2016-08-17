@@ -1,18 +1,20 @@
 require 'spec_helper'
+require 'rest_helper'
 
 describe OrientSupport::MatchStatement do
   before( :all ) do
 #    ORD = ActiveOrient::OrientDB.new database: 'ArrayTest'
-   TestQuery = ORD.open_class "model_query"
+    reset_database
+    ORD.create_class :test_query
   end # before
 
   context "Initialize the QueryClass" do
     it "simple Initialisation" do
       q =  OrientSupport::MatchStatement.new ORD.classname(TestQuery), where: { a:2 }
       expect(q).to be_a OrientSupport::MatchStatement
-      expect( q.compose ).to eq '{class: model_query, as: model_queries, where:( a = 2)}'
+      expect( q.compose ).to eq '{class: test_query, as: test_queries, where:( a = 2)}'
       expect( q.compose ).to eq q.compose_simple
-      expect(q.as).to eq 'model_queries'
+      expect(q.as).to eq 'test_queries'
     end
   end
 end
@@ -21,10 +23,10 @@ end
 
 describe OrientSupport::MatchConnection do
   before( :all ) do
-    ORD = ActiveOrient::OrientDB.new database: 'ArrayTest'
-   TestQuery = ORD.open_class "model_query"
+#    ORD = ActiveOrient::OrientDB.new database: 'ArrayTest'
+    reset_database
+   ORD.create_class :test_query
   end # before
-
 
   context 'initialize and check output' do
     it "the detault case" do  

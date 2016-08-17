@@ -11,11 +11,12 @@ def fire
 
 
   watch(%r{^spec/.+_spec\.rb$})
-  watch(%r{^spec/usecase/(.+).rb$})
+  watch(%r{^spec/usecase/(.+)\.rb$})
   watch(%r{^lib/(.+)\.rb$})     { |m| "spec/lib/#{m[1]}_spec.rb" }
+  watch(%r{^examples/time_graph/spec/(.+)\.rb$}) 
   watch('spec/spec_helper.rb')  { "spec" }
 
-  watch(%r{^spec/support/(.+)\.rb$})                  { "spec" }
+  watch(%r{^spec/support/(.+)\.rb$})  { "spec" }
 end
 
 

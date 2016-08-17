@@ -309,7 +309,11 @@ end
 		    when OrientQuery
 		      ' ( '+ arg.to_s + ' ) '
 		    else
-		      ORD.classname(arg)
+		      if arg.to_s.rid?
+			arg
+		      else
+			ORD.classname(arg)
+		      end
 		    end
 	compose  # return the complete query
       else # read from
@@ -373,12 +377,12 @@ end
     def projection_s
   	  @projection.map do | s |
   		  case s
-  			when Hash
-  			  s.map{ |x,y| "#{x} as #{y}"}.join( ', ')
   			when Array
   			  s.join(', ')
+			when String, Symbol
+  			  s.to_s
   			else
-  			  s
+  			  s.map{ |x,y| "#{x} as #{y}"}.join( ', ')
   			end
   	  end.join( ', ' )
     end
@@ -415,11 +419,13 @@ end
       unless @order.empty?
 	# the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
 	"order by " << [@order].flatten.map do |o|
+	  puts "CLASS : "+o.class.to_s
+	  puts o.to_s
 	  case o
-	  when Hash
-	    o.map{|x,y| "#{x} #{y}"}.join(" ")
-	  else
+	  when String, Symbol, Array
 	    o.to_s
+	  else
+	    o.map{|x,y| "#{x} #{y}"}.join(" ")
 	  end  # case
 	end.join(', ')
       else

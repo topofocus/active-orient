@@ -281,6 +281,7 @@ creates a vertex-class, too, returns the Hash
   #         [WHERE <conditions>]
   #           [LOCK default|record]
   #             [LIMIT <max-records>] [TIMEOUT <timeout>]
+
 =begin
 update or insert one record is implemented as upsert.
 The where-condition is merged into the set-attributes if its a hash.  
@@ -295,29 +296,29 @@ The method returns the included or the updated dataset
       yield new_record if block_given?	  # in case if insert execute optional block
       new_record			  # return_value
     else
-       specify_return_value =  block_given? ? "" : "return after @this"
-       set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
-	command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
+      specify_return_value =  block_given? ? "" : "return after @this"
+      set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
+      command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
 
 
-	#puts "COMMAND: #{command} "
-	result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
-	 [ { type: "cmd", language: 'sql', command: command}]
-	end 
-	result =result.pop if result.is_a? Array
+    #  puts "COMMAND: #{command} "
+      result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
+	[ { type: "cmd", language: 'sql', command: command}]
+      end 
+      result =result.pop if result.is_a? Array
 
-	case result
-	when ActiveOrient::Model
-	  result   # just return the result
-	when String, Numeric
-	  the_record=  get_records(from: o_class, where: where, limit: 1).pop
-	  if result.to_i == 1  # one dataset inserted, block is specified
-	   yield the_record 	
-	  end
-	  the_record # return_value
-	else
-	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
-	  end
+     case result
+      when ActiveOrient::Model
+	result   # just return the result
+      when String, Numeric
+	the_record=  get_records(from: o_class, where: where, limit: 1).pop
+	if result.to_i == 1  # one dataset inserted, block is specified
+	  yield the_record 	
+	end
+	the_record # return_value
+      else
+	logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
+      end
     end
   end
   ############### PROPERTIES #############

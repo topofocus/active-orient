@@ -116,6 +116,7 @@ The change is transmitted to the database immediately
     def initialize modelinstance, args
       @orient = modelinstance
       super args.from_orient
+      # @name is the property of @orient to work on
       @name = modelinstance.attributes.key(self)
 #      puts "ORIENT: #{@orient.inspect} "
       @name =  yield if @name.nil? && block_given?
@@ -127,14 +128,30 @@ The change is transmitted to the database immediately
     def []=  key, value
       puts " i will handle this in the future"
     #@orient.attributes[key] = value
-	r = (@orient.query  "update #{@orient.rid} put #{@name} = #{key.to_orient}, #{value.to_orient} RETURN AFTER @this").pop
+	
+#	r = (@orient.query  "update #{@orient.rid} put #{@name} = #{key.to_orient}, #{value.to_orient} RETURN AFTER @this").pop
 	super key, value
+	@orient.update set:{ @name => self}
 #	@orient = @orient.class(@orient.rid){r} if r.is_a? ActiveOrient::Model
 #	 self[ key ]= value
 #	 puts self.inspect 
 	#@orient[@name]=self.merge  key => value
 	#
     end
+
+    def delete key
+      super key
+      @orient.update set:{ @name => self}
+    end
+
+    def delete_if &b
+      super &b
+      @orient.update set:{ @name => self}
+
+    end
+
+#    def << 
+  
 
     def to_orient
      self

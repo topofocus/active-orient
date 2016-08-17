@@ -140,7 +140,7 @@ describe ActiveOrient::Model do
 
   context "Add and modify documents"  do
     before( :all ) do
-      ORD.open_class "doc_class"
+      ORD.create_class "doc_class"
     end
     it "put some data into the class"  do
 

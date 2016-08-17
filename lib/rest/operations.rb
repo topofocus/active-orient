@@ -90,6 +90,13 @@ Multible statements are transmitted at once if the Block provides an Array of st
 # puts batch[:operations].map{|y|y[:command]}.join("; ") 
 	logger.debug{ batch[:operations].map{|y|y[:command]}.join("; ") } 
         response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
+      rescue RestClient::BadRequest => f
+	# extract the misspelled query in logfile and abort
+	sentence=  JSON.parse( f.response)['errors'].last['content']
+	logger.fatal{ " BadRequest --> #{sentence.split("\n")[1]} " }
+	puts "Query not recognized"
+	puts sentence
+	raise
       rescue RestClient::InternalServerError => e
         logger.progname = 'RestOperations#Execute'
 	if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
@@ -97,7 +104,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 	else
 	  if process_error
 	  logger.error{e.response}
-	  logger.error{e.inspect}
+	  logger.error{e.message.to_s}
 	  else 
 	    raise
 	  end

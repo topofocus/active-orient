@@ -15,7 +15,7 @@ as minimum.
 Can be overwritten to provide different conventions for different classes, eg. Vertexes or edges.
 
 To overwrite use 
-  class ActiveOrient::Model::{xxx} < ActiveOrient::Model[:: ...]
+  class Model < ActiveOrient::Model[:: ...]
     def self.naming_convention
     ( conversion code )
     end
@@ -90,7 +90,7 @@ To create a record or a document two methods are available
 * create_document atttributes:  same
 
 or 
-create  item1: Value , item2: Value2 
+create  item1: Value , item2: Value2 , (...)
 
 =end
 
@@ -102,6 +102,7 @@ create  item1: Value , item2: Value2
   alias create_document create_record
   
   def create **attributes
+    "puts THE_CLASS#Create"
     create_record attributes: attributes
   end
 
@@ -120,7 +121,7 @@ create  item1: Value , item2: Value2
   
   The parameters »from« and »to« can take a list of model-records. Then subsequent edges are created.
    :call-seq:
-    self.create_edge from:, to:, unique: false, attributes:{}
+    Model.create_edge from:, to:, unique: false, attributes:{}
 =end
 
   def create_edge  **keyword_arguments
@@ -152,7 +153,7 @@ If where is omitted, a record is added with attributes from set.
 
 returns the affected record
 =end
-  def upsert set:{}, where:{}, &b
+  def upsert set: {}, where: {}, &b
     db.upsert self, set: set, where: where, &b
   end
   alias update_or_create_documents update_or_create_records
@@ -162,7 +163,7 @@ returns the affected record
 
 =begin
   Create a Property in the Schema of the Class
-    :call-seq:  self.create_property(field (required), type:'string', linked_class: nil, index: nil) do
+    :call-seq:  Model.create_property(field (required), type:'string', linked_class: nil, index: nil) do
     	index
     end
 
@@ -262,7 +263,7 @@ returns the affected record
   Parameter query:
     Instead of providing the parameter, the OrientSupport::OrientQuery can build and tested before the method-call. The OrientQuery-Object can be provided with the query-parameter. I.e.
       q = OrientSupport::OrientQuery.new
-      TestModel = r.open_class 'test_model'
+      ORD.create_class :test_model
       q.from TestModel
       q.where {name: 'Thomas'}
       count = TestModel.count query: q
@@ -283,10 +284,9 @@ returns the affected record
   Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
 
   Example:
-    Log = r.open_class 'Log'
     Log.where priority: 'high'
     --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
-    => [ #<ActiveOrient::Model::Log:0x0000000480f7d8 @metadata={ ... },  ...
+    => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
 =end
 
   def where **attributes 
@@ -300,8 +300,7 @@ Performs a Match-Query
 The Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
 records. In the simplest version this can be returnd:
   
-  I= ActiveOrient::Model::Industry
-  I.match where:{ name: "Communications" }
+  Industry.match where:{ name: "Communications" }
   => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
 
 The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
@@ -309,13 +308,13 @@ The attributes are the return-Values of the Match-Query. Unless otherwise noted,
   I.match( where: { name: 'Communications' }).first.Industries
 
 is the same then
-  I.where name: "Communications" 
+  Industry.where name: "Communications" 
 
   
 The Match-Query uses this result-set as start for subsequent queries on connected records.
 These connections are defined in the Block
 
-  var = I.match do | query |
+  var = Industry.match do | query |
     query.connect :in, count: 2, as: 'Subcategories'
     puts query.to_s  # print the query send to the database
     query            # important: block has to return the query 
@@ -419,16 +418,16 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
   Usually we can do in the following way.
 
-  month = r.open_class "Month"
-  firstmonth = month.first
+  ORD.create_class "Month"
+  (.. put some records into Month ... )
+  firstmonth = Month.first
   thirdmonth = month.all[2]
   days_firstmonth = firstmonth.out_TIMEOF.map{|x| x.in}
   days_thirdmonth = thirdmonth.out_TIMEOF.map{|x| x.in}
 
   However we can obtain the same result with the following command
 
-  month = r.open_class "Month"
-  month.add_edge_link name: "days", direction: "out", edge: "TIMEOF"
+  Month.add_edge_link name: "days", direction: "out", edge: "TIMEOF"
   firstmonth = month.first
   thirdmonth = month.all[2]
   days_firstmonth = firstmonth.days

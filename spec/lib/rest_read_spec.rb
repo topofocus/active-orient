@@ -1,5 +1,6 @@
 
 require 'spec_helper'
+require 'rest_helper'
 require 'active_support'
 require 'pp'
 
@@ -8,29 +9,23 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-#    ORD.database_classes.each{|x| ORD.delete_class x }
-   #ao =   ActiveOrient::OrientDB.new 
-   ORD.delete_database database: 'temp'
-   ActiveOrient.database = 'temp'
-   ORD  =  ActiveOrient::OrientDB.new
-#   @database_name = 'RestTest'
+    reset_database
   end
 
   context "empty dataset"  do 
-    pending( 'Database Version 2.2 provides E,V and OSequence in Addition to Field in V2.1')
   
     it "the database has been created" do
       expect( ORD.get_databases ).to include 'temp'
     end
-    it "the database is empty" do
-      expect( ORD.get_database_classes requery: true).to be_empty
+    it "the freshly initialized  database contains E+V-Base-Classes" do
+      expect( ORD.get_database_classes requery: true).to eq ["E","V"]
     end
 
     it "System classes are present" do
       classes = ORD.get_classes 'name', 'superClass'
-
+# "ORIDs" , 
       ["OFunction" ,
-        "OIdentity" , "ORIDs" , "ORestricted" ,
+        "OIdentity" ,"ORestricted" ,
         "ORole" , "OSchedule" , "OTriggered" , "OUser" ].each do |c|
 	  puts c
           expect( classes.detect{ |x|  x['name'] == c } ).to be_truthy
@@ -61,19 +56,6 @@ describe ActiveOrient::OrientDB do
       expect(cl['UZ']).to eq [@cl_hash[:UZ]]
     end
 
-    it 'get classes and hierarchy from db' do
-     # first close the database by switching to test and then reopen the database
-       classes =  ORD.get_classes
-       ActiveOrient::OrientDB.new 
-       r= ActiveOrient::OrientDB.new database: 'temp'
-       expect( r.get_classes ).to eq classes
-	@cl_hash[:Z].each do | classname |
-	  o =  r.open_class classname
-	  expect(o.ref_name).to eq classname
-	  expect(o.superclass.ref_name).to eq "Z"
-	end
-
-    end
   end
     context "Manage Properties" do
 

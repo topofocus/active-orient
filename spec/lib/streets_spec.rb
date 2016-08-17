@@ -3,6 +3,7 @@
 require 'spec_helper'
 require 'open-uri'
 require 'nokogiri'
+require 'rest_helper'
 
 =begin
 You need to include nikogiri and open-uri in the gem-file  to run this example
@@ -59,41 +60,37 @@ describe OrientSupport::OrientQuery do
   end
 
   before( :all ) do
-    ORD = ActiveOrient::OrientDB.new database: 'StreetTest'
-    ORD.delete_class :state
-    State =  ORD.create_vertex_class :state
+    reset_database
+    ORD.create_vertex_class :state
     State.create_property( :name, type: :string, index: :unique )
-    ORD.delete_class :city
-    City = ORD.create_vertex_class :city
+    ORD.create_vertex_class :city
     City.create_properties(  { name: { type: :string },
     state: { type: :link, :linked_class => 'State' } }
     ) do
       { citi_idx: :unique }
     end
-    ORD.delete_class :street
-    Street = ORD.create_vertex_class :street
+    ORD.create_vertex_class :street
     Street.create_property( :name , type: :string, index: :notunique )
-    ORD.delete_class :connects
     C = ORD.create_edge_class :connects
     C.create_property( :distance, type: :integer, index: :notunique )
 
 
   end
   it "check structure" do
-    expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["City","State","Street"]
-    expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["Connects"]
+    expect( ORD.class_hierarchy( base_class: 'V').sort ).to eq ["city","state","street"]
+    expect( ORD.class_hierarchy( base_class: 'E') ).to eq ["connects"]
   end
 
 
 
-  it "put new_test-content" do
+  it "put new_test-content"  do
     read_german_cities_and_states_from_wikipedia.each do |city,state|
-      state =  State.update_or_create( where: { name: state }).first
+      state =  State.upsert where: { name: state }
       city = City.create name: city, state: state.rid
     end
 
     expect( State.count ).to eq 118
-    expect( City.count ).to eq 2062
+    expect( City.count ).to eq 2065
   end
 
   it "connect cities through streets" do

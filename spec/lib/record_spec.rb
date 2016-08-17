@@ -1,5 +1,6 @@
 
 require 'spec_helper'
+require 'rest_helper'
 #require 'model_helper'
 #require 'active_support'
 
@@ -7,14 +8,8 @@ require 'spec_helper'
 describe ActiveOrient::Model do
   before( :all ) do
 #   ao =   ActiveOrient::OrientDB.new 
-   ORD.delete_database database: ActiveOrient.database
-   ORD =  ActiveOrient::OrientDB.new
-   DB =  if RUBY_PLATFORM == 'java'
-	   ActiveOrient::API.new
-	 else
-	   ORD
-	 end
-   TestModel = DB.create_vertex_class "test_model"
+    reset_database
+    ORD.create_vertex_class "test_model"
   end
 
   context "simple adhoc properties"  do

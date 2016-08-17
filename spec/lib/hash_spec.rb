@@ -1,11 +1,11 @@
 require 'spec_helper'
+require 'rest_helper'
 
 describe 'Properties and Application of Hashes' do
   before( :all ) do
 #    ORD = ActiveOrient::OrientDB.new database: 'HashTest'
-    ORD.delete_class 'model_test'
-    TestModel = ORD.open_class "model_test"
-    @ecord = TestModel.create
+    reset_database
+    ORD.create_class "test_model"
   end
 
   #  context "check isolated", focus:true do
@@ -28,13 +28,12 @@ describe 'Properties and Application of Hashes' do
   #end
 
 
-  context "verify a proper TestEnvironment" do
-    it{ expect( TestModel.count ).to eq 1 }
-    it{ expect( @ecord ).to be_a ActiveOrient::Model::ModelTest }
-  end
 
   context "add and populate an Hash" do
-    before(:all){ @ecord.update set: { ll:  { a:'test', b: 5, 8 => 57 , 'zu' => 7988 }  } }
+    before(:all) do
+      @ecord = TestModel.create
+      @ecord.update set: { ll:  { a:'test', b: 5, 8 => 57 , 'zu' => 7988 }  } 
+    end
 
     it "initialize the Object"  do
       expect( @ecord.ll ).to be_a HashWithIndifferentAccess
@@ -43,35 +42,34 @@ describe 'Properties and Application of Hashes' do
       expect( @ecord.ll.keys ).to eq [ "a", "b", 8, "zu" ]
     end
     it "modify the Object" do
-      #      expect{ @ecord.add_item_to_property :ll, 't' }.to change { @ecord.ll.size }.by 1
+#      expect{ @ecord.add_item_to_property :ll,  :a =>  :b }.to change { @ecord.ll.size }.by 1
       expect do
         expect{ @ecord.ll[:z] = 78  }.to change { @ecord.ll.size }.by 1
 
         expect{ @ecord.ll.delete(8) }.to change { @ecord.ll.size }.by -1
         expect{ @ecord.ll.delete_if{|x,y| y==5} }.to change { @ecord.ll.size }.by -1
-      end.not_to change{ @ecord.version }
+      end.to change{ @ecord.version }.by 3
     end
-    it "update the object"  do
-      expect{ @ecord.ll[0]  =  "a new Value "; @ecord.update }.to change{ @ecord.version }
+    it "update the object" do
+      expect{ @ecord.ll[0]  =  "a new Value "}.to change{ @ecord.version }
       expect( @ecord.ll[0] ).to eq  "a new Value "
     end
   end
 
-  context "a Hash with links " do
+  context "a Hash with links ", focus: true   do
 
     before(:all) do
-      ORD.delete_class 'hash_links'
-      LinkClass = ORD.open_class 'hash_links'
+      ORD.create_class 'link_class'
       new_hash =  HashWithIndifferentAccess.new
       ( 1 .. 99 ).each do | i |
         new_hash[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" )
       end
-      @ecord.update set: { ll: new_hash }
+      @lnk = TestModel.create ll: new_hash 
     end
 
     it { expect( LinkClass.count ).to eq 99 }
-    it { expect( @ecord.ll.size ).to eq 99 }
-    it{  (1..99).each{|x| expect(@ecord.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
+    it { expect( @lnk.ll.size ).to eq 99 }
+    it{  (1..99).each{|x| expect(@lnk.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
 
 
 
