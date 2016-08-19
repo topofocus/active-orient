@@ -123,11 +123,6 @@ defines two search criteria.
 if $0 == __FILE__
 
    # search_items =  ARGV.empty? ? ['China', 'aus', 'Flaute'] : ARGV
-   # ARGV = [ 'd' ]
-   # @configDatabase =  'BookTest'
-   # require '../config/boot'
-    #ActiveOrient::OrientDB.logger.level = Logger::WARN
-#    ORD = ActiveOrient::OrientDB.new database: 'BookTest'
     b = BooksExample.new  rebuild:  true
 
     ORD.create_classes([ "Book", "Keyword" ]){ "V" }

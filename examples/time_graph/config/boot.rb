@@ -31,6 +31,8 @@ env =  if e =~ /^p/
 	 'development'
        end
 puts "Using #{env}-environment"
+
+
 ##in test-mode, always use ActiceOrient as Prefix for Model-classes
 ActiveOrient::Model.namespace = if env == 'test'
 				    Object
@@ -45,6 +47,11 @@ ActiveOrient::Model.namespace = if env == 'test'
 				    ActiveOrient
 				  end
 				end
+
+ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
+puts "BOOT--> Project-Root:  #{project_root}"
+puts "BOOT--> mode-dir:  #{ActiveOrient::Model.model_dir}"
+
 databaseyml   = YAML.load_file( connect_file )[:orientdb][:database]
 log_file =   if config_file.present?
 	       dev = YAML.load_file( connect_file )[:orientdb][:logger]
@@ -97,10 +104,14 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
     require "#{project_root}/lib/model/edge.rb"
     require "#{project_root}/lib/model/vertex.rb"
 
+# require db-init and application
+     require "#{project_root}/config/init_db.rb"
+     require "#{project_root}/createTime.rb"
+
 # thus the classes are predefined and modelfiles just extend the classes
-included_models = models.collect { |file| [file, require( file )] }
-puts "Included Models: "
-puts included_models.collect{|x,y| [ "\t",x.split("/").last , " \t-> " , y].join }.join("\n")
+#included_models = models.collect { |file| [file, require( file )] }
+#puts "Included Models: "
+#puts included_models.collect{|x,y| [ "\t",x.split("/").last , " \t-> " , y].join }.join("\n")
 else
   ActiveOrient::Base.logger = Logger.new('/dev/stdout')
   ActiveOrient::OrientDB.logger.error{ "config/connectyml is  misconfigurated" }
