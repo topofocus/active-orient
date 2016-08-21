@@ -32,9 +32,9 @@ The extended representation of rid (format "#00:00" )
   end
   alias to_orient rrid
 =begin
-Query uses a single model-objec as origin for the query
-It sends the OrientSuppor::OrientQuery direct to the database and returns a 
-ActiveOrient::Model-Object  or an Array of Model-Objects as result. 
+Query uses the current model-record  as origin of the query
+It sends the OrientSupport::OrientQuery directly to the database and returns a 
+ActiveOrient::Model-Object or an Array of Model-Objects as result. 
 
 =end
 
@@ -47,16 +47,15 @@ ActiveOrient::Model-Object  or an Array of Model-Objects as result.
   end
 
 =begin
-find_all queries the database starting with the current model-record.
+queries the database starting with the current model-record.
 
-its equivalent to to Model#where but uses a single rid as "from" item
 =end
   def find_all attributes =  {}
     q = OrientSupport::OrientQuery.new from: self, where: attributes
     query q
   end
+ 
   # Get the version of the object
-
   def version
     if document.present?
       document.version
@@ -88,38 +87,6 @@ its equivalent to to Model#where but uses a single rid as "from" item
   The method is aliased by "<<" i.e
     model.array << new_item
 =end
-
-  def method_missing *args
-    # if the first entry of the parameter-array is a known attribute
-    # proceed with the assignment
-    if args.size == 1
-      attributes.keys.include?( args.first.to_s ) ? attributes[args.first] : nil
-    else
-      if args[1] == "<<" or args[1] == "|="
-	puts "update_item_property ADD, #{args[0][0..-2]}, #{args[2]}"
-	update_item_property "ADD", "#{args[0][0..-2]}", args[2]
-      elsif args[0][-1] == "="
-	update_item_property "SET", "#{args[0][0..-2]}", args[1]
-      elsif args[1] == ">>"
-	update_item_property "REMOVE", "#{args[0][0..-2]}", args[2]
-      end
-    end
-    # else
-    #   raise NameError
-    # end
-  end
-  # rescue NameError => e
-  #   logger.progname = 'ActiveOrient::Model#MethodMissing'
-  #   if args.size == 1
-  #     logger.error{"Unknown Attribute: #{args.first} "}
-  #   else
-  #     logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
-  #   end
-  #   puts "Method Missing: Args: #{args.inspect}"
-  #   print e.backtrace.join("\n")
-  #   raise
-#end
-
 
   def update_item_property method, array, item = nil, &b
  #   begin
@@ -282,5 +249,37 @@ end
   def is_edge?
     attributes.keys.include?('in') && attributes.keys.include?('out')
   end
+
+  def method_missing *args
+    # if the first entry of the parameter-array is a known attribute
+    # proceed with the assignment
+    if args.size == 1
+      attributes.keys.include?( args.first.to_s ) ? attributes[args.first] : nil
+    elsif args[0][-1] == "=" 
+      if args.size == 2
+	if rid.rid? 
+	  update set:{ args[0][0..-2] => args.last }
+	else
+	  self.attributes[ args[0][0..-2]  ] = args.last
+	end
+      else
+	update set: {args[0][0..-2] => args[1 .. -1] } if rid.rid?
+      end
+    else
+      raise NameError
+    end
+  end
+  # rescue NameError => e
+  #   logger.progname = 'ActiveOrient::Model#MethodMissing'
+  #   if args.size == 1
+  #     logger.error{"Unknown Attribute: #{args.first} "}
+  #   else
+  #     logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
+  #   end
+  #   puts "Method Missing: Args: #{args.inspect}"
+  #   print e.backtrace.join("\n")
+  #   raise
+#end
+
 
 end

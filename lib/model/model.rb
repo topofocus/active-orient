@@ -56,6 +56,7 @@ Deletes the database class and removes the ruby-class
     mattr_accessor :api
     mattr_accessor :logger
     mattr_accessor :namespace # Namespace in which  Model records are initialized, a constant ( defined in config.yml )
+    mattr_accessor :model_dir # path to model-files
 
 #    mattr_accessor  :ref_name    
     # Used to read the metadata

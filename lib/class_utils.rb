@@ -72,9 +72,18 @@ create a single class and provide properties as well
 
 def allocate_classes_in_ruby classes
     generate_ruby_object = ->( name, superclass, abstract ) do
+      begin
+      #print "GENERATE_RUBY_CLASS: #{name} #{superclass}"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
+     # puts "-->  #{m.object_id}"
 	 m
+      rescue NoMethodError => w
+	logger.progname = "Allocate_Classes_in_Ruby"
+	logger.error{ "Trying to redefine an existing class: #{name}: ALLOCATION FAILED "}
+#	raise
+      end 
+
     end
 
     superclass, abstract  = if block_given? 
@@ -108,6 +117,34 @@ def allocate_classes_in_ruby classes
     end
     consts.unshift superclass_object if superclass_object.present?  rescue [ superclass_object, consts ]
     consts
+end
+=begin
+requires the file specified in the model-dir
+
+In fact, the model-files are loaded instead of required. After recreation of a class (Class.delete_class, 
+ORD.create_class classname) custom methods declared in the model files are present. Required modelfiles are
+gone, if the class is destroyed, but the interpreter thinks, they have already been required. Rebuilding the 
+class does not reestablish the connection to the required model file.
+
+Actual only a flat directory is supported. However -the Parameter model has the format: [ superclass, class ]. Its possible to extend the method adress a model-tree.
+=end
+def require_model_file model
+  logger.progname = 'ClassUtils#RequireModelFile'
+  if File.exists?( ActiveOrient::Model.model_dir )
+    model= model.flatten.last if model.is_a?( Array )
+    filename =   ActiveOrient::Model.model_dir + "/" + model.to_s.underscore + '.rb'
+    if  File.exists?(filename )
+      if load filename
+	logger.info{ "#{filename} sucessfully required"  }
+      else
+	logger.debug{ "#{filename} already required" }
+      end
+    else
+      logger.info{ "model-file not present: #{filename}" }
+    end
+  else
+    logger.error{ "Directory #{ ActiveOrient::Model.model_dir  } not present " }
+  end
 end
 =begin
   Creating a new Database-Entry (where is omitted)
@@ -207,6 +244,12 @@ end
       response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
 	command.is_a?(Array) ? command.flatten.compact : [ command ]
       end
+      # reload vertices
+      [from,to].each do | vertex |
+       vertex.is_a?(Array) ?  vertex.each{|x| get_record x.rid } : get_record( vertex.rid )
+      end
+
+
       if response.is_a?(Array) && response.size == 1
 	response.pop # RETURN_VALUE
       else

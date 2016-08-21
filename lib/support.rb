@@ -419,8 +419,8 @@ end
       unless @order.empty?
 	# the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
 	"order by " << [@order].flatten.map do |o|
-	  puts "CLASS : "+o.class.to_s
-	  puts o.to_s
+	  #puts "CLASS : "+o.class.to_s
+	  #puts o.to_s
 	  case o
 	  when String, Symbol, Array
 	    o.to_s

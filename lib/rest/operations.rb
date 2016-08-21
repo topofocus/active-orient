@@ -84,10 +84,10 @@ Multible statements are transmitted at once if the Block provides an Array of st
     unless batch[:operations].blank?
       batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
+      batch[:operations].compact!
       # transaction is true only for multible statements
 #      batch[:transaction] = transaction & batch[:operations].size >1
       begin
-# puts batch[:operations].map{|y|y[:command]}.join("; ") 
 	logger.debug{ batch[:operations].map{|y|y[:command]}.join("; ") } 
         response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
       rescue RestClient::BadRequest => f
@@ -99,12 +99,15 @@ Multible statements are transmitted at once if the Block provides an Array of st
 	raise
       rescue RestClient::InternalServerError => e
         logger.progname = 'RestOperations#Execute'
+	sentence=  JSON.parse( e.response)['errors'].last['content']
 	if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
 	  logger.info{ "tolerated_error::#{e.message}"}
 	else
 	  if process_error
-	  logger.error{e.response}
-	  logger.error{e.message.to_s}
+#	    puts batch.to_json
+#	  logger.error{e.response}
+	  logger.error{sentence}
+#	  logger.error{e.message.to_s}
 	  else 
 	    raise
 	  end

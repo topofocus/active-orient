@@ -1,4 +1,5 @@
 ARGV << 'test'
+@do_not_preallocate =  true
 require './config/boot'
 #bundler/setup'
 require 'rspec'

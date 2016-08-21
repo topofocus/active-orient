@@ -102,36 +102,7 @@ create  item1: Value , item2: Value2 , (...)
   alias create_document create_record
   
   def create **attributes
-    "puts THE_CLASS#Create"
     create_record attributes: attributes
-  end
-
-  def create_multiple_records values, new_records
-    create_multiple_records self, values, new_records
-  end
-
-# Used to create multiple records
-
-=begin
-  Instantiate a new Edge between two Vertices only if the Class inherents from »E« 
-
-  Parameter: unique: (true)
-  
-  In case of an existing Edge just update its Properties.
-  
-  The parameters »from« and »to« can take a list of model-records. Then subsequent edges are created.
-   :call-seq:
-    Model.create_edge from:, to:, unique: false, attributes:{}
-=end
-
-  def create_edge  **keyword_arguments
-    new_edge = db.create_edge self, **keyword_arguments
-    new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
-  #  [:from,:to].each do |y|
-#    p  keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].map{|x| "#{y}::ka: #{x.class}" }.join(",") :  "KA:#{keyword_arguments[y].inspect}"
- #     keyword_arguments[y].is_a?(Array) ? keyword_arguments[y].each( &:reload! ) : keyword_arguments[y].reload!
-#      end
-      new_edge
   end
 
 =begin
@@ -193,7 +164,7 @@ returns the affected record
   ########## GET ###############
 
   def classname
-     self.ref_name
+     ref_name
   end
 
 # get elements by rid
@@ -218,6 +189,11 @@ returns the affected record
 
   def last where: {}
     db.get_records(from: self, where: where, order: {"@rid" => 'desc'}, limit: 1).pop
+  end
+# Used to count of the elements in the class
+
+  def count **args
+    orientdb.count_records from: self, **args
   end
 
 # Get the properties of the class
@@ -339,11 +315,6 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
   end
 
-# Used to count of the elements in the class
-
-  def count **args
-    orientdb.count_records from: self, **args
-  end
 
 # Get the superclass of the class
 
@@ -396,10 +367,6 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   alias delete_documents delete_records
 
 
-
-  def delete_edge *rid
-
-  end
   ########### UPDATE #############
 
 # Update records of a class
@@ -427,7 +394,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
   However we can obtain the same result with the following command
 
-  Month.add_edge_link name: "days", direction: "out", edge: "TIMEOF"
+  Month.add_edge_link name: "days", direction: "out", edge: TIME_OF
   firstmonth = month.first
   thirdmonth = month.all[2]
   days_firstmonth = firstmonth.days
@@ -438,18 +405,10 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 =end
 
 
-  def add_edge_link name:, direction: "out", edge:
-    logger.progname = 'Model#AddEdgeLink'
-    if direction == "out"
-      dir = "in"
-    elsif direction == "in"
-      dir = "out"
-    else
-      logger.error{"Direction should be in or out."}
-      return 0
-    end
+  def add_edge_link name:, direction: :out, edge:
+    dir =  direction.to_s == "out" ? :out : :in
     define_method(name.to_sym) do
-      return self["#{direction}_#{edge}"].map{|x| x["in"]}
+      return self["#{dir}_#{edge.classname}"].map{|x| x["in"]}
     end
   end
 

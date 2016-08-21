@@ -116,11 +116,12 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
    @actual_class_hash = get_classes( 'name', 'superClass')
    @actual_class_hash.each do | name_and_superclass |
      if database_classes.include? name_and_superclass['name']
-       if name_and_superclass['superClass'].blank?
+       the_class= if name_and_superclass['superClass'].blank?
 	 allocate_classes_in_ruby name_and_superclass['name']
        else
 	 allocate_classes_in_ruby( {name_and_superclass["superClass"] => name_and_superclass['name'] } )
        end
+       require_model_file the_class
      end 
    end
  end

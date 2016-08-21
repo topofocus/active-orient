@@ -1,10 +1,11 @@
 require 'bundler/setup'
 require 'yaml'
+require 'active-orient'
 if RUBY_VERSION == 'java'
   require 'orientdb'
 end
 project_root = File.expand_path('../..', __FILE__)
-require "#{project_root}/lib/active-orient.rb"
+#require "#{project_root}/lib/active-orient.rb"
 require "#{project_root}/config/init_db.rb"
 
 # make shure that E and V are required first => sort by length
@@ -92,7 +93,7 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
   end
 
 
-  ORD = ActiveOrient::OrientDB.new  preallocate: true
+  ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true 
   if RUBY_PLATFORM == 'java'
     DB =  ActiveOrient::API.new   preallocate: false
   else
@@ -101,12 +102,12 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
 
 
 # require model files after initializing the database
-    require "#{project_root}/lib/model/edge.rb"
-    require "#{project_root}/lib/model/vertex.rb"
+    require "#{project_root}/model/edge.rb"
+    require "#{project_root}/model/vertex.rb"
 
 # require db-init and application
      require "#{project_root}/config/init_db.rb"
-     require "#{project_root}/createTime.rb"
+     require "#{project_root}/lib/createTime.rb"
 
 # thus the classes are predefined and modelfiles just extend the classes
 #included_models = models.collect { |file| [file, require( file )] }

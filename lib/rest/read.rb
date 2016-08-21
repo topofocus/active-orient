@@ -69,7 +69,6 @@ module RestRead
   Retrieves a Record from the Database as ActiveOrient::Model::{class}
   The argument can either be a rid (#[x}:{y}) or a link({x}:{y})
   If no Record is found, nil is returned
-  In the optional block, a subset of properties can be defined (as array of names)
 =end
 
   def get_record rid

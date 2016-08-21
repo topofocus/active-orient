@@ -4,4 +4,5 @@
 ##				       :object => No Prefix
 ##				       :active_orient => ActiveOrient::{name}
  :namespace: :object
+ :model_dir: 'model'
 

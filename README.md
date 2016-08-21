@@ -34,7 +34,10 @@ Model-Obects are accessible directly.
 **Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
 In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
 
-This can be customized in the "naming_convention"-class-method 
+This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'.
+
+ActiveOrient::Model's can be customized through methods defined in the model-directory. These methods are
+loaded by #CreateClass. 
 
 #### CRUD
 The CRUD-Process (create, read = query, update and remove) is performed as
