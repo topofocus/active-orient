@@ -130,11 +130,11 @@ A »normal« Query is submitted via
 Graph-support:
 
 ```ruby
-  ORD.create_vertex_class :vertex
-  ORD.create_edge_class :edge
-  vertex_1 = Vertex.create  color: "blue"
-  vertex_2 = Vertex.create  flower: "rose"
-  Edge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
+  ORD.create_vertex_class :the_vertex
+  ORD.create_edge_class :the_edge
+  vertex_1 = TheVertex.create  color: "blue"
+  vertex_2 = TheVertex.create  flower: "rose"
+  TheEdge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
 It connects the vertexes and assigns the attributes to the edge.
 
@@ -151,10 +151,10 @@ If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the 
 link if stored somewhere.
 
 ```ruby
-  ORD.create_class 'test_links'
+  ORD.create_class 'test_link'
   ORD.create_class 'test_base'
 
-  link_document =  TestLinks.create  att: 'one attribute'
+  link_document =  TestLink.create  att: 'one attribute'
   base_document =  TestBase.create  base: 'my_base', single_link: link_document
 ```
 base_document.single_link just contains the rid. When accessed, the ActiveOrient::Model::Testlinkclass-object is autoloaded and
@@ -167,12 +167,12 @@ reads the stored content of link_document.
 To store a list of links to other Database-Objects, a simple Array is allocated
 ``` ruby
   # predefined linkmap-properties
-  TestLinks.create_property  :links,  type: :linklist, linkedClass: :test_links 
+  TestLink.create_property  :links,  type: :linklist, linkedClass: :test_links 
   base_document =  TestBase.create links: []  
-  (0 .. 20).each{|y| base_document.links << TestLinks.create( nr: y )}
+  (0 .. 20).each{|y| base_document.links << TestLink.create( nr: y )}
   
   #or in schemaless-mode
-  base_document = TestBase.create links: (0..20).map{|y| TestLinks.create nr: y}
+  base_document = TestBase.create links: (0..20).map{|y| TestLink.create nr: y}
   base_document.update
 ```
 base_document.links behaves like a ruby-array.
@@ -183,6 +183,7 @@ If you got an undirectional graph
 
 the graph elements can be explored by joining the objects (a[6].b[5].c[9].d)
 
+Refer to the "Time-Graph"-Example for an Implementation of an bidirectional Graph with the same Interface
 
 #### Edges
 Edges provide bidirectional Links. They are easily handled
@@ -235,7 +236,7 @@ The Attributes "in" and "out" can be used to move across the graph
 (Experimental) In alternative you can "humanize" your code in the following way:
 
 ```ruby
-   Vertex.add_edge_link name: "ends", direction "out", edge: "the_edge"
+   Vertex.add_edge_link name: "ends",  edge: TheEdge
    start.ends.something # <-- Similar output as start[0].e1[0].out.something
 ```
 
