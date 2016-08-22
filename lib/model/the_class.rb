@@ -79,6 +79,34 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 
 
 
+=begin
+requires the file specified in the model-dir
+
+In fact, the model-files are loaded instead of required. After recreation of a class (Class.delete_class, 
+ORD.create_class classname) custom methods declared in the model files are present. Required modelfiles are
+gone, if the class is destroyed, but the interpreter thinks, they have already been required. Rebuilding the 
+class does not reestablish the connection to the required model file.
+
+Actual only a flat directory is supported. However -the Parameter model has the format: [ superclass, class ]. Its possible to extend the method adress a model-tree.
+=end
+def require_model_file 
+  logger.progname = 'ModelClass#RequireModelFile'
+  if File.exists?( ActiveOrient::Model.model_dir )
+    model= model.flatten.last if model.is_a?( Array )
+    filename =   ActiveOrient::Model.model_dir + "/" + self.to_s.underscore + '.rb'
+    if  File.exists?(filename )
+      if load filename
+	logger.info{ "#{filename} sucessfully loaded"  }
+      else
+	logger.error{ "#{filename} load error" }
+      end
+    else
+      logger.info{ "model-file not present: #{filename}" }
+    end
+  else
+    logger.info{ "Directory #{ ActiveOrient::Model.model_dir  } not present " }
+  end
+end
 
   ########## CREATE ############
 =begin

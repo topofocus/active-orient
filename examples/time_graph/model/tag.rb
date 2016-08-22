@@ -14,12 +14,18 @@ end
   def stunde
     out_time_of.in
   end
+
+  def monat
+    in_day_of.out.first
+  end
   def next
-    puts value.inspect
-    in_day_of.out.first.tag( value + 1 )
+    monat.tag[ value + 1 ]
+  end
+  def prev
+    monat.tag[ value - 1 ]
   end
 
   def datum
-
+    "#{ value}.#{monat.value}.#{Date.today.year}"
   end
 end

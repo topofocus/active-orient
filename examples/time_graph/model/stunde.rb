@@ -10,4 +10,8 @@ class Stunde < TimeBase
     puts "Day: #{day.inspect}"
     puts "Month: #{month.inspect}"
   end
+  def next
+    puts value.inspect
+    in_day_of.out.first.tag( value + 1 )
+  end
 end

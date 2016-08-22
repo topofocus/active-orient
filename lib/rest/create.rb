@@ -61,13 +61,12 @@ creates a vertex-class, too, returns the Hash
       command= selected_classes.map do | database_class |
 	## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
 	next if database_class.ref_name.blank?  
+	database_class.require_model_file
 	c = if database_class.superclass == ActiveOrient::Model || database_class.superclass.ref_name.blank?
-	      require_model_file database_class
-		    "CREATE CLASS #{database_class.ref_name}" 
-		  else
-	      require_model_file [database_class.superclass, database_class]
-		    "CREATE CLASS #{database_class.ref_name} EXTENDS #{database_class.superclass.ref_name}"
-		  end
+	      "CREATE CLASS #{database_class.ref_name}" 
+	    else
+	      "CREATE CLASS #{database_class.ref_name} EXTENDS #{database_class.superclass.ref_name}"
+	    end
 	c << " ABSTRACT" if database_class.abstract
 	{ type: "cmd", language: 'sql', command: c }
 	end

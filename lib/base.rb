@@ -33,10 +33,11 @@ module  ActiveOrient
     end
 
     def self.remove_rid obj
-      @@rid_store[obj.rid] = nil
+      @@rid_store.delete obj.rid
     end
 
     def self.get_rid rid
+      rid =  rid[1..-1] if rid[0]=='#'
       @@rid_store[rid] 
     end
 

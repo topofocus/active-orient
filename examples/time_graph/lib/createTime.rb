@@ -67,11 +67,11 @@ if $0 == __FILE__
   puts "Features of the DateTime Graph"
   puts '-' * 40
   puts
-  puts "Allocated Month => Month.first.value :" + ThisMonth.first.value.to_s
+  puts "Allocated Month => Month.first.value :" + Monat.first.value.to_s
   puts
-  puts "Adressing Days => Month.first.day(2).value:" + ThisMonth.first.day(2).value.to_s
+  puts "Adressing Days => Month.first.day(2).value:" + Monat.first.tag[2].value.to_s
   puts
-  puts "Adressing Hours => Month.first.day(2).hour(4).value :" + ThisMonth.first.this_day(2).this_hour(4).value.to_s
+  puts "Adressing Hours => Month.first.day(2).hour(4).value :" + Monat.first.der_tag(2).die_stunde(4).value.to_s
 
 
 

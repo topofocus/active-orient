@@ -18,6 +18,7 @@ describe CreateTime do
     before( :all ) do
        CreateTime.populate_month
     end
+    let( :month){  Date.today.month }
 
     it "The actual Month is used" do
       expect( Monat.count ).to eq 1
@@ -29,14 +30,16 @@ describe CreateTime do
     end
 
     it	"Address a specific day" do
-      month =  Date.today.month
       expect( Monat[month].tag[5].value ).to eq 5
     end
 
     it "Address a specific hour" do
-      month =  Date.today.month
       expect( Monat[month].tag[5].value ).to eq 5
       expect( Monat[month].tag[7].stunde[5].value ).to eq 5
+    end
+    it "Switch to the next hour" do
+
+      expect( Monat[month].tag[7].stunde[5].next.value ).to eq 6
     end
   end
 

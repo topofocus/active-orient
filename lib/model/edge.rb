@@ -1,4 +1,5 @@
 class E  < ActiveOrient::Model
+  ## link to the library-class
   class << self
 =begin
 establish contrains on Edges
@@ -25,6 +26,8 @@ Creates individual indices for child-classes if applied to the class itself.
   def create  **keyword_arguments
     new_edge = db.create_edge self, **keyword_arguments
     new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
+    # vertices must be reloaded
+
     new_edge # returns the created edge (or an array of created edges
   end
 

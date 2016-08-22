@@ -73,10 +73,10 @@ create a single class and provide properties as well
 def allocate_classes_in_ruby classes
     generate_ruby_object = ->( name, superclass, abstract ) do
       begin
-      #print "GENERATE_RUBY_CLASS: #{name} #{superclass}"
+    #  print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
-     # puts "-->  #{m.object_id}"
+      #puts "-->  #{m.object_id}"
 	 m
       rescue NoMethodError => w
 	logger.progname = "Allocate_Classes_in_Ruby"
@@ -96,15 +96,16 @@ def allocate_classes_in_ruby classes
 			    else
 			      [nil,false]
 			    end
-    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
+#    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
 
     consts = case classes 
     when  Array
+      next_superclass=  superclass
       classes.map do |singleclass|
 	if singleclass.is_a?( String) || singleclass.is_a?( Symbol)
-	generate_ruby_object[singleclass,superclass,abstract]
+	next_superclass = generate_ruby_object[singleclass,superclass,abstract]
 	elsif singleclass.is_a?(Array) || singleclass.is_a?(Hash) 
-	  allocate_classes_in_ruby( singleclass){ {superclass: superclass, abstract: abstract}}
+	  allocate_classes_in_ruby( singleclass){ {superclass: next_superclass, abstract: abstract}}
 	end
       end
     when Hash
@@ -115,36 +116,8 @@ def allocate_classes_in_ruby classes
     when String, Symbol
       generate_ruby_object[classes,superclass, abstract]
     end
-    consts.unshift superclass_object if superclass_object.present?  rescue [ superclass_object, consts ]
+#    consts.unshift superclass_object if superclass_object.present?  rescue [ superclass_object, consts ]
     consts
-end
-=begin
-requires the file specified in the model-dir
-
-In fact, the model-files are loaded instead of required. After recreation of a class (Class.delete_class, 
-ORD.create_class classname) custom methods declared in the model files are present. Required modelfiles are
-gone, if the class is destroyed, but the interpreter thinks, they have already been required. Rebuilding the 
-class does not reestablish the connection to the required model file.
-
-Actual only a flat directory is supported. However -the Parameter model has the format: [ superclass, class ]. Its possible to extend the method adress a model-tree.
-=end
-def require_model_file model
-  logger.progname = 'ClassUtils#RequireModelFile'
-  if File.exists?( ActiveOrient::Model.model_dir )
-    model= model.flatten.last if model.is_a?( Array )
-    filename =   ActiveOrient::Model.model_dir + "/" + model.to_s.underscore + '.rb'
-    if  File.exists?(filename )
-      if load filename
-	logger.info{ "#{filename} sucessfully required"  }
-      else
-	logger.debug{ "#{filename} already required" }
-      end
-    else
-      logger.info{ "model-file not present: #{filename}" }
-    end
-  else
-    logger.error{ "Directory #{ ActiveOrient::Model.model_dir  } not present " }
-  end
 end
 =begin
   Creating a new Database-Entry (where is omitted)
@@ -244,9 +217,13 @@ end
       response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
 	command.is_a?(Array) ? command.flatten.compact : [ command ]
       end
-      # reload vertices
+      # unload vertices
+      remove_vertex_from_hash = -> (rid) do
+	obj= ActiveOrient::Base.get_rid(rid) 
+	ActiveOrient::Base.remove_rid( obj ) unless obj.nil?
+      end
       [from,to].each do | vertex |
-       vertex.is_a?(Array) ?  vertex.each{|x| get_record x.rid } : get_record( vertex.rid )
+       vertex.is_a?(Array) ? vertex.each{|x| remove_vertex_from_hash[ x.rid ]} : remove_vertex_from_hash[  vertex.rid ] 
       end
 
 

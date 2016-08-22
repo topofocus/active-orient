@@ -112,17 +112,25 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
  def preallocate_classes
-
-   @actual_class_hash = get_classes( 'name', 'superClass')
-   @actual_class_hash.each do | name_and_superclass |
-     if database_classes.include? name_and_superclass['name']
-       the_class= if name_and_superclass['superClass'].blank?
-	 allocate_classes_in_ruby name_and_superclass['name']
-       else
-	 allocate_classes_in_ruby( {name_and_superclass["superClass"] => name_and_superclass['name'] } )
-       end
-       require_model_file the_class
-     end 
-   end
+   # todo implement abstract feature
+   #  first fetch all non-system-classes
+    io = class_hierarchy - system_classes  - [ ["OIdentity", ["ORole", "OUser"]]]
+  # allocate them and call require_model_file on each model
+    allocate_classes_in_ruby(io).flatten.each &:require_model_file
  end
+
+#
+#  @actual_class_hash = get_classes( 'name', 'superClass')
+#puts  @actual_class_hash.inspect
+#   @actual_class_hash.each do | name_and_superclass |
+#     if database_classes.include? name_and_superclass['name']
+#       the_class= if name_and_superclass['superClass'].blank?
+#	 allocate_classes_in_ruby name_and_superclass['name']
+#       else
+#	 allocate_classes_in_ruby( {name_and_superclass["superClass"] => name_and_superclass['name'] } )
+#       end
+#       require_model_file the_class
+#     end 
+#   end
+# end
 end # module

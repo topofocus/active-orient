@@ -196,11 +196,11 @@ class String
 	  end
   end
 #  alias :reload! from_orient
-
+# String#ToOrient: if the string contains "#xx:yy" omit quotes
   def to_orient
+    rid? ? self : quote 
     #self.gsub /%/, '(percent)'
    # quote 
-    self
   end
 
   # a rid is either #nn:nn and nn:nn

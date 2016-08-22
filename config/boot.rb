@@ -72,7 +72,7 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
   ActiveOrient.default_server= { user: connectyml[:user], password: connectyml[:pass] ,
 				 server: 'localhost', port: 2480  }
   ActiveOrient.database = @configDatabase.presence || databaseyml[env.to_sym]
-  ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false :true
+  ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true
   if RUBY_PLATFORM == 'java'
     DB =  ActiveOrient::API.new   preallocate: false
   else
@@ -83,16 +83,6 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
   require "#{project_root}/lib/model/edge.rb"
   require "#{project_root}/lib/model/vertex.rb"
 
-  # thus the classes are predefined and modelfiles just extend the classes
-  # make shure that E and V are required first => sort by length 
-#  models= Dir.glob(File.join( project_root, "model",'**', "*rb")).sort{|x,y| x.size <=> y.size }
-#  included_models = models.collect { |file| [file, require( file )] }
-#  if included_models.present? 
-#    puts "Included Models: "
-#    puts included_models.collect{|x,y| [ "\t",x.split("/").last , " \t-> " , y].join }.join("\n")
-#  else
-#    puts "No Model-classes defined"
-#  end
 else
   ActiveOrient::Base.logger = Logger.new('/dev/stdout')
   ActiveOrient::OrientDB.logger.error{ "config/connectyml is  misconfigurated" }
