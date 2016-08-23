@@ -33,7 +33,7 @@ Model-Obects are accessible directly.
 
 
 **Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
-In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
+In Ruby-Space its Camelized, ie:  ORD.create_class :hut_ab generates a Ruby-Class »HutAb«. 
 
 This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'.
 
