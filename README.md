@@ -206,6 +206,7 @@ Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, the
   record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
   record2 = (:a .. :z).map{|y| Vertex2.create testentry: y  }
   edges = TheEdge.create attributes: { study: 'Experiment1'} do  | attributes |
+   # map returns an array, which is further processed by #create_edge 
     ('a'.ord .. 'z'.ord).map do |o| 
 	  { from: record1.find{|x| x.testentry == o },
 	    to:  record2.find{ |x| x.testentry.ord == o },
