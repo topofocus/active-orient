@@ -188,24 +188,24 @@ Refer to the "Time-Graph"-Example for an Implementation of an bidirectional Grap
 #### Edges
 Edges provide bidirectional Links. They are easily handled
 ```ruby
-  ORD.create_vertex_class :vertex
-  ORD.create_edge_class  :edge
+  ORD.create_vertex_class :the_vertex 	# -->  TheVertex
+  ORD.create_edge_class  :the_edge      # -->  TheEdge
 
-  start = Vertex.create something: 'nice'
-  the_end  =  Vertex.create something: 'not_nice'
-  the_edge = Edge.create_edge attributes: {transform_to: 'very bad'},
+  start = TheVertex.create something: 'nice'
+  the_end  = TheVertex.create something: 'not_nice'
+  the_edge = TheEdge.create attributes: {transform_to: 'very bad'},
 			       from: start,
 			       to: the_end
 
   (...)
   the_edge.delete # To delete the edge
 ```
-The create_edge-Method takes a block. Then all statements are transmitted in batch-mode.
+The create-Method od Edge-Classes takes a block. Then all statements are transmitted in batch-mode.
 Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, then
 ```ruby
   record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
   record2 = (:a .. :z).map{|y| Vertex2.create testentry: y  }
-  edges = ORD.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
+  edges = TheEdge.create attributes: { study: 'Experiment1'} do  | attributes |
     ('a'.ord .. 'z'.ord).map do |o| 
 	  { from: record1.find{|x| x.testentry == o },
 	    to:  record2.find{ |x| x.testentry.ord == o },
@@ -217,9 +217,9 @@ connects the vertices and provides a variable "key" and a common "study" attribu
 There is a basic support for traversals through a graph.
 The Edges are accessed  by their names (downcase).
 ```ruby
-  start = Vertex.get_documents where: {something: "nice"}
+  start = TheVertex.where: {something: "nice"}
   start[0].e1[0]
-  --> #<ActiveOrient::Model::E1:0x000000041e4e30	
+  --> #<E1:0x000000041e4e30	
       @metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", "cluster"=>16, "record"=>43}, 
       @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
 ```
