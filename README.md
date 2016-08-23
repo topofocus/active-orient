@@ -2,7 +2,8 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).  
+You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
+The jruby-part is experimental.
 
 For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
 and start an irb-session: 
