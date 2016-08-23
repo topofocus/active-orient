@@ -27,7 +27,7 @@ Let's create some classes
     {Classname}.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
-Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to 
+Classnames appear unchanged as Database-Classes. Strings and Symbols are accepted.  Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to 
 database-classes. For simplicity we omit any namespace ( :namespace: :object in config.yml). Thus the
 Model-Obects are accessible directly.
 
@@ -38,7 +38,7 @@ In Ruby-Space its Camelized, ie:  ORD.create_class :hut_ab generates a Ruby-Clas
 This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'.
 
 ActiveOrient::Model's can be customized through methods defined in the model-directory. These methods are
-loaded by #CreateClass. 
+loaded automatically afert executing #CreateClass (and through the preallocation process). 
 
 #### CRUD
 The CRUD-Process (create, read = query, update and remove) is performed as
