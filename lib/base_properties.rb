@@ -6,13 +6,13 @@ module ActiveOrient
   module BaseProperties
     extend ActiveSupport::Concern
 
-# Default presentation
+# Default presentation of ActiveOrient::Model-Objects
 
     def to_human
       "<#{self.class.to_s.demodulize}: " + content_attributes.map do |attr, value|
 	v= case value
 	   when ActiveOrient::Model
-	     value.to_human
+	     "< #{self.class.to_.demodulize} : #{value.rrid} >"
 	   else
 	     value.from_orient
 	   end
@@ -22,7 +22,7 @@ module ActiveOrient
 
 # Comparison support
 
-    def content_attributes
+    def content_attributes  # :nodoc:
       HashWithIndifferentAccess[attributes.reject do |(attr, _)|
         attr.to_s =~ /(_count)\z/ || [:created_at, :updated_at, :type, :id, :order_id, :contract_id].include?(attr.to_sym)
       end]
@@ -30,7 +30,7 @@ module ActiveOrient
 
 # Update nil attributes from given Hash or model
 
-    def update_missing attrs
+    def update_missing attrs  # :nodoc:
       attrs = attrs.content_attributes unless attrs.kind_of?(Hash)
       attrs.each{|attr, val| send "#{attr}=", val if send(attr).blank?}
       self # for chaining
@@ -38,7 +38,7 @@ module ActiveOrient
 
 # Default Model comparison
 
-    def == other
+    def == other  # :nodoc:
       case other
       when String # Probably a link or a rid
         "##{rid}" == other || rid == other
@@ -58,7 +58,7 @@ module ActiveOrient
        :updated_at => Time.now}
     end
 
-    def set_attribute_defaults
+    def set_attribute_defaults # :nodoc:
       default_attributes.each do |key, val|
         self.send("#{key}=", val) if self.send(key).nil?
       end
@@ -69,13 +69,13 @@ module ActiveOrient
 
 # Class macros
 
-      def self.prop *properties
+      def self.prop *properties   # :nodoc: 
         prop_hash = properties.last.is_a?(Hash) ? properties.pop : {}
         properties.each { |names| define_property names, nil }
         prop_hash.each { |names, type| define_property names, type }
       end
 
-      def self.define_property names, body
+      def self.define_property names, body  # :nodoc:
         aliases = [names].flatten
         name = aliases.shift
         instance_eval do
@@ -87,7 +87,7 @@ module ActiveOrient
         end
       end
 
-      def self.define_property_methods name, body={}
+      def self.define_property_methods name, body={}   # :nodoc:
         case body
         when '' # default getter and setter
           define_property_methods name

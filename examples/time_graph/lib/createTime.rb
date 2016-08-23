@@ -63,15 +63,18 @@ if $0 == __FILE__
   CreateTime.populate_month
 
   
-
+  print "\n" * 4
+  puts '-' * 40
   puts "Features of the DateTime Graph"
   puts '-' * 40
   puts
-  puts "Allocated Month => Month.first.value :" + Monat.first.value.to_s
+  puts "Allocated Month   => Monat.first.value:\t\t" + Monat.first.value.to_s
   puts
-  puts "Adressing Days => Month.first.day(2).value:" + Monat.first.tag[2].value.to_s
+  puts "Adressing Days    => Monat.first.tag[2].value:\t" + Monat.first.tag[2].value.to_s
   puts
-  puts "Adressing Hours => Month.first.day(2).hour(4).value :" + Monat.first.der_tag(2).die_stunde(4).value.to_s
+  puts "Display Date      => Monat.first.tag[13].datum:\t"+ Monat.first.tag[13].datum.to_s
+
+  puts "Display next Date => Monat.first.tag[13].next.datum:\t"+ Monat.first.tag[13].next.datum.to_s
 
 
 

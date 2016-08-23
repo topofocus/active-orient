@@ -9,11 +9,16 @@ module ActiveOrient
     extend ModelClass # For classes
 
 =begin
+Example:
   ActiveOrient::Model.autoload_object "#00:00"
-  either retrieves the object from the rid_store or loads it from the DB
-  The rid_store is updated!
-  To_do: fetch for version in the db and load the object if a change is detected
-  Note: This function is not in ModelClass since I need to use @@rid_store
+
+either retrieves the object from the rid_store or loads it from the DB.
+
+The rid_store is updated!
+
+To_do: fetch for version in the db and load the object if a change is detected
+
+Note: This function is not in ModelClass since it needs to use @@rid_store
 =end
 
     def self.autoload_object rid
@@ -31,11 +36,11 @@ module ActiveOrient
     end
 
     ## to prevent errors when calling to_a 
-    def to_ary
+    def to_ary   # :nodoc:
       attributes.to_a
     end
 
-    def document
+    def document  # :nodoc:
       @d
     end
 

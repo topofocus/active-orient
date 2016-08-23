@@ -4,6 +4,7 @@ module RestCreate
 
 =begin
   Creates a database with the given name and switches to this database as working-database. Types are either 'plocal' or 'memory'
+
   Returns the name of the working-database
 =end
 
@@ -31,24 +32,38 @@ module RestCreate
 
 =begin 
 General method to create database classes
------------------------------------------
+
 Accepts 
 * a string or symbol  
-  then creates a single class and returns the ActiveOrient::Model-Class
+
+  creates a single class and returns the ActiveOrient::Model-Class
 * an arrray of strings or symbols
-  then creates alltogether and returns an array of created ActiveOrient::Model-Classes
+
+  creates alltogether and returns an array of created ActiveOrient::Model-Classes
 * a (nested) Hash 
+
   then creates a hierarchy of database-classes and returns them as hash
 
 takes an optional block to specify a superclass.
 This is NOT returned 
+
 eg  
   create_classes( :test ){ :V } 
-creates a vertex-class, but returns just ActiveOrient::Model::Test
+
+creates a vertex-class, returns just Test ( < ActiveOrient::Model)
+
+  a,b,c = create_classes( :test1, :test2, test3 ) { :V }
+
+creates three vertex-classes and assigns them to var's a,b, and c
+  
+  create_classes( test: [:test1, :test2, test3] ) { :V }
+
+creates a vertex-class Test and three clild-classes  
+  
   create_classes( :V => :test)
+
 creates a vertex-class, too, returns the Hash
 =end
-
     def create_classes *classes, &b
       return if classes.empty?
       classes =  classes.pop if classes.size == 1
@@ -141,41 +156,6 @@ creates a vertex-class, too, returns the Hash
 
   ############## OBJECT #############
 
-=begin
-  create_edge connects two vertexes
-
-  The parameter o_class can be either a class or a string
-
-  if batch is specified, the edge-statement is prepared and returned 
-  else the statement is transmitted to the database
-
-  The method takes a block as well. 
-  It must provide a Hash with :from and :to- Key's, e.g.
-  Vertex1, Vertex2 are two vertex-classes and TheEdge is an edge-class
-
-      record1 = ( 1 .. 100 ).map{ |y| Vertex1.create( testentry: y } }
-      record2 = ( :a .. :z ).map{ |y| Vertex2.create( testentry: y } }
-
-      edges = ORD.create_edge( TheEdge ) do | attributes |
-	 ('a'.ord .. 'z'.ord).map do |o| 
-	       { from: record1.find{|x| x.testentry == o },
-		 to:   record2.find{ |x| x.testentry.ord == o },
-		 attributes: attributes.merge{ key: o.chr } }
-	  end
-  or
-
-      edges = ORD.create_edge( TheEdge ) do | attributes |
-	 ('a'.ord .. 'z'.ord).map do |o| 
-	       { from: Vertex1.where( testentry:  o ).pop ,
-		 to:   Vertex2.where( testentry.ord =>  o).pop ,
-		 attributes: attributes.merge{ key: o.chr } }
-	  end
-
-  Benefits: The statements are transmitted as batch.
-
-  The pure-ruby-solution minimizes traffic to the database-server and is prefered.
-
-=end
 
 
 =begin
@@ -203,7 +183,7 @@ creates a vertex-class, too, returns the Hash
    'g' for linkbag
 =end
 
-  def create_record o_class, attributes: {}
+  def create_record o_class, attributes: {}  # :nodoc:  # use Model#create instead
     logger.progname = 'RestCreate#CreateRecord'
     attributes = yield if attributes.empty? && block_given?
     # @class must not quoted! only attributes(strings)
@@ -233,7 +213,7 @@ creates a vertex-class, too, returns the Hash
   The function $r.create_multiple_records "Month", ["date", "value"], [["June", 6], ["July", 7], ["August", 8]] will return an array with three element of class "Active::Model::Month".
 =end
 
-  def create_multiple_records o_class, values, new_records
+  def create_multiple_records o_class, values, new_records  # :nodoc:  # untested
     command = "INSERT INTO #{o_class} ("
     values.each do |val|
       command += "#{val},"
@@ -290,7 +270,7 @@ Otherwise it's taken unmodified.
 
 The method returns the included or the updated dataset
 =end
-  def upsert o_class, set: {}, where: {} 
+  def upsert o_class, set: {}, where: {}   # :nodoc:   use Model#Upsert instead
     logger.progname = 'RestCreate#Upsert'
     if where.blank?
       new_record = create_record(o_class, attributes: set)

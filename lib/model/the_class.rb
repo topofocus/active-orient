@@ -21,7 +21,7 @@ To overwrite use
     end
  end
 =end
-  def naming_convention name=nil
+  def naming_convention name=nil  # :nodoc:
     name.present? ? name.to_s.camelize : ref_name.camelize
   end
 
@@ -29,7 +29,7 @@ To overwrite use
   orientdb_class is used to instantiate a ActiveOrient:Model:{class} by providing its name
 =end
 
-  def orientdb_class name:, superclass: nil
+  def orientdb_class name:, superclass: nil   # :nodoc:    # public method: autoload_class
     return if name.nil?
     logger.progname = "ModelClass#OrientDBClass"
     i=0
@@ -60,8 +60,9 @@ To overwrite use
     #  i += 1
     #  retry
     #else
-      logger.error "ModelClass #{name} cannot be initialized."
+      logger.error "ModelClass #{name.inspect} cannot be initialized."
       logger.error e.inspect
+      nil  # return_value
     #end
   end
 =begin
@@ -94,6 +95,7 @@ def require_model_file
   if File.exists?( ActiveOrient::Model.model_dir )
     model= model.flatten.last if model.is_a?( Array )
     filename =   ActiveOrient::Model.model_dir + "/" + self.to_s.underscore + '.rb'
+#    puts "REQUIRE_MODEL_FILE: #{self.to_s} <-- #{self.superclass}"
     if  File.exists?(filename )
       if load filename
 	logger.info{ "#{filename} sucessfully loaded"  }
@@ -106,55 +108,55 @@ def require_model_file
   else
     logger.info{ "Directory #{ ActiveOrient::Model.model_dir  } not present " }
   end
+rescue TypeError => e
+     puts "TypeError:  #{e.message}" 
+     puts "Working on #{self.to_s} -> #{self.superclass}"
+     puts "Class_hierarchy: #{orientdb.class_hierarchy.inspect}."
+     print e.backtrace.join("\n") 
+     raise
+  #
 end
 
   ########## CREATE ############
+
 =begin
-Create
+Universal method to create a new record. 
+It's obverloaded to create specific kinds, eg. edges 
 
-To create a record or a document two methods are available
-
-* create_record  attributes:  a Hash with  attribute: VALUE  items 
-* create_document atttributes:  same
-
-or 
-create  item1: Value , item2: Value2 , (...)
+Example:
+  ORD.create_class :test
+  Test.create string_attribute: 'a string', symbol_attribute: :a_symbol, array_attribute: [34,45,67]
+  Test.create link_attribute: Test.create( :a_new_attribute => 'new' )
 
 =end
-
-
-  def create_record attributes: {}
+  def create **attributes
     attributes.merge :created_at => Time.new
     db.create_record self, attributes: attributes 
-  end
-  alias create_document create_record
-  
-  def create **attributes
-    create_record attributes: attributes
-  end
-
-=begin
-  Creates a new Instance of the Class with the applied attributes if does not exists, otherwise update it. It returns the freshly instantiated Object
-=end
-
-  def update_or_create_records set: {}, where: {}, **args, &b
-    db.update_or_create_records self, set: set, where: where, **args, &b
   end
 
 =begin 
 Creates or updates a record.
 Parameter: 
-  set: A hash of attributes to set
-  where: A string or hash as condition which should return just one record.
+ set: A hash of attributes to insert or update unconditionally
+ where: A string or hash as condition which should return just one record.
 
 The where-part should be covered with an unique-index.
-If where is omitted, a record is added with attributes from set.
+If :where is omitted, #Upsert becomes #Create, attributes are taken from :set.
 
 returns the affected record
 =end
   def upsert set: {}, where: {}, &b
     db.upsert self, set: set, where: where, &b
   end
+=begin
+Create a new Instance of the Class with the applied attributes if does not exists, 
+otherwise update it. It returns the freshly instantiated Objects
+=end
+
+  def update_or_create_records set: {}, where: {}, **args, &b
+    db.update_or_create_records self, set: set, where: where, **args, &b
+  end
+
   alias update_or_create_documents update_or_create_records
   alias create_or_update_document upsert
   alias update_or_create upsert
@@ -191,7 +193,7 @@ returns the affected record
 
   ########## GET ###############
 
-  def classname
+  def classname  # :nodoc: #
      ref_name
   end
 

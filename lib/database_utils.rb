@@ -116,7 +116,9 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
    #  first fetch all non-system-classes
     io = class_hierarchy - system_classes  - [ ["OIdentity", ["ORole", "OUser"]]]
   # allocate them and call require_model_file on each model
-    allocate_classes_in_ruby(io).flatten.each &:require_model_file
+    # if something goes wrong, allocate_classes_in_ruby returns nil, thus compact prevents
+    # from calling NilClass.require_model_file
+    allocate_classes_in_ruby(io).flatten.compact.each &:require_model_file
  end
 
 #

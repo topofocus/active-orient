@@ -193,26 +193,26 @@ The model instance fields are then set automatically from the opts Hash.
     end
 
 # ActiveRecord::Base association API mocks
-
-    def self.belongs_to model, *args
-      attr_accessor model
-    end
-
-    def self.has_one model, *args
-      attr_accessor model
-    end
-
-    def self.has_many models, *args
-      attr_accessor models
-      define_method(models) do
-        self.instance_variable_get("@#{models}") || self.instance_variable_set("@#{models}", [])
-      end
-    end
-
-    def self.find *args
-      []
-    end
-
+#
+#    def self.belongs_to model, *args
+#      attr_accessor model
+#    end
+#
+#    def self.has_one model, *args
+#      attr_accessor model
+#    end
+#
+#    def self.has_many models, *args
+#      attr_accessor models
+#      define_method(models) do
+#        self.instance_variable_get("@#{models}") || self.instance_variable_set("@#{models}", [])
+#      end
+#    end
+#
+#    def self.find *args
+#      []
+#    end
+#
 # ActiveRecord::Base misc
 
     def self.serialize *properties

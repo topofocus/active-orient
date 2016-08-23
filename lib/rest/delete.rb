@@ -40,6 +40,7 @@ module RestDelete
     logger.progname = 'RestDelete#DeleteClass'
 
     begin
+      ## to do: if cl contains special characters, enclose with backticks
       response = @res["/class/#{ActiveOrient.database}/#{cl}"].delete
       if response.code == 204
 	logger.info{"Class #{cl} deleted."}

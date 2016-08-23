@@ -39,6 +39,7 @@ module RestRead
 
 
   ############### CLASS ################
+
 # Return a JSON of the property of a class
 
   def get_class_properties o_class
@@ -48,7 +49,6 @@ module RestRead
     nil
   end
 
-# Print the property of a class
 
   def print_class_properties o_class
     puts "Detected Properties for class #{classname(o_class)}"

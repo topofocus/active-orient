@@ -1,4 +1,4 @@
-module ActiveOrient
+module ActiveOrient # :nodoc: 
 
 ## this is depreciated and not maintained anymore
   class Query < ActiveOrient::Model

@@ -2,7 +2,8 @@ module RestOperations
 
 # Execute a predefined Function
 
-  def call_function *args
+#  untested
+  def call_function *args  
   #     puts "uri:#{function_uri { args.join('/') } }"
     begin
       term = args.join('/')
@@ -13,19 +14,18 @@ module RestOperations
   end
 
 # Used to count the Records in relation of the arguments
-
-  def count_records **args
+#
+# Overwritten by Model#Count
+  def count **args
     logger.progname = 'RestOperations#CountRecords'
     query = OrientSupport::OrientQuery.new args
     query.projection << 'COUNT (*)'
     result = get_records raw: true, query: query
     result.first['COUNT'] rescue  0  # return_value
   end
-  alias count_documents count_records
-  alias count count_records
 
 
-  def manipulate_relation record,  method, array, items
+  def manipulate_relation record,  method, array, items  # :nodoc: #
     execute_array = Array.new
     method =  method.to_s.upcase
 
@@ -52,6 +52,15 @@ module RestOperations
   end
 =begin
 Executes a list of commands and returns the result-array (if present)
+
+(External use)
+
+If soley a string is provided in the block, a minimal database-console is realized.
+i.e.
+
+  ORD.execute{ 'select from #25:0' }
+
+(Internal Use)
 
 Structure of the provided block:
   [{type: "cmd", language: "sql",  command: "create class Person extends V"}, (...)]

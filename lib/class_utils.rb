@@ -5,7 +5,7 @@ module ClassUtils
   Returns a valid database-class name, nil if the class does not exists
 =end
 
-  def classname name_or_class
+  def classname name_or_class  # :nodoc:
     name = case  name_or_class
 	when ActiveOrient::Model
               name_or_class.class.ref_name
@@ -23,7 +23,7 @@ module ClassUtils
 	           name.underscore
 	  else
 	     logger.progname =  'ClassUtils#Classname'
-	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in active Database" }
+	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in #{ActiveOrient.database}" }
 	  nil
 
 	  end
@@ -40,7 +40,7 @@ create a single class and provide properties as well
  def create_class classname, properties: nil, &b
    the_class= create_classes( classname, &b )
     # if multible classes are specified, don't process properties
-    # (if multible classes need the same properties, consider a nested class-design 
+    # ( if multible classes need the same properties, consider a nested class-design )
    if the_class.is_a?(Array)
      if the_class.size == 1
        the_class = the_class.first
@@ -70,9 +70,12 @@ create a single class and provide properties as well
     create_class( { V: [ :A, :B, C: [:c1,:c3,:c2]  ],  E: [:has_content, :becomes_hot ]} )
 =end
 
-def allocate_classes_in_ruby classes
+def allocate_classes_in_ruby classes  # :nodoc:
     generate_ruby_object = ->( name, superclass, abstract ) do
       begin
+	# if the class is prefined, use specs from get_classes
+	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name }
+	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
     #  print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
@@ -81,6 +84,7 @@ def allocate_classes_in_ruby classes
       rescue NoMethodError => w
 	logger.progname = "Allocate_Classes_in_Ruby"
 	logger.error{ "Trying to redefine an existing class: #{name}: ALLOCATION FAILED "}
+	nil
 #	raise
       end 
 
@@ -149,18 +153,43 @@ end
     end
   end
 
-  def update_or_create_a_record o_class, set: {}, where: {},   **args, &b
-    result = update_or_create_records( o_class, set: set, where: where, **args, &b) 
-    puts "Attention: update_or_create_a_record is depreciated"
-    result.first
-  end
 
-  alias create_or_update_document update_or_create_a_record
-  alias update_or_create_documents update_or_create_records
-  alias update_or_create update_or_create_records
+=begin
+  create_edge connects two vertexes
 
+  The parameter o_class can be either a class or a string
 
-  def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil
+  if batch is specified, the edge-statement is prepared and returned 
+  else the statement is transmitted to the database
+
+  The method takes a block as well. 
+  It must provide a Hash with :from and :to- Key's, e.g.
+  Vertex1, Vertex2 are two vertex-classes and TheEdge is an edge-class
+
+      record1 = ( 1 .. 100 ).map{ |y| Vertex1.create( testentry: y } }
+      record2 = ( :a .. :z ).map{ |y| Vertex2.create( testentry: y } }
+
+      edges = ORD.create_edge( TheEdge ) do | attributes |
+	 ('a'.ord .. 'z'.ord).map do |o| 
+	       { from: record1.find{|x| x.testentry == o },
+		 to:   record2.find{ |x| x.testentry.ord == o },
+		 attributes: attributes.merge{ key: o.chr } }
+	  end
+  or
+
+      edges = ORD.create_edge( TheEdge ) do | attributes |
+	 ('a'.ord .. 'z'.ord).map do |o| 
+	       { from: Vertex1.where( testentry:  o ).pop ,
+		 to:   Vertex2.where( testentry.ord =>  o).pop ,
+		 attributes: attributes.merge{ key: o.chr } }
+	  end
+
+  Benefits: The statements are transmitted as batch.
+
+  The pure-ruby-solution minimizes traffic to the database-server and is prefered.
+
+=end
+  def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil  
     logger.progname = "ClassUtils#CreateEdge"
 
     if block_given?

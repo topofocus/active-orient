@@ -9,7 +9,7 @@ module ModelRecord
 
   # Returns just the name of the Class
 
-  def self.classname
+  def self.classname  # :nodoc:
     self.class.to_s.split(':')[-1]
   end
 
@@ -49,14 +49,16 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
 =begin
 queries the database starting with the current model-record.
 
+Returns the result-set, ie. a Query-Object which contains links to the addressed records.
+
 =end
-  def find_all attributes =  {}
+  def find attributes =  {}
     q = OrientSupport::OrientQuery.new from: self, where: attributes
     query q
   end
  
   # Get the version of the object
-  def version
+  def version  # :nodoc:
     if document.present?
       document.version
     else
@@ -64,11 +66,11 @@ queries the database starting with the current model-record.
     end
   end
 
-  def version= version
+  def version= version  # :nodoc:
     @metadata[:version] = version
   end
 
-  def increment_version
+  def increment_version # :nodoc: 
     @metadata[:version] += 1
   end
   ########### UPDATE PROPERTY ############
@@ -88,7 +90,7 @@ queries the database starting with the current model-record.
     model.array << new_item
 =end
 
-  def update_item_property method, array, item = nil, &b
+  def update_item_property method, array, item = nil, &ba # :nodoc:
  #   begin
       logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
       #self.attributes[array] = OrientSupport::Array.new(self) unless attributes[array].present?
@@ -179,7 +181,8 @@ If only single Items are to insert, use
 
   ############# DELETE ###########
 
-#  Removes the Model-Instance from the database
+#  Removes the Model-Instance from the databasea
+#  todo:  overloaded in vertex and edge
 
 def delete
   orientdb.delete_record self
@@ -214,7 +217,14 @@ end
 
   end
   ########## SAVE   ############
-  
+ 
+=begin
+Saves the record either
+
+* by calling update  or
+* by creating the record
+
+=end
 def save
   if rid.rid?
     update
@@ -250,6 +260,13 @@ end
     attributes.keys.include?('in') && attributes.keys.include?('out')
   end
 
+=begin
+How to handle other calls
+
+* if  attribute is specified, display it
+* if  attribute= is specify, assign to the known property or create a new one
+
+=end
   def method_missing *args
     # if the first entry of the parameter-array is a known attribute
     # proceed with the assignment

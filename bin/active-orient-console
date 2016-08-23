@@ -11,7 +11,7 @@ require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
  require 'orientdb' if RUBY_PLATFORM == 'java'
  require 'yaml'
 
-puts "ORD points to the REST-Instance"
+puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
 puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
 
 puts '-'* 35
