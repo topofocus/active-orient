@@ -12,7 +12,7 @@ cd bin
 ./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
 ```
 
-»ORD« is the Database-Instance itself.
+»ORD« is the Database-Instance itself. If the Database noticed is not present, it is created on startup.
 A simple SQL-Query is submitted by providing a Block to »execute«
  ```ruby
  result =  ORD.execute { "select * from Stock" } 
@@ -27,18 +27,16 @@ Let's create some classes
     {Classname}.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
-Classnames appear unchanged as Database-Classes. Strings and Symbols are accepted.  Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to 
-database-classes. For simplicity we omit any namespace ( :namespace: :object in config.yml). Thus the
-Model-Obects are accessible directly.
+Classnames appear unchanged as Database-Classes. Strings and Symbols are accepted. Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to database-classes. For simplicity, here we omit any namespace ( :namespace: :object in config.yml). Thus the Model-Obects are accessible directly.
 
 
 **Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
-In Ruby-Space its Camelized, ie:  ORD.create_class :hut_ab generates a Ruby-Class »HutAb«. 
+In Ruby-Space its Camelized, ie:  ORD.create_class(:hut_ab) generates a Ruby-Class »HutAb«. 
 
-This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'.
+This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'. The naming_convention changes the ruby-view to the classes. The Database-Class-Name is derived from the argument to #CreateClass, ORD.create_class('HANDS_UP') creates a database-class "HANDS_UP' and a Ruby-Class "HandsUp".
 
 ActiveOrient::Model's can be customized through methods defined in the model-directory. These methods are
-loaded automatically afert executing #CreateClass (and through the preallocation process). 
+loaded automatically afert executing #CreateClass (and through the preallocation process). Further details in the Examples-Section.
 
 #### CRUD
 The CRUD-Process (create, read = query, update and remove) is performed as
