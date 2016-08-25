@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 #gemspec
 gem 'orientdb' , :path => '/home/topo/orientdb-jruby' , :platforms => :jruby
-
+## change here to the location of ActiveOrient
 gem 'active-orient' , :path => '/home/topo/activeorient'
 
 

@@ -15,8 +15,5 @@ class Monat  < TimeBase
   # returns the specified edge 
   #  i.e.  Monat[9]
   #
-  def self.[] key
-    where( value: key).first
-  end
 
 end

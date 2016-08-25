@@ -7,8 +7,7 @@ class Stunde < TimeBase
   def datum
     month = in_time_of.out.in_day_of.out.value
     day =  in_time_of.out.value
-    puts "Day: #{day.inspect}"
-    puts "Month: #{month.inspect}"
+    "#{day.first}.#{month.flatten.first}.#{Date.today.year} #{value}:00"
   end
   def next
     puts value.inspect

@@ -8,9 +8,7 @@ def die_stunde h
     h.to_i >0 && h.to_i<31 ? out_time_of[h].in : nil
   end
   
-def self.[] key
-  stunde key
-end
+
   def stunde
     out_time_of.in
   end
