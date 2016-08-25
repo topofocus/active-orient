@@ -67,7 +67,7 @@ A Sample:
       ActiveOrient.database = database if database.present?
       @res = get_resource
       connect() if connect
-      get_database_classes
+      database_classes # initialize @classes-array
       ActiveOrient::Model.orientdb = self 
       ActiveOrient::Model.db = self 
       preallocate_classes  if preallocate

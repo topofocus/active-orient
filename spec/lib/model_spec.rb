@@ -209,7 +209,7 @@ describe ActiveOrient::Model do
           ORD.create_edge_class  'my_edge'
 	  ORD.create_vertex_class  'my_node'
 	  (0..45).each{|x| TestModel.create  test: x  }
-	  DB.get_database_classes requery:true
+	  DB.database_classes requery:true
     end
     it "fetch all documents into an Array" do
       all_documents = TestModel.all
@@ -233,19 +233,20 @@ describe ActiveOrient::Model do
       node_1 = TestModel.where( test: 45 ).first
       node_2 = TestModel.where( test: 2 ).first
       node_3 = TestModel.where( test: 16 ).first
-      the_edge = E.create_edge( attributes: { halbwertzeit: 655 },
+      the_edge = E.create( attributes: { halbwertzeit: 655 },
 					  from: node_1,
 					    to: node_2  )
       expect( the_edge ).to be_a ActiveOrient::Model
       expect( the_edge.in ).to eq node_2
       expect( the_edge.out ).to eq node_1
 
+## this is omitted in favor of using contrains on the edge-class 
       # creation of a second edge with the same properties leads to  reusing the existent edge
-      the_edge2= E.create_edge(
-		    attributes: { halbwertzeit: 655 },
-		    from: node_1,
-		    to:   node_2 , unique: true )
-      expect( the_edge.rid ).to eq the_edge2.rid
+#      the_edge2= E.create(
+#		    attributes: { halbwertzeit: 655 },
+#		    from: node_1,
+#		    to:   node_2  )
+#      expect( the_edge.rid ).to eq the_edge2.rid
       #      the_edge2= @myedge.create_edge(
       #			  attributes: { halbwertzeit: 46 },
       #			  from: in_e,

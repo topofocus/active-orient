@@ -18,7 +18,7 @@ describe ActiveOrient::OrientDB do
       expect( ORD.get_databases ).to include 'temp'
     end
     it "the freshly initialized  database contains E+V-Base-Classes" do
-      expect( ORD.get_database_classes requery: true).to eq ["E","V"]
+      expect( ORD.database_classes requery: true).to eq ["E","V"]
     end
 
     it "System classes are present" do
@@ -44,17 +44,6 @@ describe ActiveOrient::OrientDB do
 
     end
 
-    it 'classes have proper superclasses' do
-      #pp ORD.get_classes.inspect
-      #pp ORD.class_hierarchy base_class: 'GT'
-      # class hierarchy is requeried on every execution of create_class 
-      # thus, wie can depend on the array which we convert to a hash to access the key easily
-      cl =  Hash[ ORD.class_hierarchy base_class: 'GT' ]
-      expect(cl['Z']).to eq @cl_hash[:Z]
-      # class hierachy always returns dependend classes as array
-      # eg: Hash[ [["UZ", ["reisser"]]] ==> { "UZ" => ["reisser"] }
-      expect(cl['UZ']).to eq [@cl_hash[:UZ]]
-    end
 
   end
     context "Manage Properties" do

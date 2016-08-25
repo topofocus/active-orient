@@ -38,11 +38,11 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
       attributes.map do |key, value|
 	      case value
 	      when ActiveOrient::Model
-		"#{key} = ##{value.rid}"
+		"#{key} = #{value.rrid}"
 	      when Numeric
           "#{key} = #{value}"
 	      when Array
-		"#{key}= #{value}"
+		"#{key}= #{value.to_orient}"
 	      when Date
 		"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
 	      else #  String, Symbol, Time, Trueclass, Falseclass ...

@@ -3,10 +3,10 @@
 def reset_database
   db =  ActiveOrient.database
 
-  ORD.database_classes.reverse.each do | klass_name |
-    klass =  ActiveOrient::Model.orientdb_class name: klass_name
-    klass.delete_class  rescue nil
-  end
+#  ORD.database_classes.reverse.each do | klass_name |
+#    klass =  ActiveOrient::Model.orientdb_class name: klass_name
+#    klass.delete_class  rescue nil
+#  end
   ORD.delete_database database: db
   Object.send :remove_const, :ORD 
   Object.send :remove_const, :DB
@@ -17,10 +17,6 @@ def reset_database
   else
     Object.send :const_set,  :DB, ActiveOrient::OrientDB.new( preallocate: true )
   end
-  ORD.create_classes 'E', 'V'
-  E.ref_name = 'E'
-  V.ref_name = 'V'
-
 end
 
 

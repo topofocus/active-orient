@@ -31,6 +31,10 @@ The extended representation of rid (format "#00:00" )
     "#" + rid
   end
   alias to_orient rrid
+
+  def to_or
+    rrid
+  end
 =begin
 Query uses the current model-record  as origin of the query
 It sends the OrientSupport::OrientQuery directly to the database and returns a 
@@ -229,7 +233,7 @@ def save
   if rid.rid?
     update
   else
-     db_object=  self.class.create_record( attributes: attributes )
+     db_object=  DB.create_record  self, attributes: attributes 
      @metadata[:cluster], @metadata[:record] = db_object.rid[0,db_object.rid.size].split(':').map( &:to_i)
      reload! db_object
   end

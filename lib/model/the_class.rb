@@ -223,7 +223,7 @@ otherwise update it. It returns the freshly instantiated Objects
 # Used to count of the elements in the class
 
   def count **args
-    orientdb.count_records from: self, **args
+    orientdb.count from: self, **args
   end
 
 # Get the properties of the class
@@ -295,6 +295,11 @@ otherwise update it. It returns the freshly instantiated Objects
     => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
 =end
 
+  def custom_where search_string
+    q = OrientSupport::OrientQuery.new from: self, where: search_string
+    puts q.compose
+    query_database q
+  end
   def where **attributes 
     ##puts "ATTRIBUTES: "+attributes.inspect
     q = OrientSupport::OrientQuery.new from: self, where: attributes

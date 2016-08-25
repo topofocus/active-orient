@@ -128,6 +128,7 @@ class Hash #WithIndifferentAccess
   end
 
   def to_orient
+    #puts "here hash"
     substitute_hash = Hash.new
     keys.each{|k| substitute_hash[k] = self[k].to_orient}
     substitute_hash
@@ -198,7 +199,15 @@ class String
 #  alias :reload! from_orient
 # String#ToOrient: if the string contains "#xx:yy" omit quotes
   def to_orient
-    rid? ? self : quote 
+    if rid? 
+      if self[0] == "#"
+	self
+      else
+	"#"+self
+      end
+    else
+       self   # return the sting (not the quoted string. this is to_or)
+    end
     #self.gsub /%/, '(percent)'
    # quote 
   end

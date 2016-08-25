@@ -18,16 +18,15 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 =begin
   Returns the class_hierachy
 
-  To fetch all Vertices uses:
-   get_class_hiearchie(base_class: 'V').flatten
+  To fetch all Vertices use:
+   class_hiearchie(base_class: 'V').flatten
   To fetch all Edges uses:
-   get_class_hierachy(base_class: 'E').flatten
+   class_hierachy(base_class: 'E').flatten
 
-  Notice: base_class has to be noted as String! There is no implicit conversion from Symbol or Class
   To retrieve the class hierarchy from Objects avoid calling classname,  because it depends on class_hierarchy.
 =end
 
-  def get_class_hierarchy base_class: '', requery: false
+  def class_hierarchy base_class: '',  system_classes: nil
     @all_classes = get_classes('name', 'superClass') #if requery || @all_classes.blank?
     def fv s   # :nodoc:
   	@all_classes.find_all{|x| x['superClass']== s}.map{|v| v['name']}
@@ -36,9 +35,10 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
     def fx v # :nodoc:
   	  fv(v.strip).map{|x| ar = fx(x); ar.empty? ? x : [x, ar]}
     end
-    fx base_class
+    complete_hierarchy = fx base_class.to_s
+    complete_hierarchy - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]] unless system_classes
   end
-  alias class_hierarchy get_class_hierarchy
+
 
 =begin
   Returns an array with all names of the classes of the database
@@ -46,62 +46,29 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
   Parameters: include_system_classes: false|true, requery: false|true
 =end
 
-  def get_database_classes include_system_classes: false, requery: false
+  def database_classes system_classes: nil, requery: false
     requery = true if ActiveOrient.database_classes.blank?
     if requery
-  	  get_class_hierarchy requery: true
-  	  all_classes = get_classes('name').map(&:values).flatten
-  	  ActiveOrient.database_classes = include_system_classes ? all_classes : all_classes - system_classes
+  	  class_hierarchy system_classes: system_classes #requery: true
+  	  all_classes = get_classes('name').map(&:values).sort.flatten
+  	  ActiveOrient.database_classes = system_classes.present? ? all_classes : all_classes - system_classes()
     end
     ActiveOrient.database_classes
   end
-  alias inspect_classes get_database_classes
-  alias database_classes get_database_classes
 
-# Used for the connection on the server
-    #
-    def initialize_class_hierarchy
-        logger.progname = 'OrientDB#InitializeClassHierachy'
-      abstract_names, nested_classes = get_class_hierarchy.partition{|x| x if x.is_a? String}
-      # concentrate all abstract classes in abstract_classes
-      abstract_classes = (abstract_names - system_classes(abstract: true)).map do | abstract_class_name |
-	 ActiveOrient::Model.orientdb_class name: abstract_class_name
-      end
-      other_classes =  initialize_classes( nested_classes )
-      (abstract_classes + other_classes)
-
-    end
-
-    def initialize_classes array
-      super_class =  block_given? ? yield : nil
-      basic, complex = array.partition{|x| x.is_a? String } 
-      basic_classes = (basic - system_classes).map do | base_class |
-	 ActiveOrient::Model.orientdb_class name: base_class , superclass: super_class
-      end
-      nested_classes = (Hash[ complex ].keys - system_classes).map do | base_class |
-	keyclass= ActiveOrient::Model.orientdb_class name: base_class , superclass: super_class
-	dependend_classes = Hash[ array ][ base_class ]
-	[keyclass, if dependend_classes.is_a? Array
-	  initialize_classes( dependend_classes ){ base_class }
-	else
-	 ActiveOrient::Model.orientdb_class name: dependend_classes , superclass: base_class
-	end
-	]
-      end
-      [basic_classes, nested_classes ].compact
-    end
   def create_vertex_class *name, properties: nil 
-    create_class( :V ) unless database_classes.include? "V"
+#    create_class( :V ) unless database_classes.include? "V"
     r= name.map{|n| create_class( n, properties: properties){ :V } }
     @actual_class_hash = get_classes( 'name', 'superClass')
  r.size == 1 ? r.pop : r
   end
 
   def create_edge_class *name,  properties: nil
-    create_class( :E ) unless database_classes.include? "E"
+    # not nessesary. In V 2.2m E+V are present after creation of a database
+    #create_class( :E ) unless database_classes.include? "E"  
     r = name.map{|n| create_class( n, properties: properties){ :E  } }
     @actual_class_hash = get_classes( 'name', 'superClass')
-    r.size == 1 ? r.pop : r  # returns the created classes as array
+    r.size == 1 ? r.pop : r  # returns the created classes as array if multible classes are provided
   end
 
   def get_db_superclass name
@@ -112,27 +79,12 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
  def preallocate_classes
-   # todo implement abstract feature
    #  first fetch all non-system-classes
-    io = class_hierarchy - system_classes  - [ ["OIdentity", ["ORole", "OUser"]]]
+    io = class_hierarchy 
   # allocate them and call require_model_file on each model
     # if something goes wrong, allocate_classes_in_ruby returns nil, thus compact prevents
     # from calling NilClass.require_model_file
     allocate_classes_in_ruby(io).flatten.compact.each &:require_model_file
  end
 
-#
-#  @actual_class_hash = get_classes( 'name', 'superClass')
-#puts  @actual_class_hash.inspect
-#   @actual_class_hash.each do | name_and_superclass |
-#     if database_classes.include? name_and_superclass['name']
-#       the_class= if name_and_superclass['superClass'].blank?
-#	 allocate_classes_in_ruby name_and_superclass['name']
-#       else
-#	 allocate_classes_in_ruby( {name_and_superclass["superClass"] => name_and_superclass['name'] } )
-#       end
-#       require_model_file the_class
-#     end 
-#   end
-# end
 end # module

@@ -76,10 +76,10 @@ def allocate_classes_in_ruby classes  # :nodoc:
 	# if the class is prefined, use specs from get_classes
 	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name }
 	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
-    #  print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
+      #print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
-      #puts "-->  #{m.object_id}"
+     # puts "-->  #{m.object_id}"
 	 m
       rescue NoMethodError => w
 	logger.progname = "Allocate_Classes_in_Ruby"
@@ -100,7 +100,7 @@ def allocate_classes_in_ruby classes  # :nodoc:
 			    else
 			      [nil,false]
 			    end
-#    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
+    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
 
     consts = case classes 
     when  Array
@@ -192,82 +192,87 @@ end
   def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil  
     logger.progname = "ClassUtils#CreateEdge"
 
-    if block_given?
-      a =  yield(attributes)
-      command = if a.is_a? Array
-       a.map do | record | 
-	this_attributes =  record[:attributes].presence || attributes
-       
-       # unique is not supported	in batch-mode 
-       create_edge o_class, attributes: this_attributes, from: record[:from], to: record[:to], unique: false, batch: true
-      end
-      else
-	create_edge o_class, attributes: attributes, from: a[:from], to: a[:to], unique: a[:uniq], batch: true
-      end
-
-    elsif from.is_a? Array
-      command = from.map{|f| create_edge o_class, attributes: attributes, from: f, to: to, unique: unique, batch: true}
-    elsif to.is_a? Array
-      command = to.map{|t| create_edge o_class, attributes: attributes, from: from, to: t, unique: unique, batch: true}
-
-    elsif from.present? && to.present?
-      if unique
-	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
-	existing_edge = get_records(from: o_class, where: wwhere)
-	if existing_edge.size >1 
-	  logger.error{ "Unique specified, but there are #{existing_edge.size} Records in the Database. returning the first"}
-	  command =  existing_edge.first
-	  batch = true
-	elsif existing_edge.size ==1  && existing_edge.first.is_a?(ActiveOrient::Model)
-	  #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-	  command=  existing_edge.first
-	  batch= true
-	else
-	  command= create_edge o_class, attributes: attributes, from: :from, to: :to,  batch: true
-	  batch= nil  
-	end
-      #logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
-
-    elsif from.to_orient.nil? || to.to_orient.nil? 
-      logger.error{ "Parameter :from or :to is missing"}
-    else
-      attr_string =  attributes.blank? ? "" : "SET #{generate_sql_list attributes.to_orient}"
-      command = { type: "cmd",
+# -------------------------------
+    create_command =  -> (attr, from, to ) do
+      attr_string =  attr.blank? ? "" : "SET #{generate_sql_list attr}"
+      if from.present? && to.present? 
+      [from, to].each{|y| remove_record_from_hash y }
+      { type: "cmd",
 	  language: 'sql',
 	  command: "CREATE EDGE #{classname(o_class)} FROM #{from.to_orient} TO #{to.to_orient} #{attr_string}"
 		      }
       end
+    end
+# -------------------------------
+
+    if block_given?
+      a =  yield(attributes)
+      command = if a.is_a? Array
+		  batch =  nil
+		  command=  a.map do | record | 
+#		  puts record.inspect
+		    this_attributes =  record[:attributes].presence || attributes
+		    create_command[ this_attributes, record[:from],  record[:to]]
+		  end
+		else
+		  this_attributes =  a[:attributes].presence || attributes
+		  command = create_command[ this_attributes, a[:from],  a[:to]]
+		end
+    elsif from.is_a?( Array ) && to.is_a?(Array)
+      command = Array.new
+      while from.size >1
+	this_attributes = attributes.is_a?(Array) ? attributes.shift : attributes
+	command << create_command[ this_attributes, from.shift, to.shift]
+      end
+    elsif from.is_a? Array
+      command = from.map{|f| create_command[ attributes, f, to] }
+    elsif to.is_a? Array
+      command = to.map{|f| create_command[ attributes, from, f] }
+#      puts "COMMAND: #{command.inspect}"
+    elsif from.present? && to.present?
+      #      if unique
+      #	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
+      #	existing_edge = get_records(from: o_class, where: wwhere)
+      #	if existing_edge.size >1 
+      #	  logger.error{ "Unique specified, but there are #{existing_edge.size} Records in the Database. returning the first"}
+      #	  command =  existing_edge.first
+      #	  batch = true
+      #	elsif existing_edge.size ==1  && existing_edge.first.is_a?(ActiveOrient::Model)
+      #	  #logger.debug {"Reusing edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+      #	  command=  existing_edge.first
+      #	  batch= true
+      #	else
+      command = create_command[ attributes, from, to]
+      #	end
+      #	#logger.debug {"Creating edge #{classname(o_class)} from #{from.to_orient} to #{to.to_orient}"}
+      #
+    elsif from.to_orient.nil? || to.to_orient.nil? 
+      logger.error{ "Parameter :from or :to is missing"}
     else 
       # for or to are not set
       return nil
     end
-    if batch.nil? 
+#   puts "RUNNING EDGE: #{command.inspect}"
+    if command.present?
       begin
-      response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
-	command.is_a?(Array) ? command.flatten.compact : [ command ]
-      end
-      # unload vertices
-      remove_vertex_from_hash = -> (rid) do
-	obj= ActiveOrient::Base.get_rid(rid) 
-	ActiveOrient::Base.remove_rid( obj ) unless obj.nil?
-      end
-      [from,to].each do | vertex |
-       vertex.is_a?(Array) ? vertex.each{|x| remove_vertex_from_hash[ x.rid ]} : remove_vertex_from_hash[  vertex.rid ] 
-      end
-
-
-      if response.is_a?(Array) && response.size == 1
-	response.pop # RETURN_VALUE
-      else
-	response  # return value (the normal case)
-      end
+	response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
+	  command.is_a?(Array) ? command.flatten.compact : [ command ]
+	end
+	if response.is_a?(Array) && response.size == 1
+	  response.pop # RETURN_VALUE
+	else
+	  response  # return value (the normal case)
+	end
       rescue ArgumentError => e
 	puts "ArgumentError "
 	puts e.inspect
-      end
-    else
-      command # return value (if batch)
+      end  # begin
     end
+
   end
+	def remove_record_from_hash r
+	  obj= ActiveOrient::Base.get_rid(r.rid) unless r.nil?
+	  ActiveOrient::Base.remove_rid( obj ) unless obj.nil?
+	end
 
 end # module

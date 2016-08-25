@@ -98,7 +98,7 @@ describe OrientSupport::OrientQuery do
         expect( contracts_query.to_s ).to eq 'select expand( distinct(ORDid) ) from  ( select expand( contracts ) from Openinterest   limit 10 )   '
 
       end
-      it "subquery and subsequent unionall", focus: true do
+      it "subquery and subsequent unionall" do
 # pending( "Try's to fetch data from #5:0, if there aren'd any, it fails")
         q =  OrientSupport::OrientQuery.new
         q.let << { a:  OrientSupport::OrientQuery.new( from: '#5:0' ) }

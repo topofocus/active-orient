@@ -11,10 +11,7 @@ describe ActiveOrient::OrientDB do
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
   before( :all ) do
-#   ao =   ActiveOrient::OrientDB.new 
-#   ao.delete_database database: 'RestTest'
-#   ORD  =  ActiveOrient::OrientDB.new database: 'RestTest' 
-#   @database_name = 'RestTest'
+    reset_database
   end
 
 
@@ -38,7 +35,7 @@ describe ActiveOrient::OrientDB do
         expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
       end
       it "simple property with linked_class" do
-        ORD.open_class :Contract
+        ORD.create_class :Contract
         ph= { :type => :link, linked_class: 'Contract' }
         field = 't'
         expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"LINK", :linkedClass=>"Contract"}
@@ -85,7 +82,7 @@ describe ActiveOrient::OrientDB do
 				 details: { propertyType: 'LINK', linkedClass: :Contract },
 				 date: { propertyType: 'DATE' }
 				)
-      ORD.get_database_classes
+      ORD.database_classes
       rp
     end
 
@@ -93,7 +90,7 @@ describe ActiveOrient::OrientDB do
 
       ## count the number of defined properties 
       expect( predefined_property ).to eq 5
-      rp= ORD.get_class_properties(  ActiveOrient::Model::Property )['properties']
+      rp= ORD.get_class_properties(  Property )['properties']
 
       [ :con_id, :symbol, :details, :exchanges, :date ].each do |f|
 	expect( rp.detect{|x| x['name']== f.to_s}  ).to be_truthy
@@ -102,7 +99,7 @@ describe ActiveOrient::OrientDB do
     end
     it "define property with automatic index"   do
       predefined_property
-      c = ORD.open_class :contract_detail
+      c = ORD.create_class :contract_detail
       ORD.create_property( c, :con_id, type: :integer) { :unique }
       expect( ORD.get_class_properties(c)['indexes'] ).to have(1).item
       expect( ORD.get_class_properties(c)['indexes'].first).to eq(
@@ -111,9 +108,8 @@ describe ActiveOrient::OrientDB do
 
     it "define a property with manual index" do
       predefined_property
-      ORD.delete_class :contract
-      contracts = ORD.open_class :contract
-      industries = ORD.open_class :industry
+      contracts = ORD.create_class :contract
+      industries = ORD.create_class :industry
       rp = ORD.create_properties( contracts,
 				 { symbol: { type: :string },
        con_id: { type: :integer } ,
@@ -130,18 +126,18 @@ describe ActiveOrient::OrientDB do
     it "add a dataset"   do
       ## without predefined property the test fails because the date is recognized as string.
       predefined_property
-      industries = DB.open_class :industry
+      industries = DB.create_class :industry
       linked_record = DB.create_record industries, attributes:{ label: 'TestIndustry' }
-      expect{ DB.update_or_create  ActiveOrient::Model::Property,  where: { con_id: 12345 }, 
+      expect{ DB.upsert  Property,  where: { con_id: 12345 }, 
 					set: { industry: linked_record.rid, 
 					date: Date.parse( "2011-04-04") } 
-	    }.to change{ ActiveOrient::Model::Property.count }.by 1
+	    }.to change{ Property.count }.by 1
 
-      ds = ActiveOrient::Model::Property.where con_id: 12345
+      ds = Property.where con_id: 12345
       puts "PROPERTY:"
       puts ds.inspect
       expect( ds ).to be_a Array
-      expect( ds.first ).to be_a ActiveOrient::Model::Property
+      expect( ds.first ).to be_a ActiveOrient::Model
       expect( ds.first.con_id ).to eq 12345
       expect( ds.first.industry ).to eq linked_record
       expect( ds.first.date ).to be_a Date
@@ -149,46 +145,46 @@ describe ActiveOrient::OrientDB do
 
 
     it "manage  exchanges in a linklist " do
-      DB.open_class :Exchange
+      DB.create_class :Exchange
       predefined_property
 
-      f = ActiveOrient::Model::Exchange.create :label => 'Frankfurt'
-      b = ActiveOrient::Model::Exchange.create :label => 'Berlin'
-      s = ActiveOrient::Model::Exchange.create :label => 'Stuttgart'
-      ds = ActiveOrient::Model::Property.create con_id: 12355
+      f = Exchange.create :label => 'Frankfurt'
+      b = Exchange.create :label => 'Berlin'
+      s = Exchange.create :label => 'Stuttgart'
+      ds =Property.create con_id: 12355
       ds.add_item_to_property( :exchanges ){ [f,b,s] }
       #	  ds.add_item_to_property :exchanges, b
       #	  ds.add_item_to_property :exchanges, s
       expect( ds.exchanges ).to have(3).items
-      expect( ActiveOrient::Model::Property.where( "'Stuttgart' in exchanges.label").first ).to eq ds
-      expect( ActiveOrient::Model::Property.where( "'Hamburg' in exchanges.label") ).to  be_empty
+      expect( Property.custom_where( "'Stuttgart' in exchanges.label").first ).to eq ds
+      expect( Property.custom_where( "'Hamburg' in exchanges.label") ).to  be_empty
       ds.remove_item_from_property( :exchanges){ [b,s] }
       expect( ds.exchanges ).to have(1).items
     end
 
-    it "add  an embedded linkmap- entry " , :pending => true do
-      pending( "Query Database for last entry does not work in 2.2" )
+   it "add  an embedded linkmap- entry " do # , :pending => true do
+#      pending( "Query Database for last entry does not work in 2.2" )
       predefined_property
-      DB.open_class :industry
-      property_record=  ActiveOrient::Model::Property.create  con_id: 12346
+      DB.create_class :industry
+      property_record=  Property.create  con_id: 12346
       ['Construction','HealthCare','Bevarage'].each do | industry |
-	property_record.add_item_to_property :property, ActiveOrient::Model::Industry.create( label: industry)
+	property_record.add_item_to_property :property, Industry.create( label: industry)
       end
       # to query: select * from Property where 'Stuttgart' in exchanges.label
       # or select * from Property where exchanges contains ( label = 'Stuttgart' )
       #
-      pr =  ActiveOrient::Model::Property.where( "'HealthCare' in property.label").first
+      pr =  Property.custom_where( "'HealthCare' in property.label").first
       expect( pr ).to eq property_record
 
       expect( property_record.con_id ).to eq 12346
       expect( property_record.property ).to be_a Array
       expect( property_record.property ).to have(3).records
       puts property_record.property.map( &:label).join(":")
-      puts ActiveOrient::Model::Industry.all.map(&:label).join(" -- ")
-      expect( property_record.property.last ).to eq ActiveOrient::Model::Industry.last
+      puts Industry.all.map(&:label).join(" -- ")
+      expect( property_record.property.last ).to eq Industry.all.last
 
       expect( property_record.property[2].label ).to eq 'Bevarage'
-      expect( property_record.property.find{|x| x.label == 'HealthCare'}).to be_a ActiveOrient::Model::Industry
+      expect( property_record.property.find{|x| x.label == 'HealthCare'}).to be_a Industry
 
 
     end

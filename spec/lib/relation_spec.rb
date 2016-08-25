@@ -124,7 +124,7 @@ describe ActiveOrient::OrientDB do
 
     it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!
       expect do
-	ORDes=  ORD.create_or_update_document( DocKlasse10 ,
+	ORDes=  ORD.update_or_create_records( DocKlasse10 ,
 					      set: { a_new_property: 36 } ,
 					      where: {con_id: 345, symbol: 'EWQZ' } ) do
 						{ another_wired_property: "No time for tango" }
@@ -132,33 +132,33 @@ describe ActiveOrient::OrientDB do
       end.not_to change{ DocKlasse10.count }
 
       ###check 
-      expect( ORDes.a_new_property).to eq 36
+      expect( ORDes.a_new_property).to eq [36]
       ###check
       expect( ORDes.attributes.keys ).not_to include 'another_wired_property'  ## block is not executed, because its not a new document
 
     end
     it   "uses create_or_update and a block on a new document" do
       expect do
-	@ord  = ORD.create_or_update_document( DocKlasse10 ,
+	@ord  = ORD.update_or_create_records( DocKlasse10 ,
 					      set: { a_new_property: 37 } ,
 					      where: {con_id: 345, symbol: 'EWQrGZ' }) do
 						{ another_wired_property: "No time for tango" }
 					      end
       end.to change{ DocKlasse10.count }.by 1
 
-      expect( @ord.a_new_property).to eq 37
-      expect( @ord.attributes.keys ).to include 'another_wired_property'  ## block is executed, because its a new document
+      expect( @ord.a_new_property).to eq [37]
+      expect( @ord.attributes.keys.first).to include 'another_wired_property'  ## block is executed, because its a new document
 
     end
 
     it "update strange text"  do  # from the orientdb group
       strange_text = { strange_text: "'@type':'d','a':'some \\ text'"}
 
-      res=  ORD.create_or_update_document   DocKlasse10 , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do
+      res=  ORD.update_or_create_records   DocKlasse10 , set: { a_new_property: 36 } , where: {con_id: 346, symbol: 'EWQrGZ' } do
 	strange_text
       end
-      expect( res.strange_text ).to eq strange_text[:strange_text]
-      document_from_db =  ORD.get_document res.rid
+      expect( res.strange_text ).to eq [strange_text[:strange_text]]
+      document_from_db =  ORD.get_document res.first.rid
       expect( document_from_db.strange_text ).to eq strange_text[:strange_text]
     end
     it "read that document" do
@@ -171,12 +171,12 @@ describe ActiveOrient::OrientDB do
     end
 
     it "count datasets in class" do
-      r =  ORD.count_documents  from: DocKlasse10
+      r =  ORD.count  from: DocKlasse10
       expect( r ).to eq  4
     end
 
     it "updates that document"   do
-      r=  ORD.create_document  DocKlasse10, attributes: { con_id: 340, symbol: 'EWZ' }
+      r=  ORD.create_record  DocKlasse10, attributes: { con_id: 340, symbol: 'EWZ' }
       rr =  ORD.update_documents  DocKlasse10,
 	set: { :symbol => 'TWR' },
 	where: { con_id: 340 }
@@ -187,7 +187,7 @@ describe ActiveOrient::OrientDB do
 
     end
     it "deletes that document" do
-      ORD.create_document  DocKlasse10 , attributes: { con_id: 3410, symbol: 'EAZ' }
+      ORD.create_record  DocKlasse10 , attributes: { con_id: 3410, symbol: 'EAZ' }
       r=  ORD.delete_documents  DocKlasse10 , where: { con_id: 3410 }
       res = ORD.get_documents  from: DocKlasse10, where: { con_id: 3410 }
       expect(r.size).to eq 1

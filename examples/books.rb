@@ -1,10 +1,3 @@
-if $0 == __FILE__
-
-    search_items =  ARGV.empty? ? ['China', 'aus', 'Flaute'] : ARGV
-    ARGV = [ 'd' ]
-    @configDatabase =  'BookTest'
-require '../config/boot'
-end
 =begin
 Books Example
 
@@ -27,14 +20,6 @@ defines two search criteria.
 
 =end
 
- class E < ActiveOrient::Model
-       # allow only uniq edges 
-       def  self.uniq_index
-         create_property  :in,  type: :link, linked_class: :V 
-         create_property  :out, type: :link, linked_class: :V    
-         create_index "#{self.name}_idx", on: [ :in, :out ]
-       end
- end
  class BooksExample
 
     def initialize  rebuild: true
@@ -71,7 +56,7 @@ defines two search criteria.
 
 	  sentence.split(' ').map do | word |
 	    Keyword.upsert where: { item: word } do | new_keyword |
-	          HasContent.create_edge from: this_book, to: new_keyword 
+	          HasContent.create from: this_book, to: new_keyword 
 	    end
 	  end
 
@@ -121,6 +106,12 @@ defines two search criteria.
  end
 
 if $0 == __FILE__
+
+    search_items =  ARGV.empty? ? ['China', 'aus', 'Flaute'] : ARGV
+    ARGV = [ 'd' ]  # development-mode
+    @configDatabase =  'BookTest'
+
+    require '../config/boot'
 
    # search_items =  ARGV.empty? ? ['China', 'aus', 'Flaute'] : ARGV
     b = BooksExample.new  rebuild:  true

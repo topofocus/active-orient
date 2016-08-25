@@ -1,5 +1,15 @@
+if $0 == __FILE__
+  puts "the time-graph example is completely rewritten"
+  puts "changing into the directory and starting the demo in 10 sec."
+  sleep 10
+  print %x{ cd #{File.expand_path(File.dirname(__FILE__))}/time_graph ; ruby  createTime.rb }
+  
+  Kernel.exit
+end
 #require 'time'
 require '../config/boot'
+
+## historic stuff 
 
 def create1month
 
@@ -78,3 +88,4 @@ mon.add_edge_link name: "days", direction: "out", edge: "time_of"
 print "8 #{firstmonth.days.map{|x| x.value}} \n \n"
 
 print "9 #{firstmonth.days.value_string} \n \n"
+

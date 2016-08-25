@@ -51,13 +51,6 @@ The generated Query »q« for two words that should appear in any book:
 select expand( $z ) let $a = ( select expand(in('HasContent')) from Word where item = 'Land' ), $b = ( select expand(in('HasContent')) from Word where item = 'Quartal' ), $z = Intersect($a, $b)
 
 =end
- class E < ActiveOrient::Model
-    def  self.uniq_index
-      create_property  :in,  type: :link, linked_class: :V 
-      create_property  :out, type: :link, linked_class: :V 
-      create_index :edge_idx, on: [ :in, :out ]
-    end
- end  
 
 
 describe OrientSupport::OrientQuery do
@@ -88,12 +81,10 @@ describe OrientSupport::OrientQuery do
     # we test the lambda "fill database"
     it "put test-content"  do
       fill_database = ->(sentence, this_book ) do
-	  DB.create_edge( HC  ) do 
-	    sentence.split(' ').map do |x|
-          this_word = Word.upsert where: { item: x } 
-	  { :from => this_book, :to => this_word } if this_word.present?  # return value for the iteration
-	    end.uniq.compact
-        end
+      nw = Array.new
+      ## duplicates are not created, a log-entry is created
+      word_records =  sentence.split(' ').map{ |x| Word.create item: x  }.compact 
+      HC.create :from => this_book, :to => word_records  # return value for the iteration
       end
       words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heut mit Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
       this_book =  Book.create title: 'first'
@@ -107,12 +98,14 @@ describe OrientSupport::OrientQuery do
     end
     it "Query Initialisation"  do
       # search all books with words "Quartal" or "Landereien"
-      query = OrientSupport::OrientQuery.new where:  "out('Has_content').item IN ['Quartal','Landereien']",
+      query = OrientSupport::OrientQuery.new where:  "out('has_content').item IN ['Quartal','Flaute']",
 					      from: Book
+      #puts "QERY1: #{query.compose}"
        result= Book.query_database query
       expect( result).to be_a Array
       expect( result).to have_at_least(1).item
       queried_book =  result.first
+      puts queried_book.inspect
       expect( queried_book ).to be_a Book
       expect( queried_book.title ).to eq 'second'
 
@@ -136,6 +129,9 @@ describe OrientSupport::OrientQuery do
       result = Word.query_database  q, set_from: false
       expect( result.first ).to be_a Book
       puts result.inspect
+      puts " ------------------------------"
+      puts "congratulations"
+      puts "result: #{result.title} (should be second!)"
     end
 
   end

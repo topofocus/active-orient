@@ -82,8 +82,9 @@ module RestDelete
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
     ridvec= rid.map( &:to_orient).flatten
     unless ridvec.empty?
-      ridvec.each do |rid|
+      ridvec.map do |rid|
         begin
+	  ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(rid) ) 
           @res["/document/#{ActiveOrient.database}/#{rid[1..-1]}"].delete
         rescue RestClient::InternalServerError => e
 	  puts e.inspect
@@ -94,7 +95,6 @@ module RestDelete
           logger.info{"Record #{rid} deleted"}
         end
       end
-      return ridvec
     else
       logger.info{"No record deleted."}
       return nil

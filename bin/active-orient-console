@@ -15,7 +15,6 @@ puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
 puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
 
 puts '-'* 35
-io = ORD.class_hierarchy - ORD.system_classes  - [ ["OIdentity", ["ORole", "OUser"]]]
 ns= case ActiveOrient::Model.namespace 
   when Object
     "No Prefix, just ClassName#CamelCase"
@@ -23,10 +22,10 @@ ns= case ActiveOrient::Model.namespace
      ActiveOrient::Model.namespace.to_s + "{ClassName.camelcase}"
     end
 puts "Namespace for model-classes : #{ns}"
-puts "Allocated Classes (Hierarchy):"
-#puts '-'* 35
+puts "Allocated Classes (Hierarchy) ( Modelclasses are Camelized ):"
+puts '-'* 35
 
-print io.sort{|x,y| z = y.is_a?(Array)? y.first: y ; a =  x.is_a?(Array)? x.first : x; a<=> z}.to_yaml
+puts ORD.class_hierarchy.to_yaml
 
 
 include OrientDB

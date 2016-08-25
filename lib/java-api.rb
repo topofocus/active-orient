@@ -70,7 +70,7 @@ module ActiveOrient
 #	  OrientDB::ServerAdmin.close();
 	  Kernel.exit
       end
-      get_database_classes( requery:true ) # returns all allocated database_classes
+      database_classes( requery:true ) # returns all allocated database_classes
     end
 
   
@@ -90,9 +90,9 @@ module ActiveOrient
       consts = allocate_classes_in_ruby( classes , &b )
 
       all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
-      get_database_classes(requery: true)
+      database_classes(requery: true)
       selected_classes =  all_classes.map do | this_class |
-	this_class unless get_database_classes(requery: true).include?( this_class.ref_name ) rescue nil
+	this_class unless database_classes(requery: true).include?( this_class.ref_name ) rescue nil
       end.compact.uniq
       command= selected_classes.map do | database_class |
 	## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
@@ -107,7 +107,7 @@ module ActiveOrient
       end
 
       # update the internal class hierarchy 
-      get_database_classes requery: true
+      database_classes requery: true
       # return all allocated classes, no matter whether they had to be created in the DB or not.
       #  keep the format of the input-parameter
       consts.shift if block_given? && consts.is_a?( Array) # remove the first element
@@ -128,7 +128,7 @@ module ActiveOrient
       rescue Java::ComOrientechnologiesOrientCoreException::OSchemaException => e
 	logger.error{ e.message }
       end
-      get_database_classes requery: true 
+      database_classes requery: true 
     end
 =begin
   Creates properties and optional an associated index as defined  in the provided block

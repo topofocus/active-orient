@@ -44,10 +44,10 @@ Accepts
 
   then creates a hierarchy of database-classes and returns them as hash
 
-takes an optional block to specify a superclass.
-This is NOT returned 
+takes an optional block to specify a superclass. This class MUST exist.
 
-eg  
+
+eg. 
   create_classes( :test ){ :V } 
 
 creates a vertex-class, returns just Test ( < ActiveOrient::Model)
@@ -69,7 +69,7 @@ creates a vertex-class, too, returns the Hash
       classes =  classes.pop if classes.size == 1
       consts = allocate_classes_in_ruby( classes , &b )
       all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
-      get_database_classes(requery: true)
+      database_classes(requery: true)
       selected_classes =  all_classes.map do | this_class |
 	this_class unless database_classes.include?( this_class.ref_name ) rescue nil
       end.compact.uniq
@@ -84,17 +84,16 @@ creates a vertex-class, too, returns the Hash
 	    end
 	c << " ABSTRACT" if database_class.abstract
 	{ type: "cmd", language: 'sql', command: c }
-	end
-
+      end
 	# execute anything as batch, don't roll back in case of an error
 	execute transaction: false, tolerated_error_code: /already exists in current database/ do
 	  command
       end
       # update the internal class hierarchy 
-      get_database_classes requery: true
+      database_classes requery: true
       # return all allocated classes, no matter whether they had to be created in the DB or not.
       #  keep the format of the input-parameter
-      consts.shift if block_given? && consts.is_a?( Array) # remove the first element
+      #consts.shift if block_given? && consts.is_a?( Array) # remove the first element
       # remove traces of superclass-allocations
       if classes.is_a? Hash
 	consts =  Hash[ consts ] 
