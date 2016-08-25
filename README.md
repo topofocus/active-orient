@@ -2,7 +2,8 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).  
+You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
+The jruby-part is experimental.
 
 For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
 and start an irb-session: 
@@ -11,7 +12,7 @@ cd bin
 ./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
 ```
 
-»ORD« is the Database-Instance itself.
+»ORD« is the Database-Instance itself. If the Database noticed is not present, it is created on startup.
 A simple SQL-Query is submitted by providing a Block to »execute«
  ```ruby
  result =  ORD.execute { "select * from Stock" } 
@@ -26,18 +27,16 @@ Let's create some classes
     {Classname}.delete_class			 # removes the class in the database and destroys the ruby-object
  ```
 
-Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to 
-database-classes. For simplicity we omit any namespace ( :namespace: :object in config.yml). Thus the
-Model-Obects are accessible directly.
+Classnames appear unchanged as Database-Classes. Strings and Symbols are accepted. Depending on the namespace choosen in 'config/config.yml' Model-Classes are allocated and linked to database-classes. For simplicity, here we omit any namespace ( :namespace: :object in config.yml). Thus the Model-Obects are accessible directly.
 
 
 **Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
-In Ruby-Space its Camelized, ie: 'hut_ab' becomes ActiveOrient::Model::HutAb. 
+In Ruby-Space its Camelized, ie:  ORD.create_class(:hut_ab) generates a Ruby-Class »HutAb«. 
 
-This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'.
+This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'. The naming_convention changes the ruby-view to the classes. The Database-Class-Name is derived from the argument to #CreateClass, ORD.create_class('HANDS_UP') creates a database-class "HANDS_UP' and a Ruby-Class "HandsUp".
 
 ActiveOrient::Model's can be customized through methods defined in the model-directory. These methods are
-loaded by #CreateClass. 
+loaded automatically afert executing #CreateClass (and through the preallocation process). Further details in the Examples-Section.
 
 #### CRUD
 The CRUD-Process (create, read = query, update and remove) is performed as
@@ -188,24 +187,25 @@ Refer to the "Time-Graph"-Example for an Implementation of an bidirectional Grap
 #### Edges
 Edges provide bidirectional Links. They are easily handled
 ```ruby
-  ORD.create_vertex_class :vertex
-  ORD.create_edge_class  :edge
+  ORD.create_vertex_class :the_vertex 	# -->  TheVertex
+  ORD.create_edge_class  :the_edge      # -->  TheEdge
 
-  start = Vertex.create something: 'nice'
-  the_end  =  Vertex.create something: 'not_nice'
-  the_edge = Edge.create_edge attributes: {transform_to: 'very bad'},
+  start = TheVertex.create something: 'nice'
+  the_end  = TheVertex.create something: 'not_nice'
+  the_edge = TheEdge.create attributes: {transform_to: 'very bad'},
 			       from: start,
 			       to: the_end
 
   (...)
   the_edge.delete # To delete the edge
 ```
-The create_edge-Method takes a block. Then all statements are transmitted in batch-mode.
+The create-Method od Edge-Classes takes a block. Then all statements are transmitted in batch-mode.
 Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, then
 ```ruby
   record1 = (1 .. 100).map{|y| Vertex1.create testentry: y  }
   record2 = (:a .. :z).map{|y| Vertex2.create testentry: y  }
-  edges = ORD.create_edge TheEdge, attributes: { study: 'Experiment1'} do  | attributes |
+  edges = TheEdge.create attributes: { study: 'Experiment1'} do  | attributes |
+   # map returns an array, which is further processed by #create_edge 
     ('a'.ord .. 'z'.ord).map do |o| 
 	  { from: record1.find{|x| x.testentry == o },
 	    to:  record2.find{ |x| x.testentry.ord == o },
@@ -217,9 +217,9 @@ connects the vertices and provides a variable "key" and a common "study" attribu
 There is a basic support for traversals through a graph.
 The Edges are accessed  by their names (downcase).
 ```ruby
-  start = Vertex.get_documents where: {something: "nice"}
+  start = TheVertex.where: {something: "nice"}
   start[0].e1[0]
-  --> #<ActiveOrient::Model::E1:0x000000041e4e30	
+  --> #<E1:0x000000041e4e30	
       @metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", "cluster"=>16, "record"=>43}, 
       @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
 ```
