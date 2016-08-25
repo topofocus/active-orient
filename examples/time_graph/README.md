@@ -96,7 +96,7 @@ DATE_OF.create from: Monat[m].tag[9].stunde[12],
  => #<DateOf:0x0000000334e038 (..) @attributes={"out"=>"#21:57", "in"=>"#41:0", (..)}> 
 # create some regular events
 # attach breakfirst at 9 o clock from the 10th to the 21st Day in the current month
-TIME_OF.create from: Stunde[9][10..21] to: Termin.create( :short => 'Frühstück' )
+TIME_OF.create from: Stunde[9][10..21], to: Termin.create( :short => 'Frühstück' )
  => #<DateOf:0x000000028d5688 @metadata={(..) "cluster"=>45, "record"=>8}, 
 			      @attributes={"out"=>"#22:188", "in"=>"#42:0",(..)}>
 
