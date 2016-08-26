@@ -270,6 +270,26 @@ end
     end
 
   end
+
+=begin
+Deletes the specified edges and unloads referenced vertices from the cache
+=end
+  def delete_edge *edge
+    create_command =  -> do
+      { type: "cmd",
+	  language: 'sql',
+	  command: "DELETE EDGE #{edge.map{|x| x.to_orient }.join(',')} "
+		      }
+      end
+
+    edge.each do |r|
+      [r.in, r.out].each{| e | remove_record_from_hash e}
+      remove_record_from_hash r
+    end
+    execute{ create_command[] }
+  end
+
+  private
 	def remove_record_from_hash r
 	  obj= ActiveOrient::Base.get_rid(r.rid) unless r.nil?
 	  ActiveOrient::Base.remove_rid( obj ) unless obj.nil?

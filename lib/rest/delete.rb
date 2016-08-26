@@ -101,7 +101,6 @@ module RestDelete
     end
   end
   alias delete_document delete_record
-  alias delete_edge delete_record
 
 =begin
   Deletes records. They are defined by a query. All records which match the attributes are deleted.

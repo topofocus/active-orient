@@ -190,7 +190,11 @@ creates a vertex-class, too, returns the Hash
     begin
       response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
-      ActiveOrient::Model.orientdb_class(name: data['@class']).new data
+      if o_class.is_a? ActiveOrient::Model
+      ActiveOrient::Model.orientdb_class(name: o_class.ref_name, superclass: o_class.superclass).new data
+      else
+      ActiveOrient::Model.orientdb_class(name: data['@class'], superclass: :find_ME).new data
+      end
     rescue RestClient::InternalServerError => e
       response = JSON.parse(e.response)['errors'].pop
       logger.error{response['content'].split(':')[1..-1].join(':')}

@@ -78,7 +78,7 @@ module RestRead
 	rid = rid[1..rid.length] if rid[0]=='#'
 	response = @res["/document/#{ActiveOrient.database}/#{rid}"].get
 	raw_data = JSON.parse(response.body) #.merge( "#no_links" => "#no_links" )
-	ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+	ActiveOrient::Model.orientdb_class(name: raw_data['@class'], superclass: :find_ME).new raw_data
       else
 	logger.error { "Wrong parameter #{rid.inspect}. " }
 	nil
@@ -125,7 +125,7 @@ module RestRead
 #	      puts "RECORD:\n"+record.inspect
 	      block_given? ? yield.new(record) : ActiveOrient::Model.orientdb_class(name: 'query' ).new( record )
 	    else
-	      ActiveOrient::Model.orientdb_class(name: record['@class']).new record
+	      ActiveOrient::Model.orientdb_class(name: record['@class'], superclass: :find_ME).new record
 	    end
 	  end
 	  # returns the JSON-Object

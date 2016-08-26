@@ -72,6 +72,7 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
   end
 
   def get_db_superclass name
+    @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
     @actual_class_hash.find{|x,y|  x['name'] == name.to_s }['superClass']
   end
 

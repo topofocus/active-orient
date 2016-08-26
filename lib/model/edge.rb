@@ -31,7 +31,6 @@ Creates individual indices for child-classes if applied to the class itself.
     new_edge # returns the created edge (or an array of created edges
   end
 
-
   # to do
   # def delete
   # delete an edge (as class method) 
@@ -39,5 +38,13 @@ Creates individual indices for child-classes if applied to the class itself.
   # def remove
   # delete an edge (as instance method)
   #
+  def delete where: attributes
+    puts "work in progress"
+  end
+  
+  # remove works on record-level
+  
+  def remove
+    db.delete_edge self
   end
 end
