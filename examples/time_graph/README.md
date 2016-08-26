@@ -37,19 +37,20 @@ The following hierarchy is build:
 And this Graph is realized
 
 ```ruby
-Monat --[DAY_OF]--TAG --[TIME_OF] -- Stunde
+Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
 ```
 and populated by calling 
 
 ```ruby
-CreateTime.populate_month
+CreateTime.populate_month	# 1 One Month whith appropoiate Days and Hours
 ```
 
 You can check the Status by counting the recods of the Classes
 
 ```ruby
-Tag.count 
-Stunde.count
+Monat.count 		# 1
+Tag.count 			# 32
+Stunde.count		# 768
 ```
 which should be equal to the counts of the Edge-Classes DAY_OF and TIME_OF
 
@@ -69,12 +70,12 @@ Monat[m].tag[9].stunde[9].value
 Monat[month].tag[9].next.datum
  => "10.8.2016" 
 
-Stunde[9]
+Stunde[9]					# [] is defined in model/timebase.rb
 => An Array with Stunde-records 
-Stunde[9].datum
+Stunde[9].datum				# datum is defined in model/stunde.rb
  => ["0.8.2016 9:00", "1.8.2016 9:00", "2.8.2016 9:00", "3.8.2016 9:00", "4.8.2016 9:00", "5.8.2016 9:00", "6.8.2016 9:00", "7.8.2016 9:00", "8.8.2016 9:00", "9.8.2016 9:00", "10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00", "13.8.2016 9:00", "14.8.2016 9:00", "15.8.2016 9:00", "16.8.2016 9:00", "17.8.2016 9:00", "18.8.2016 9:00", "19.8.2016 9:00", "20.8.2016 9:00", "21.8.2016 9:00", "22.8.2016 9:00", "23.8.2016 9:00", "24.8.2016 9:00", "25.8.2016 9:00", "26.8.2016 9:00", "27.8.2016 9:00", "28.8.2016 9:00", "29.8.2016 9:00", "30.8.2016 9:00", "31.8.2016 9:00"]
 
-Stunde[9][8 ..12].datum
+Stunde[9][8 ..12].datum		# call datum on selected Stunde-records
  => ["8.8.2016 9:00", "9.8.2016 9:00", "10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00"] 
 
 ```
@@ -96,7 +97,7 @@ DATE_OF.create from: Monat[m].tag[9].stunde[12],
  => #<DateOf:0x0000000334e038 (..) @attributes={"out"=>"#21:57", "in"=>"#41:0", (..)}> 
 # create some regular events
 # attach breakfirst at 9 o clock from the 10th to the 21st Day in the current month
-TIME_OF.create from: Stunde[9][10..21] to: Termin.create( :short => 'Frühstück' )
+DATE_OF.create from: Stunde[9][10..21], to: Termin.create( :short => 'Frühstück' )
  => #<DateOf:0x000000028d5688 @metadata={(..) "cluster"=>45, "record"=>8}, 
 			      @attributes={"out"=>"#22:188", "in"=>"#42:0",(..)}>
 
