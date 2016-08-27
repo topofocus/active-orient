@@ -188,10 +188,14 @@ If only single Items are to insert, use
 #  Removes the Model-Instance from the databasea
 #  todo:  overloaded in vertex and edge
 
-def delete
+def remove 
   orientdb.delete_record self
   ActiveOrient::Base.remove_rid self ##if is_edge? # removes the obj from the rid_store
 end
+
+## delete works for any model-class
+## it calls delete_record and does not check for dependencies
+alias delete remove
 
 ########### UPDATE ############
 

@@ -11,5 +11,22 @@ class V  < ActiveOrient::Model
   # and 
   # def remove
   # delete an edge (as instance method)
+  
+  def edges kind=:all  # :all, :in, :out 
+    expression = case kind
+		 when :all
+		   /^in|^out/ 
+		 when :in
+		   /^in/ 
+		 when :out
+		   /^out/ 
+    end
+    edges = attributes.keys.find_all{ |x| x =~  expression }
+    edges.map{|x| attributes[x]}.flatten
+  end
+
+  def remove
+    db.delete_vertex self
+  end
 
 end

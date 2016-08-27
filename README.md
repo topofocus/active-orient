@@ -50,7 +50,7 @@ The CRUD-Process (create, read = query, update and remove) is performed as
     hugo = M.where( name: 'Hugo' ).first
     hugo.update set: { :father => M.create( name: "Volker", age: 76 ) } # we create an internal link
     hugo.father.name	# --> volker
-    M.delete hugo 
+    M.remove hugo 
     M.delete_class	# removes the class from OrientDB and deletes the ruby-object-definition
  ```
  

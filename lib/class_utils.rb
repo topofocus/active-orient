@@ -270,6 +270,20 @@ end
     end
 
   end
+=begin
+Deletes the specified vertices and unloads referenced edges from the cache
+=end
+  def delete_vertex *vertex
+    create_command =  -> do
+      { type: "cmd",
+	  language: 'sql',
+	  command: "DELETE VERTEX #{vertex.map{|x| x.to_orient }.join(',')} "
+		      }
+      end
+
+    vertex.each{|v| v.edges.each{| e | remove_record_from_hash e} }
+    execute{ create_command[] }
+  end
 
 =begin
 Deletes the specified edges and unloads referenced vertices from the cache

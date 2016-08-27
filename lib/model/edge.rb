@@ -43,7 +43,7 @@ Creates individual indices for child-classes if applied to the class itself.
   end
   
   # remove works on record-level
-  
+  end 
   def remove
     db.delete_edge self
   end
