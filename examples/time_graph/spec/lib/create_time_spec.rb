@@ -29,7 +29,8 @@ describe CreateTime do
       expect( Monat.first.tag.count ).to be >= 28
     end
 
-    it	"Address a specific day" do
+    it	"Address a specific day", focus: true do
+
       expect( Monat[month].tag[5].value ).to eq 5
     end
 

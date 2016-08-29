@@ -8,6 +8,7 @@ describe ActiveOrient::OrientDB do
       reset_database
       ORD.create_vertex_class 'dataset'
       ORD.create_class 'linked_data'
+      ORD.create_vertex_class 'the_dataset'
     end
 
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
@@ -174,7 +175,6 @@ describe ActiveOrient::OrientDB do
 
   context "update records "  do
     before(:all) do
-      ORD.create_vertex_class 'the_dataset'
       TheDataset.create_property :the_date, type: 'Date', index: :unique
       TheDataset.create_property :the_value, type: 'String' , index: :unique
       TheDataset.create_property :the_other_element, type: 'String'

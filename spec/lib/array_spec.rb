@@ -166,7 +166,8 @@ describe OrientSupport::Array do
       expect( @new_record.aLinkSet ).to have(9).items
       expect( @new_record.aLinkSet.at(0).att ).to eq "1 attribute"
     end
-    it "add and remove records"   do
+    it "add and remove records"  do 
+      pending( "test for adding an existing link to the array: the error  has to be checked" )
       expect{ @new_record.aLinkSet << LinkClass.create( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
       	expect{ @new_record.aLinkSet.delete  LinkClass.all.last }.to change { @new_record.aLinkSet.size }.by -1
       # gives an Error - its not possible to mix links with other objects

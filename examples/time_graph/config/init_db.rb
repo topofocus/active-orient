@@ -22,6 +22,10 @@ module ActiveOrient
       edges.each{|e| delete_class[ e, :E ] }
 
       logger.info{ "  Creating Classes " }
+  ORD.create_classes 'E', 'V'
+  #E.ref_name = 'E'
+  #V.ref_name = 'V'
+      #ActiveOrient::Init.vertex_and_egde_class
       ORD.create_vertex_class :time_base		      # --> TimeBase
       # hour, day: month cannot be alloacated, because Day is a class of DateTime and thus reserved
       time_base_classes = ORD.create_classes( :stunde, :tag, :monat ){ :time_base } # --> Hour, Day, Month

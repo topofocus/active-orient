@@ -87,7 +87,6 @@ module RestDelete
 	  ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(rid) ) 
           @res["/document/#{ActiveOrient.database}/#{rid[1..-1]}"].delete
         rescue RestClient::InternalServerError => e
-	  puts e.inspect
           logger.error{"Record #{rid} NOT deleted"}
         rescue RestClient::ResourceNotFound
           logger.error{"Record #{rid} does not exist in the database"}

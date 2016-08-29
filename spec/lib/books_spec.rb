@@ -64,6 +64,7 @@ describe OrientSupport::OrientQuery do
       Book.create_property( :title, type: :string, index: :unique )
       Word.create_property( :item , type: :string, index: :unique )
       HC = ORD.create_edge_class :has_content
+      puts "HC: #{HC.class} ++ #{HC.superclass} "
       HC.uniq_index
 #      ORD.create_properties( :has_content, in: { type: :link}, out: { type: :link } ) do
 #	{ name: 'edge_idx', on: [ :in, :out ] }

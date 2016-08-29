@@ -20,7 +20,8 @@ def reset_database
   ORD.create_classes 'E', 'V'
   E.ref_name = 'E'
   V.ref_name = 'V'
-
+  load './lib/model/edge.rb'
+  load './lib/model/vertex.rb'
 end
 
 

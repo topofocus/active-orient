@@ -64,43 +64,53 @@ creates a vertex-class Test and three clild-classes
 
 creates a vertex-class, too, returns the Hash
 =end
-    def create_classes *classes, &b
-      return if classes.empty?
-      classes =  classes.pop if classes.size == 1
-      consts = allocate_classes_in_ruby( classes , &b )
-      all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
-      database_classes(requery: true)
-      selected_classes =  all_classes.map do | this_class |
-	this_class unless database_classes.include?( this_class.ref_name ) rescue nil
-      end.compact.uniq
-      command= selected_classes.map do | database_class |
-	## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
-	next if database_class.ref_name.blank?  
-	database_class.require_model_file
-	c = if database_class.superclass == ActiveOrient::Model || database_class.superclass.ref_name.blank?
-	      "CREATE CLASS #{database_class.ref_name}" 
-	    else
-	      "CREATE CLASS #{database_class.ref_name} EXTENDS #{database_class.superclass.ref_name}"
-	    end
-	c << " ABSTRACT" if database_class.abstract
-	{ type: "cmd", language: 'sql', command: c }
-      end
-	# execute anything as batch, don't roll back in case of an error
-	execute transaction: false, tolerated_error_code: /already exists in current database/ do
-	  command
-      end
-      # update the internal class hierarchy 
-      database_classes requery: true
-      # return all allocated classes, no matter whether they had to be created in the DB or not.
-      #  keep the format of the input-parameter
-      #consts.shift if block_given? && consts.is_a?( Array) # remove the first element
-      # remove traces of superclass-allocations
-      if classes.is_a? Hash
-	consts =  Hash[ consts ] 
-	consts.each_key{ |x| consts[x].delete_if{|y| y == x} if consts[x].is_a? Array  }
-      end
-      consts
+  def create_classes *classes, &b
+    returt if classes.empty?
+
+    classes =  classes.pop if classes.size == 1
+    consts = allocate_classes_in_ruby( classes , &b )
+    all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
+    dc = database_classes(requery: true)
+    selected_classes =  all_classes.map do | this_class |
+      this_class unless dc.include?( this_class.ref_name ) rescue nil
+    end.compact.uniq
+
+    command= selected_classes.map do | database_class |
+      ## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
+      if database_class.ref_name.blank?  
+	logger.error{ "Improper initialized ActiveOrient::Model #{database_class}" }
+	raise ArgumentError
+      end	
+      database_class.require_model_file
+      c = if database_class.superclass == ActiveOrient::Model || database_class.superclass.ref_name.blank?
+	    "CREATE CLASS #{database_class.ref_name}" 
+	  else
+	    "CREATE CLASS #{database_class.ref_name} EXTENDS #{database_class.superclass.ref_name}"
+	  end
+      c << " ABSTRACT" if database_class.abstract
+      { type: "cmd", language: 'sql', command: c }  # return value 4 command
     end
+    # execute anything as batch, don't roll back in case of an error
+
+    execute transaction: false, tolerated_error_code: /already exists in current database/ do
+      command
+    end
+    # update the internal class hierarchy 
+    database_classes requery: true
+    # return all allocated classes, no matter whether they had to be created in the DB or not.
+    #  keep the format of the input-parameter
+    #consts.shift if block_given? && consts.is_a?( Array) # remove the first element
+    # remove traces of superclass-allocations
+    if classes.is_a? Hash
+      consts =  Hash[ consts ] 
+      consts.each_key{ |x| consts[x].delete_if{|y| y == x} if consts[x].is_a? Array  }
+    end
+    consts
+
+  rescue ArgumentError => e
+    logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+  end
+
 
 #        create_general_class singleclass, behaviour: behaviour, extended_class: extended_class, properties: properties
 
@@ -185,13 +195,13 @@ creates a vertex-class, too, returns the Hash
   def create_record o_class, attributes: {}  # :nodoc:  # use Model#create instead
     logger.progname = 'RestCreate#CreateRecord'
     attributes = yield if attributes.empty? && block_given?
-    # @class must not quoted! only attributes(strings)
+    # @class must not quoted! Quote only attributes(strings)
     post_argument = {'@class' => classname(o_class)}.merge(attributes.to_orient)
     begin
       response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
-      if o_class.is_a? ActiveOrient::Model
-      ActiveOrient::Model.orientdb_class(name: o_class.ref_name, superclass: o_class.superclass).new data
+      if o_class.is_a?(Class) && o_class.new.is_a?(ActiveOrient::Model)
+      o_class.new data
       else
       ActiveOrient::Model.orientdb_class(name: data['@class'], superclass: :find_ME).new data
       end
@@ -272,6 +282,15 @@ The where-condition is merged into the set-attributes if its a hash.
 Otherwise it's taken unmodified.
 
 The method returns the included or the updated dataset
+
+## to do
+# yield works for updated and for inserted datasets
+# upsert ( ) do | what, record |
+# if what == :insert 
+#   do stuff with insert
+#   if what ==  :update
+#   do stuff with update
+# end
 =end
   def upsert o_class, set: {}, where: {}   # :nodoc:   use Model#Upsert instead
     logger.progname = 'RestCreate#Upsert'
@@ -285,25 +304,35 @@ The method returns the included or the updated dataset
       command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
 
 
-    #  puts "COMMAND: #{command} "
-      result = execute  tolerated_error_code: /found duplicated key/ do # To execute commands
+      #  puts "COMMAND: #{command} "
+      result = execute  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
 	[ { type: "cmd", language: 'sql', command: command}]
       end 
       result =result.pop if result.is_a? Array
+    #  puts "RESULT: #{result.inspect}, #{result.class}"
+	if result.has_key?('@class')
+	  if o_class.is_a?(Class) && o_class.new.is_a?(ActiveOrient::Model)
+	    o_class.new result
+	  else
+	    AddctiveOrient::Model.orientdb_class(name: data['@class'], superclass: :find_ME).new data
+	  end
+	elsif result.has_key?('value')
+	  the_record=  get_records(from: o_class, where: where, limit: 1).pop
+	  ## process Code if a new dataset is inserted
+	  if  result['value'].to_i == 1
+	    yield the_record 	if block_given?
+	    logger.info{ "Dataset updated" }
+	  elsif result['value'].to_i == 0
+	    logger.info{ "Dataset inserted"}
+	  end
+	  the_record  # return_value
 
-     case result
-      when ActiveOrient::Model
-	result   # just return the result
-      when String, Numeric
-	the_record=  get_records(from: o_class, where: where, limit: 1).pop
-	if result.to_i == 1  # one dataset inserted, block is specified
-	  yield the_record 	
+	else
+	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
+	  raise ArgumentError
 	end
-	the_record # return_value
-      else
-	logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
+
       end
-    end
   end
   ############### PROPERTIES #############
 
@@ -352,6 +381,7 @@ The method returns the included or the updated dataset
     if block_given?# && count == all_properties_in_a_hash.size
       index = yield
       if index.is_a?(Hash)
+	  puts "index_class: #{o_class}"
 	  puts "index: "+index.inspect
 	if index.size == 1
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
@@ -397,13 +427,14 @@ The method returns the included or the updated dataset
     logger.progname = 'RestCreate#CreateIndex'
     begin
       c = classname o_class
+      puts "CREATE INDEX: class: #{c.inspect}"
       execute transaction: false do
     	  command = if on == :automatic
     		  "CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
     		elsif on.is_a? Array
-    		  "CREATE INDEX #{name} ON #{classname(o_class)}(#{on.join(', ')}) #{type.to_s.upcase}"
+    		  "CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
     		else
-    		  "CREATE INDEX #{name} ON #{classname(o_class)}(#{on.to_s}) #{type.to_s.upcase}"
+    		  "CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
     		  #nil
     		end
 	  #puts "command: #{command}"

@@ -100,13 +100,13 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
     DB = ORD
   end
 
-  ORD.create_classes 'E', 'V'
-  E.ref_name = 'E'
-  V.ref_name = 'V'
+#  ORD.create_classes 'E', 'V'
+#  E.ref_name = 'E'
+#  V.ref_name = 'V'
 
 # require model files after initializing the database
-    require "#{project_root}/model/edge.rb"
-    require "#{project_root}/model/vertex.rb"
+#    require "#{project_root}/model/edge.rb"
+#    require "#{project_root}/model/vertex.rb"
 
 # require db-init and application
      require "#{project_root}/config/init_db.rb"

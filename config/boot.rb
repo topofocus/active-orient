@@ -27,22 +27,29 @@ env =  if e =~ /^p/
 	 'development'
        end
 puts "Using #{env}-environment"
-##in test-mode, always use ActiceOrient as Prefix for Model-classes
-ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
 
-ActiveOrient::Model.namespace = if env == 'test'
-				    Object
-				else
-				  n= configyml.present? ? configyml[:namespace] : :self
-				  case n
-				  when :self
-				    ActiveOrient::Model
-				  when :object
-				    Object
-				  when :active_orient
-				    ActiveOrient
-				  end
-				end
+ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
+      ActiveOrient::Model.namespace = if @namespace.nil? 
+					if env == 'test'
+					  Object
+					else
+					  n= configyml.present? ? configyml[:namespace] : :self
+					  case n
+					  when :self
+					    ActiveOrient::Model
+					  when :object
+					    Object
+					  when :active_orient
+					    ActiveOrient
+					  end
+					end
+				      else
+					@namespace
+
+				      end
+#todo
+#ActiveOrient::Init.define_namespace
+
 databaseyml   = YAML.load_file( connect_file )[:orientdb][:database]
 log_file =   if config_file.present?
 	       dev = YAML.load_file( connect_file )[:orientdb][:logger]
@@ -66,19 +73,25 @@ logger.level = case env
 logger.formatter = proc do |severity, datetime, progname, msg|
   "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{progname}:..:#{msg}\n"
 end
-ActiveOrient::Model.logger =  logger
+ActiveOrient::Base.logger =  logger
+#ActiveOrient::Model.logger =  logger
 ActiveOrient::OrientDB.logger =  logger
 if connectyml.present? and connectyml[:user].present? and connectyml[:pass].present?
   ActiveOrient.default_server= { user: connectyml[:user], password: connectyml[:pass] ,
 				 server: 'localhost', port: 2480  }
   ActiveOrient.database = @configDatabase.presence || databaseyml[env.to_sym]
+
   ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true
   if RUBY_PLATFORM == 'java'
     DB =  ActiveOrient::API.new   preallocate: false
   else
     DB = ORD
   end
+#  ActiveOrient::Init.vertex_and_edge_class
 
+      ORD.create_classes 'E', 'V'
+      E.ref_name = 'E'
+      V.ref_name = 'V'
   # require model files after initializing the database
   require "#{project_root}/lib/model/edge.rb"
   require "#{project_root}/lib/model/vertex.rb"

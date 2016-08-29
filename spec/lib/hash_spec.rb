@@ -6,6 +6,7 @@ describe 'Properties and Application of Hashes' do
 #    ORD = ActiveOrient::OrientDB.new database: 'HashTest'
     reset_database
     ORD.create_class "test_model"
+    ORD.create_class 'link_class'
   end
 
   #  context "check isolated", focus:true do
@@ -56,10 +57,9 @@ describe 'Properties and Application of Hashes' do
     end
   end
 
-  context "a Hash with links ", focus: true   do
+  context "a Hash with links "   do
 
     before(:all) do
-      ORD.create_class 'link_class'
       new_hash =  HashWithIndifferentAccess.new
       ( 1 .. 99 ).each do | i |
         new_hash[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" )

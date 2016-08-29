@@ -72,7 +72,7 @@ Only classes noted in the @classes-Array of orientdb are fetched.
 =end
   def get_model_class name
     if orientdb.database_classes.include?(name)
-      orientdb_class name: name
+      orientdb_class name: name, superclass: :find_ME
     else
       nil
     end

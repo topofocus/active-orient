@@ -87,7 +87,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
 =end
 
-  def execute transaction: true, tolerated_error_code: nil, process_error: true # Set up for classes
+  def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil # Set up for classes
     batch = {transaction: transaction, operations: yield}
     logger.progname= "Execute"
     unless batch[:operations].blank?
@@ -116,6 +116,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 #	    puts batch.to_json
 #	  logger.error{e.response}
 	  logger.error{sentence}
+	  logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
 #	  logger.error{e.message.to_s}
 	  else 
 	    raise
@@ -125,6 +126,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
       if response.present? && response.code == 200
         if response.body['result'].present?
           result= JSON.parse(response.body)['result']
+	  return result if raw.present?
           result.map do |x|
             if x.is_a? Hash
               if x.has_key?('@class')

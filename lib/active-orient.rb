@@ -25,7 +25,7 @@ module OrientDB
    # RidBag		  = nil
    # RecordSet             = nil
   end
-end
+end  # module OrientDB
 require_relative "support.rb"
 require_relative "base.rb"
 require_relative "base_properties.rb"
@@ -41,10 +41,17 @@ require_relative "other.rb"
 require_relative "rest/rest.rb"
 require_relative "model/model.rb"
 require 'active_support/core_ext/string' # provides blank?, present?, presence etc
+require_relative 'init.rb'
+# create Base Classes
+require_relative "model/edge.rb"
+require_relative "model/vertex.rb"
 
 module  ActiveOrient
 mattr_accessor :database
 mattr_accessor :database_classes
 mattr_accessor :default_server
+
+
+
 end
 

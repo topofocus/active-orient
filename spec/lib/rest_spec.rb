@@ -69,13 +69,13 @@ describe ActiveOrient::OrientDB do
 
   describe "handle Properties at Class-Level"  do
     before(:all) do
-      ORD.create_classes [ :Contract, :Exchange, 'property' ]
+      ORD.create_classes [ :Contract, :exchange, 'property' ]
     end
 #    before(:each){ ActiveOrient::Model::Property.delete_class; 	Property = DB.create_class 'property' }
-    before(:each){ ORD.delete_class 'property'; ORD.create_class 'property' }
+    before(:each){ Property.delete_class; ORD.create_class 'property' }
     # after(:all){ DB.delete_class 'property' }
     let( :predefined_property ) do
-      rp = ORD.create_properties( ActiveOrient::Model::Property,
+      rp = ORD.create_properties( Property,
 				 symbol: { propertyType: 'STRING' },
 				 con_id: { propertyType: 'INTEGER' } ,
 				 exchanges: { propertyType: 'LINKLIST', linkedClass: :Exchange } ,
@@ -107,17 +107,16 @@ describe ActiveOrient::OrientDB do
     end
 
     it "define a property with manual index" do
+      ORD.create_classes :Contract, :industry
       predefined_property
-      contracts = ORD.create_class :contract
-      industries = ORD.create_class :industry
-      rp = ORD.create_properties( contracts,
+      rp = ORD.create_properties( Contract,
 				 { symbol: { type: :string },
        con_id: { type: :integer } ,
-       industry: { type: :link, linkedClass: 'Industry' }  } ) do
+       industry: { type: :link, linkedClass: 'industry' }  } ) do
 	 { test_ind: :unique }
        end
-       expect( ORD.get_class_properties(contracts)['indexes'] ).to have(1).item
-       expect( ORD.get_class_properties(contracts)['indexes'].first).to eq(
+       expect( ORD.get_class_properties(Contract)['indexes'] ).to have(1).item
+       expect( ORD.get_class_properties(Contract)['indexes'].first).to eq(
 	 {	"name"	  =>  "test_ind", 
 		"type"	  =>  "UNIQUE", 
 		"fields"  =>  ["symbol", "con_id", "industry"] } )

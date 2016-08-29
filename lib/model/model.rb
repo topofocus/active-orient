@@ -59,7 +59,7 @@ Deletes the database class and removes the ruby-class
 			      # i.e. creation and deleting of classes and databases
     mattr_accessor :db	      # points to the instance of the Client used for Database-Queries
     mattr_accessor :api
-    mattr_accessor :logger
+#    mattr_accessor :logger  ... already inherented from ::Base
     mattr_accessor :namespace # Namespace in which  Model records are initialized, a constant ( defined in config.yml )
     mattr_accessor :model_dir # path to model-files
 
@@ -68,7 +68,7 @@ Deletes the database class and removes the ruby-class
     attr_reader :metadata
 
     # provides an accessor at class level 
-    # it unique on all instances 
+    # its unique on all instances 
       class << self
 	    attr_accessor :ref_name
 	    attr_accessor :abstract

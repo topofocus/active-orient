@@ -74,11 +74,12 @@ def allocate_classes_in_ruby classes  # :nodoc:
     generate_ruby_object = ->( name, superclass, abstract ) do
       begin
 	# if the class is prefined, use specs from get_classes
-	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name }
+	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name.to_s }
 	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
-      #print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
+    #  print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
+	 m.ref_name = name.to_s
      # puts "-->  #{m.object_id}"
 	 m
       rescue NoMethodError => w
@@ -100,7 +101,7 @@ def allocate_classes_in_ruby classes  # :nodoc:
 			    else
 			      [nil,false]
 			    end
-    superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
+    #superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
 
     consts = case classes 
     when  Array
