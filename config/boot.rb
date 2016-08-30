@@ -5,12 +5,14 @@ if RUBY_VERSION == 'java'
 end
 project_root = File.expand_path('../..', __FILE__)
 require "#{project_root}/lib/active-orient.rb"
-
+# mixin for define_namespace 
+include ActiveOrient::Init
 begin
   connect_file = File.expand_path('../../config/connect.yml', __FILE__)
   config_file = File.expand_path('../../config/config.yml', __FILE__)
   connectyml  = YAML.load_file( connect_file )[:orientdb][:admin] if connect_file.present?
   configyml  = YAML.load_file( config_file )[:active_orient] if config_file.present?
+  databaseyml   = YAML.load_file( connect_file )[:orientdb][:database] if connect_file.present?
 rescue Errno::ENOENT => e
   ActiveOrient::Base.logger = Logger.new('/dev/stdout')
   ActiveOrient::OrientDB.logger.error{ "config/connectyml not present"  }
@@ -29,28 +31,11 @@ env =  if e =~ /^p/
 puts "Using #{env}-environment"
 
 ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
-      ActiveOrient::Model.namespace = if @namespace.nil? 
-					if env == 'test'
-					  Object
-					else
-					  n= configyml.present? ? configyml[:namespace] : :self
-					  case n
-					  when :self
-					    ActiveOrient::Model
-					  when :object
-					    Object
-					  when :active_orient
-					    ActiveOrient
-					  end
-					end
-				      else
-					@namespace
 
-				      end
-#todo
-#ActiveOrient::Init.define_namespace
+# lib/init.rb
+define_namespace yml: configyml, namespace: @namespace
 
-databaseyml   = YAML.load_file( connect_file )[:orientdb][:database]
+
 log_file =   if config_file.present?
 	       dev = YAML.load_file( connect_file )[:orientdb][:logger]
 	       if dev.blank? || dev== 'stdout'

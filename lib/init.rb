@@ -1,26 +1,25 @@
 module ActiveOrient
   module Init
 
-    def define_namespace  namespace=nil
-      ActiveOrient::Model.namespace = if namespace.nil? 
-					if env == 'test'
-					  Object
-					else
-					  n= configyml.present? ? configyml[:namespace] : :self
-					  case n
-					  when :self
-					    ActiveOrient::Model
-					  when :object
-					    Object
-					  when :active_orient
-					    ActiveOrient
-					  end
-					end
-				      else
-					namespace
+=begin
+Parameters: yml: hash from config.yml , namespace: Class to use as Namespace
 
+=end
+    def define_namespace  yml: {}, namespace: nil
+      ActiveOrient::Model.namespace = if namespace.present? 
+					namespace
+				      else
+					n= yml[:namespace].presence || :self
+					case n
+					when :self
+					  ActiveOrient::Model
+					when :object
+					  Object
+					when :active_orient
+					  ActiveOrient
+					end
 				      end
-    end # define namespace
+  end # define namespace
 
     def vertex_and_edge_class
       ORD.create_classes 'E', 'V'

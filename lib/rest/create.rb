@@ -63,6 +63,10 @@ creates a vertex-class Test and three clild-classes
   create_classes( :V => :test)
 
 creates a vertex-class, too, returns the Hash
+
+#todo
+#check if a similar classname already exists --> Contract == contract == conTract 
+#and assign to this existing one.
 =end
   def create_classes *classes, &b
     returt if classes.empty?
