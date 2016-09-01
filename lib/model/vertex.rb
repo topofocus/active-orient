@@ -1,4 +1,4 @@
-class V  < ActiveOrient::Model
+class V   < ActiveOrient::Model
   ## link to the library-class
   # create 
   # seems not to be nessesary as its identically to the universal create

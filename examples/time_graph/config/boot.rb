@@ -1,3 +1,7 @@
+## parameters
+## @namespace : Class on which ActiveOrient::Model's should base
+## @do_not_preallocate : avoid preallocation upon boot
+
 require 'bundler/setup'
 require 'yaml'
 require 'active-orient'
@@ -6,7 +10,8 @@ if RUBY_VERSION == 'java'
 end
 project_root = File.expand_path('../..', __FILE__)
 #require "#{project_root}/lib/active-orient.rb"
-require "#{project_root}/config/init_db.rb"
+# mixin for define_namespace 
+include ActiveOrient::Init
 
 # make shure that E and V are required first => sort by length
 models= Dir.glob(File.join( project_root, "model",'**', "*rb")).sort{|x,y| x.size <=> y.size }
@@ -34,20 +39,8 @@ env =  if e =~ /^p/
 puts "Using #{env}-environment"
 
 
-##in test-mode, always use ActiceOrient as Prefix for Model-classes
-ActiveOrient::Model.namespace = if env == 'test'
-				    Object
-				else
-				  n= configyml.present? ? configyml[:namespace] : :self
-				  case n
-				  when :self
-				    ActiveOrient::Model
-				  when :object
-				    Object
-				  when :active_orient
-				    ActiveOrient
-				  end
-				end
+# lib/init.rb
+define_namespace yml: configyml, namespace: @namespace
 
 ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
 puts "BOOT--> Project-Root:  #{project_root}"

@@ -54,37 +54,25 @@ create a single class and provide properties as well
 
 
 =begin
-  Creates classes and class-hierarchies in OrientDB and in Ruby.
-  Takes a String,  Array or Hash as argument and returns a (nested) Array of
-  successfull allocated Ruby-Classes.
-  If a block is provided, this is used to allocate the class to this superclass.
-
-  Examples
-
-    create_class  "a_single_class"
-    create_class  :a_single_class
-    create_class(  :a_single_class ){ :a_super_class }
-    create_class(  :a_single_class ){ superclass: :a_super_class, abstract: true }
-    create_class( ["c",:l,:A,:SS] ){ :V } --> vertices
-    create_class( ["c",:l,:A,:SS] ){ superclass: :V, abstract: true } --> abstract vertices
-    create_class( { V: [ :A, :B, C: [:c1,:c3,:c2]  ],  E: [:has_content, :becomes_hot ]} )
+AllocateClassesInRuby acts as a proxy to OrientdbClass,
+takes a classes-array as argument
 =end
-
 def allocate_classes_in_ruby classes  # :nodoc:
     generate_ruby_object = ->( name, superclass, abstract ) do
       begin
 	# if the class is prefined, use specs from get_classes
 	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name.to_s }
 	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
-    #  print "GENERATE_RUBY_CLASS: #{name} / #{superclass}"
+#      print "GENERATE_RUBY_CLASS: #{name} / #{superclass} \n"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
 	 m.ref_name = name.to_s
-     # puts "-->  #{m.object_id}"
+      #puts "-->  #{m.object_id}"
 	 m
       rescue NoMethodError => w
-	logger.progname = "Allocate_Classes_in_Ruby"
-	logger.error{ "Trying to redefine an existing class: #{name}: ALLOCATION FAILED "}
+	logger.progname = "ClassUtils#AllocateClassesInRuby"
+	logger.error{ w.message }
+	logger.error{ w.backtrace.map {|l| "  #{l}\n"}.join  }
 	nil
 #	raise
       end 

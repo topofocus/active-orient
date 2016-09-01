@@ -19,7 +19,11 @@ Parameters: yml: hash from config.yml , namespace: Class to use as Namespace
 					  ActiveOrient
 					end
 				      end
+      ## initialitze Edge and Vertex classes in the namespace
+#      ActiveOrient::Model.orientdb_class( name:"E", superclass: "").new
+#      ActiveOrient::Model.orientdb_class( name:"V", superclass: "").new
   end # define namespace
+
 
     def vertex_and_edge_class
       ORD.create_classes 'E', 'V'

@@ -29,6 +29,23 @@ module RestCreate
   end
 
   ######### CLASS ##########
+=begin
+  Creates classes and class-hierarchies in OrientDB and in Ruby.
+  Takes a String,  Array or Hash as argument and returns a (nested) Array of
+  successfull allocated Ruby-Classes.
+  If a block is provided, this is used to allocate the class to this superclass.
+
+  Examples
+
+    create_class  "a_single_class"
+    create_class  :a_single_class
+    create_class(  :a_single_class ){ :a_super_class }
+    create_class(  :a_single_class ){ superclass: :a_super_class, abstract: true }
+    create_class( ["c",:l,:A,:SS] ){ :V } --> vertices
+    create_class( ["c",:l,:A,:SS] ){ superclass: :V, abstract: true } --> abstract vertices
+    create_class( { V: [ :A, :B, C: [:c1,:c3,:c2]  ],  E: [:has_content, :becomes_hot ]} )
+=end
+
 
 =begin 
 General method to create database classes

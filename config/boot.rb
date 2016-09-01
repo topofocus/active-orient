@@ -59,8 +59,8 @@ logger.formatter = proc do |severity, datetime, progname, msg|
   "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{progname}:..:#{msg}\n"
 end
 ActiveOrient::Base.logger =  logger
-#ActiveOrient::Model.logger =  logger
 ActiveOrient::OrientDB.logger =  logger
+
 if connectyml.present? and connectyml[:user].present? and connectyml[:pass].present?
   ActiveOrient.default_server= { user: connectyml[:user], password: connectyml[:pass] ,
 				 server: 'localhost', port: 2480  }
@@ -80,7 +80,8 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
   # require model files after initializing the database
   require "#{project_root}/lib/model/edge.rb"
   require "#{project_root}/lib/model/vertex.rb"
-
+## attention: if the Egde- or Vertex-Base-Class is deleted (V.delte_class) the model-methods are gone.
+## After recreating the BaseClass by ORD.create_class('V'), the model-classes have to be loaded manually (require does not work))
 else
   ActiveOrient::Base.logger = Logger.new('/dev/stdout')
   ActiveOrient::OrientDB.logger.error{ "config/connectyml is  misconfigurated" }

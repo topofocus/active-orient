@@ -1,3 +1,6 @@
+# to do 
+# instead of creating a class, use a module which is included on startup
+# then, after specifying the namespace and before autoaccolating the database-classes create the proper E-Base-class and include this stuff
 class E  < ActiveOrient::Model
   ## link to the library-class
   class << self

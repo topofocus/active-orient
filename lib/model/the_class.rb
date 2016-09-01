@@ -26,42 +26,64 @@ To overwrite use
   end
 
 =begin
-  orientdb_class is used to instantiate a ActiveOrient:Model:{class} by providing its name
+  orientdb_class is used to create or refer a ActiveOrient:Model:{class} by providing its name
+
+  Parameter: name: string or symbol
+  Parameter: superclass: If class, then this is used unmodified
+			 If string or symbol, its used to reference an existing class
+			 if :find_ME, its derived from the classes-hash
+  Attention: If a class is created by orientdb_class, its only allocated in ruby-space.
+	     The class is thus not present in the classes-array, which reflects the database-classes.
+	     If a class depending on a superclass is to be created, the superclass is derived from
+	     the classes-array. In such a case, the allocation only works, if the class itself is
+	     used as parameter "superclass" 
+	     i.e.
+	     ActiveOrient::Model.orientdb_class name: 'hurra'
+	     AvtiveOrient::Model.orientdb_class name: 'hip_hip' , superclass: Hurra
 =end
 
   def orientdb_class name:, superclass: nil   # :nodoc:    # public method: autoload_class
-    return if name.nil?
     logger.progname = "ModelClass#OrientDBClass"
-    i=0
+    # @s-class is a cash for actual String -> Class relations
+    @s_class = HashWithIndifferentAccess.new( V: V, E: E) unless @s_class.present?
+
+    update_my_array = ->(s) { @s_class[s.ref_name] = s unless @s_class[s.ref_name].present? }
+    get_class =  ->(n) { @s_class[n] }
+
+
     ref_name =  name.to_s
-    superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
     klass = if superclass.present?   # superclass is parameter, use if class, otherwise transfer to class
-	      superclass = self.orientdb_class( name: superclass ) unless superclass.is_a? Class
-	      Class.new(superclass)
+	      s= if superclass.is_a? Class
+		   namespace.send( :const_get, superclass.to_s )
+		 else
+		   superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
+		   if superclass.present?
+		     namespace.send( :const_get, get_class[superclass].to_s )
+		   else
+		     self
+		   end
+		 end
+	      Class.new(s)
 	    else
 	      Class.new(self)
 	    end
-
     # namespace is defined in config/boot
     name = klass.naming_convention ref_name #
     if namespace.send :const_defined?, name
       retrieved_class = namespace.send :const_get, name
     else
+
       new_class = namespace.send :const_set, name, klass
-      new_class.orientdb = orientdb
       new_class.ref_name =  ref_name
+      update_my_array[new_class]
 #      logger.debug{"created:: Class #{new_class} < #{new_class.superclass} "}
 #      logger.debug{"database-table:: #{ref_name} "}
       new_class # return_value
     end
   rescue NameError => e
-    #if i.zero?
-    #  self.orientdb_class( name: superclass )
-    #  i += 1
-    #  retry
-    #else
       logger.error "ModelClass #{name.inspect} cannot be initialized."
-      logger.error e.inspect
+      logger.error e.message
+      logger.error e.backtrace.map {|l| "  #{l}\n"}.join  
       nil  # return_value
     #end
   end
@@ -95,7 +117,7 @@ def require_model_file
   if File.exists?( ActiveOrient::Model.model_dir )
     model= model.flatten.last if model.is_a?( Array )
     filename =   ActiveOrient::Model.model_dir + "/" + self.to_s.underscore + '.rb'
-#    puts "REQUIRE_MODEL_FILE: #{self.to_s} <-- #{self.superclass}"
+    puts "REQUIRE_MODEL_FILE: #{self.to_s} <-- #{self.superclass}"
     if  File.exists?(filename )
       if load filename
 	logger.info{ "#{filename} sucessfully loaded"  }

@@ -71,9 +71,15 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
     r.size == 1 ? r.pop : r  # returns the created classes as array if multible classes are provided
   end
 
+=begin
+Service-Method for Model#OrientdbClass
+=end
+
   def get_db_superclass name
     @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
-    @actual_class_hash.find{|x,y|  x['name'] == name.to_s }['superClass']
+   z= @actual_class_hash.find{|x,y|  x['name'] == name.to_s }
+   z['superclass'] unless z.nil?
+
   end
 
 =begin
@@ -81,11 +87,11 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
 =end
  def preallocate_classes
    #  first fetch all non-system-classes
-    io = class_hierarchy 
+#    io = class_hierarchy 
   # allocate them and call require_model_file on each model
     # if something goes wrong, allocate_classes_in_ruby returns nil, thus compact prevents
     # from calling NilClass.require_model_file
-    allocate_classes_in_ruby(io).flatten.compact.each &:require_model_file
+    allocate_classes_in_ruby(class_hierarchy).flatten.compact.each &:require_model_file
  end
 
 end # module
