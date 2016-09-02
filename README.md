@@ -126,6 +126,12 @@ A »normal« Query is submitted via
 
 ```
 
+To update several records, a class-method »update_all« is defined.
+```ruby
+  M.update_all connected: false   	# add a property »connected» to each record
+  M.update_all set:{ connected: true },  where: "symbol containsText 'S'" 
+```
+
 Graph-support:
 
 ```ruby
