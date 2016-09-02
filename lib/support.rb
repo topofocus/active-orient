@@ -43,6 +43,8 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
           "#{key} = #{value}"
 	      when Array
 		"#{key}= #{value.to_orient}"
+	      when DateTime
+		"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
 	      when Date
 		"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
 	      else #  String, Symbol, Time, Trueclass, Falseclass ...

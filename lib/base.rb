@@ -132,6 +132,19 @@ The model instance fields are then set automatically from the opts Hash.
       attrs.keys.each{|key| self.send("#{key}=", attrs[key])}
     end
 
+    def my_metadata key: nil, symbol: nil
+      if @metadata[:fieldTypes].present?  
+	meta= Hash[ @metadata['fieldTypes'].split(',').map{|x| x.split '='} ]
+	if key.present?
+	  meta[key.to_s]
+	elsif symbol.present?
+	  meta.map{|x,y| x if y == symbol.to_s }.compact
+	else
+	  meta
+	end
+      end
+    end
+
 =begin
   ActiveModel-style read/write_attribute accessors
   Autoload mechanism and data conversion are defined in the method "from_orient" of each class
@@ -139,8 +152,12 @@ The model instance fields are then set automatically from the opts Hash.
 
     def [] key
       iv = attributes[key.to_sym]
-      if @metadata[:fieldTypes].present? && @metadata[:fieldTypes].include?(key.to_s+"=t")
+#      puts my_metadata( key: key) 
+       if my_metadata( key: key) == "t"
+#	puts "time detected"
 	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
+      elsif my_metadata( key: key) == "x"
+	iv = ActiveOrient::Model.autoload_object iv
       elsif iv.is_a? Array
 	  OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
      elsif iv.is_a? Hash

@@ -343,7 +343,7 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
 
   def custom_where search_string
     q = OrientSupport::OrientQuery.new from: self, where: search_string
-    puts q.compose
+    #puts q.compose
     query_database q
   end
   def where **attributes 

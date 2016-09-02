@@ -205,12 +205,15 @@ alias delete remove
     obj = ActiveOrient::Model::Contracts.first
     obj.name =  'new_name'
     obj.update set: { yesterdays_event: 35 }
+ ** note: The keyword »set« is optional
 =end
 
-  def update set: {}
+  def update set: {}, **args
     logger.progname = 'ActiveOrient::Model#Update'
     self.attributes.merge!(set) if set.present?
-    self.attributes['updated_at'] =  Time.new
+    self.attributes.merge!(args) if args.present?
+    self.attributes['updated_at'] =  DateTime.new
+    if rid.rid?
     updated_dataset = db.update self, attributes, @metadata[:version]
     # if the updated dataset changed, drop the changes made siently
     if updated_dataset.is_a? ActiveOrient::Model
@@ -220,12 +223,14 @@ alias delete remove
     logger.error("Version Conflict: reloading database values")
     reload!
     end
+    end
 
   end
 
-# mocking active record
+# mocking active record, overrides the base-class-method
   def update_attribute the_attribute, the_value
     update set: {the_attribute => the_value }
+    super the_attribute, the_value
   end
 
   def update_attributes **args

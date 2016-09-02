@@ -54,8 +54,7 @@ module ActiveOrient
 # Default attributes support
 
     def default_attributes
-      {:created_at => Time.now,
-       :updated_at => Time.now}
+      {:created_at => DateTime.now }
     end
 
     def set_attribute_defaults # :nodoc:
@@ -138,7 +137,7 @@ module ActiveOrient
       end
 
       unless defined?(ActiveRecord::Base) && ancestors.include?(ActiveRecord::Base)
-        prop :created_at, :updated_at
+        prop :created_at #, :updated_at
       end
 
     end # included
