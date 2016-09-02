@@ -5,8 +5,6 @@ if RUBY_VERSION == 'java'
 end
 project_root = File.expand_path('../..', __FILE__)
 require "#{project_root}/lib/active-orient.rb"
-# mixin for define_namespace 
-include ActiveOrient::Init
 begin
   connect_file = File.expand_path('../../config/connect.yml', __FILE__)
   config_file = File.expand_path('../../config/config.yml', __FILE__)
@@ -33,7 +31,7 @@ puts "Using #{env}-environment"
 ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
 
 # lib/init.rb
-define_namespace yml: configyml, namespace: @namespace
+ActiveOrient::Init.define_namespace yml: configyml, namespace: @namespace
 
 
 log_file =   if config_file.present?

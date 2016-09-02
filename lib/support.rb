@@ -304,15 +304,17 @@ end
     def from arg = nil
       if arg.present?
 	@database = case arg
-		    when ActiveOrient::Model
+		    when ActiveOrient::Model   # a single record
 		      arg.rrid
-		    when OrientQuery
+		    when OrientQuery	      # result of a query
 		      ' ( '+ arg.to_s + ' ) '
+		    when Class
+		      arg.ref_name
 		    else
-		      if arg.to_s.rid?
+		      if arg.to_s.rid?	  # a string with "#ab:cd"
 			arg
-		      else
-			ORD.classname(arg)
+		      else		  # a databas-class-name
+			arg.to_s  
 		      end
 		    end
 	compose  # return the complete query

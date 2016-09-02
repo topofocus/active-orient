@@ -180,9 +180,33 @@ otherwise update it. It returns the freshly instantiated Objects
   end
 
   alias update_or_create_documents update_or_create_records
-  alias create_or_update_document upsert
-  alias update_or_create upsert
 
+=begin
+Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
+
+  IB::Account.update_all connected: false
+  IB::Account.update_all where: "account containsText 'F'", set:{ connected: false }
+
+**note: By calling UpdateAll, all records of the Class previously stored in the rid-cache are removed from the cache. Thus autoload gets the updated records.
+=end
+
+  def update_all where: {} , set: {},  **arg
+    logger.progname = 'RestChange#PatchRecord'
+    if where.empty?
+      set.merge! arg
+    end
+    r = db.update_records  self, set: set, where: where
+    count_of_updated_records = (JSON.parse( r))['result'].first['value']
+    ## remove all records of the class from cache
+    if count_of_updated_records > 0 
+      ActiveOrient::Base.display_rid.delete_if{|x,y| y.is_a? self }
+    end
+    count_of_updated_records
+
+  rescue Exception => e
+    logger.error{e.message}
+    nil
+  end
 
 =begin
   Create a Property in the Schema of the Class

@@ -193,8 +193,6 @@ def remove
   ActiveOrient::Base.remove_rid self ##if is_edge? # removes the obj from the rid_store
 end
 
-## delete works for any model-class
-## it calls delete_record and does not check for dependencies
 alias delete remove
 
 ########### UPDATE ############
@@ -224,6 +222,16 @@ alias delete remove
     end
 
   end
+
+# mocking active record
+  def update_attribute the_attribute, the_value
+    update set: {the_attribute => the_value }
+  end
+
+  def update_attributes **args
+    update set: args
+  end
+
   ########## SAVE   ############
  
 =begin
