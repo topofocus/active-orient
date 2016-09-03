@@ -228,6 +228,16 @@ describe ActiveOrient::Model do
       expect{ TestModel.create  test: 45 }.to change { TestModel.count }
     end
 
+    it "specific datasets can be manipulated", focus: true do
+      expect( TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')).to eq 5
+      expect( TestModel.where( new_ds: 45 ) ).to have(5).elements
+    end
+
+    it "specific datasets can be removed", focus: true do
+       TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')
+      expect( TestModel.remove(  :new_ds , where: 'test = 42')).to eq 1
+      expect( TestModel.where( new_ds: 45 ) ).to have(4).elements
+    end
 
     it "creates an edge between two documents"  do
       node_1 = TestModel.where( test: 45 ).first

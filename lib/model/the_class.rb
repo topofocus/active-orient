@@ -191,21 +191,16 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
 =end
 
   def update_all where: {} , set: {},  **arg
-    logger.progname = 'RestChange#PatchRecord'
     if where.empty?
       set.merge! arg
     end
-    r = db.update_records  self, set: set, where: where
-    count_of_updated_records = (JSON.parse( r))['result'].first['value']
-    ## remove all records of the class from cache
-    if count_of_updated_records > 0 
-      ActiveOrient::Base.display_rid.delete_if{|x,y| y.is_a? self }
-    end
-    count_of_updated_records
+    db.update_records  self, set: set, where: where
 
-  rescue Exception => e
-    logger.error{e.message}
-    nil
+  end
+  #
+# removes a property from the collection (where given) or the entire class 
+  def remove attribute, where:{}
+    db.update_records self, remove: attribute, where: where
   end
 
 =begin
@@ -397,20 +392,6 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   end
 
 
-# Get the superclass of the class
-
-  def superClass
-    { superclass => superclass.ref_name }
-#    logger.progname = 'ActiveOrient::Model#Superclass'
-#    r = orientdb.get_classes('name', 'superClass').detect{|x|
-#      x["name"].downcase == new.class.to_s.downcase.split(':')[-1].to_s
-#    }['superClass']
-#    if r.empty?
-#      logger.info{"#{self} does not have any superclass. Probably it is a Document"}
-#    end
-#    return r
-  end
-
 =begin
   QueryDatabase sends the Query, direct to the database.
   The result is not nessessary an Object of self.
@@ -448,14 +429,6 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   alias delete_documents delete_records
 
 
-  ########### UPDATE #############
-
-# Update records of a class
-
-  def update_records set:, where:
-    db.update_records self, set: set, where: where
-  end
-  alias update_documents update_records
 
   ##################### EXPERIMENT #################
 
@@ -501,4 +474,6 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
     orientdb.alter_property self, property: property, attribute: attribute, alteration: alteration
   end
 
+
+  
 end
