@@ -85,13 +85,22 @@ Service-Method for Model#OrientdbClass
 =begin
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
- def preallocate_classes
+ def preallocate_classes from_model_dir= nil
    #  first fetch all non-system-classes
 #    io = class_hierarchy 
   # allocate them and call require_model_file on each model
     # if something goes wrong, allocate_classes_in_ruby returns nil, thus compact prevents
     # from calling NilClass.require_model_file
-    allocate_classes_in_ruby(class_hierarchy).flatten.compact.each &:require_model_file
+    all_classes = allocate_classes_in_ruby(class_hierarchy).flatten.compact
+    classes_with_model_files = all_classes.map do |x| 
+      success = x.require_model_file(from_model_dir) 
+      if ActiveOrient::Model.keep_models_without_file.nil? && success.nil? && ![E,V].include?(x)
+	logger.info{ "Database-Class #{x.name} is not asseccible, model file is missing "}
+       x.delete_class :only_ruby_space
+      end
+      success # return_value
+    end
+
  end
 
 end # module

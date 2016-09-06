@@ -47,9 +47,21 @@ Note: This function is not in ModelClass since it needs to use @@rid_store
 =begin
 Deletes the database class and removes the ruby-class 
 =end
-    def self.delete_class
-      orientdb.delete_class self
+    def self.delete_class what= :all
+      orientdb.delete_class(  self ) if what == :all  # remove the database-class
       ## namespace is defined in config/boot
+      ns =  namespace.to_s == 'Object' ? "" : namespace.to_s
+      ns_found = -> ( a_class ) do
+	to_compare = a_class.to_s.split(':')
+	if ns == "" && to_compare.size == 1 
+	  true
+	elsif to_compare.first == ns
+	  true
+	else
+	  false
+	end
+      end
+      self.allocated_classes.delete_if{|x,y| x == self.ref_name && ns_found[y]}  if allocated_classes.is_a?(Hash)
       namespace.send(:remove_const, naming_convention.to_sym)
     end
 
@@ -62,6 +74,8 @@ Deletes the database class and removes the ruby-class
 #    mattr_accessor :logger  ... already inherented from ::Base
     mattr_accessor :namespace # Namespace in which  Model records are initialized, a constant ( defined in config.yml )
     mattr_accessor :model_dir # path to model-files
+    mattr_accessor :keep_models_without_file  
+    mattr_accessor :allocated_classes
 
 #    mattr_accessor  :ref_name    
     # Used to read the metadata

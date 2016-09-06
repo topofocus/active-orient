@@ -45,10 +45,18 @@ To overwrite use
   def orientdb_class name:, superclass: nil   # :nodoc:    # public method: autoload_class
     logger.progname = "ModelClass#OrientDBClass"
     # @s-class is a cash for actual String -> Class relations
-    @s_class = HashWithIndifferentAccess.new( V: V, E: E) unless @s_class.present?
+    self.allocated_classes = HashWithIndifferentAccess.new( V: V, E: E) unless allocated_classes.present?
 
-    update_my_array = ->(s) { @s_class[s.ref_name] = s unless @s_class[s.ref_name].present? }
-    get_class =  ->(n) { @s_class[n] }
+    #update_my_array = ->(s) { self.allocated_classes[s.ref_name] = s unless allocated_classes[s.ref_name].present? }
+    update_my_array = ->(s) do
+      if  allocated_classes[s.ref_name].present? 
+#	puts "found ref_name: #{allocated_classes[s.ref_name]}"
+      else
+      self.allocated_classes[s.ref_name] = s 
+      end
+
+    end
+    get_class =  ->(n) { allocated_classes[n] }
 
 
     ref_name =  name.to_s
@@ -112,23 +120,27 @@ class does not reestablish the connection to the required model file.
 
 Actual only a flat directory is supported. However -the Parameter model has the format: [ superclass, class ]. Its possible to extend the method adress a model-tree.
 =end
-def require_model_file 
+def require_model_file  dir=nil
   logger.progname = 'ModelClass#RequireModelFile'
-  if File.exists?( ActiveOrient::Model.model_dir )
+  dir = dir.presence ||  ActiveOrient::Model.model_dir 
+  if File.exists?( dir )
     model= model.flatten.last if model.is_a?( Array )
-    filename =   ActiveOrient::Model.model_dir + "/" + self.to_s.underscore + '.rb'
-    puts "REQUIRE_MODEL_FILE: #{self.to_s} <-- #{self.superclass}"
+    filename =   dir + "/" + self.to_s.underscore + '.rb'
     if  File.exists?(filename )
       if load filename
 	logger.info{ "#{filename} sucessfully loaded"  }
+	self #return_value
       else
 	logger.error{ "#{filename} load error" }
+	nil #return_value
       end
     else
       logger.info{ "model-file not present: #{filename}" }
+      nil #return_value
     end
   else
-    logger.info{ "Directory #{ ActiveOrient::Model.model_dir  } not present " }
+    logger.info{ "Directory #{ dir  } not present " }
+    nil  #return_value
   end
 rescue TypeError => e
      puts "TypeError:  #{e.message}" 

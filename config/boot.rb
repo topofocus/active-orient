@@ -29,7 +29,7 @@ env =  if e =~ /^p/
 puts "Using #{env}-environment"
 
 ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
-
+ActiveOrient::Model.keep_models_without_file = true
 # lib/init.rb
 ActiveOrient::Init.define_namespace yml: configyml, namespace: @namespace
 

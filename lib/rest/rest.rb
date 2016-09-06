@@ -53,7 +53,7 @@ A Sample:
   initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
 =end
 
-    def initialize database: nil, connect: true, preallocate: true
+    def initialize database: nil, connect: true, preallocate: true, model_dir: nil
       self.logger = Logger.new('/dev/stdout') unless logger.present?
     #  self.default_server = {
     #    :server => 'localhost',
@@ -70,7 +70,8 @@ A Sample:
       database_classes # initialize @classes-array
       ActiveOrient::Model.orientdb = self 
       ActiveOrient::Model.db = self 
-      preallocate_classes  if preallocate
+      ActiveOrient::Model.keep_models_without_file ||= nil
+      preallocate_classes(model_dir)  if preallocate
 
     end
 

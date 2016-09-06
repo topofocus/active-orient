@@ -113,8 +113,8 @@ module RestRead
     begin
       logger.progname = 'RestRead#GetRecords'
   	  url = "/query/#{ActiveOrient.database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
-#	  puts "URL"
-#	  puts query.compose( destination: :rest).to_s
+	  puts "REST_READ#GET_RECORDS.URL"
+	  puts query.compose( destination: :rest).to_s
 #	  puts url.to_s
   	  response = @res[URI.encode(url)].get
 	  JSON.parse(response.body)['result'].map do |record|

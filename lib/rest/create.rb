@@ -312,6 +312,7 @@ The method returns the included or the updated dataset
 #   if what ==  :update
 #   do stuff with update
 # end
+# returns nil if no insert and no update was made, ie. the dataset is identical to the given attributes
 =end
   def upsert o_class, set: {}, where: {}   # :nodoc:   use Model#Upsert instead
     logger.progname = 'RestCreate#Upsert'
@@ -323,14 +324,12 @@ The method returns the included or the updated dataset
       specify_return_value =  block_given? ? "" : "return after @this"
       set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
       command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
-
-
-      #  puts "COMMAND: #{command} "
+    #    puts "COMMAND: #{command} "
       result = execute  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
 	[ { type: "cmd", language: 'sql', command: command}]
       end 
       result =result.pop if result.is_a? Array
-    #  puts "RESULT: #{result.inspect}, #{result.class}"
+      if result.is_a? Hash 
 	if result.has_key?('@class')
 	  if o_class.is_a?(Class) && o_class.new.is_a?(ActiveOrient::Model)
 	    o_class.new result
@@ -352,8 +351,10 @@ The method returns the included or the updated dataset
 	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
 	  raise ArgumentError
 	end
-
-      end
+      else
+	logger.debug{ "No Insert or Update nessesary \n #{command} " }
+    end
+    end
   end
   ############### PROPERTIES #############
 
@@ -402,8 +403,8 @@ The method returns the included or the updated dataset
     if block_given?# && count == all_properties_in_a_hash.size
       index = yield
       if index.is_a?(Hash)
-	  puts "index_class: #{o_class}"
-	  puts "index: "+index.inspect
+	 # puts "index_class: #{o_class}"
+	 # puts "index: "+index.inspect
 	if index.size == 1
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
 	else
@@ -448,7 +449,7 @@ The method returns the included or the updated dataset
     logger.progname = 'RestCreate#CreateIndex'
     begin
       c = classname o_class
-      puts "CREATE INDEX: class: #{c.inspect}"
+    #  puts "CREATE INDEX: class: #{c.inspect}"
       execute transaction: false do
     	  command = if on == :automatic
     		  "CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"

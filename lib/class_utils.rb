@@ -13,7 +13,7 @@ module ClassUtils
               name_or_class.ref_name
 #	      name_or_class.to_s.split('::').last
 	else
-	  name_or_class.to_s #.to_s.camelcase # capitalize_first_letter
+	  name_or_class.to_s.split(':').last #.to_s.camelcase # capitalize_first_letter
     end
     ## 16/5/31  : reintegrating functionality to check wether the classname is 
     #		  present in the database or not
@@ -60,10 +60,10 @@ takes a classes-array as argument
 def allocate_classes_in_ruby classes  # :nodoc:
     generate_ruby_object = ->( name, superclass, abstract ) do
       begin
-	# if the class is prefined, use specs from get_classes
+	# if the class is predefined, use specs from get_classes
 	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name.to_s }
 	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
-#      print "GENERATE_RUBY_CLASS: #{name} / #{superclass} \n"
+      #print "GENERATE_RUBY_CLASS: #{name} / #{superclass} \n"
 	 m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
 	 m.abstract = abstract
 	 m.ref_name = name.to_s
@@ -109,7 +109,6 @@ def allocate_classes_in_ruby classes  # :nodoc:
     when String, Symbol
       generate_ruby_object[classes,superclass, abstract]
     end
-#    consts.unshift superclass_object if superclass_object.present?  rescue [ superclass_object, consts ]
     consts
 end
 =begin

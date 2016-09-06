@@ -14,7 +14,7 @@ Creates individual indices for child-classes if applied to the class itself.
   def  uniq_index
     create_property  :in,  type: :link, linked_class: :V
     create_property  :out, type: :link, linked_class: :V
-    create_index "#{self.name}_idx", on: [ :in, :out ]
+    create_index "#{ref_name}_idx", on: [ :in, :out ]
   end
 =begin
   Instantiate a new Edge between two Vertices 

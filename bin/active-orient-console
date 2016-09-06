@@ -27,7 +27,7 @@ puts '-'* 35
 
 puts ORD.class_hierarchy.to_yaml
 
-
+puts ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n")
 include OrientDB
 
 require 'irb'
