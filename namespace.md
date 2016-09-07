@@ -73,16 +73,16 @@ As a result something like this appears:
 
 ```
 DB-Class  -> Ruby-Object
-V ->  V
-E ->  E
-contract ->  IB::Contract
-bag		->  IB::Bag
-forex		->  IB::Forex
-future		->  IB::Future
-option		->  IB::Option
-stock		->  IB::Stock
-account		->  IB::Account
-bar		->  IB::Bar
+		V ->  V
+		E ->  E
+contract ->  		IB::Contract
+bag				->  IB::Bag
+forex			->  IB::Forex
+future			->  IB::Future
+option			->  IB::Option
+stock			->  IB::Stock
+account			->  IB::Account
+bar				->  IB::Bar
 contract_detail ->  IB::ContractDetail
 day_of	  ->  TG::DAY_OF
 time_of	  ->  TG::TIME_OF
