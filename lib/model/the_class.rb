@@ -57,16 +57,24 @@ To overwrite use
 
     end
     get_class =  ->(n) { allocated_classes[n] }
+    extract_namespace = -> (n) do
+      if get_class[n].present?
+	separated_class_parts = get_class[n].to_s.split(':') 
+	separated_class_parts.size >1 ?  separated_class_parts.first.constantize :  namespace
+      else
+	namespace
+      end
+    end
 
 
     ref_name =  name.to_s
     klass = if superclass.present?   # superclass is parameter, use if class, otherwise transfer to class
 	      s= if superclass.is_a? Class
-		   namespace.send( :const_get, superclass.to_s )
+		   extract_namespace[name].send( :const_get, superclass.to_s )
 		 else
 		   superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
 		   if superclass.present?
-		     namespace.send( :const_get, get_class[superclass].to_s )
+		     extract_namespace[name].send( :const_get, get_class[superclass].to_s )
 		   else
 		     self
 		   end
@@ -76,12 +84,13 @@ To overwrite use
 	      Class.new(self)
 	    end
     # namespace is defined in config/boot
+    this_namespace =   extract_namespace[ref_name]
     name = klass.naming_convention ref_name #
-    if namespace.send :const_defined?, name
-      retrieved_class = namespace.send :const_get, name
+    if this_namespace.send :const_defined?, name
+      retrieved_class = this_namespace.send :const_get, name
     else
 
-      new_class = namespace.send :const_set, name, klass
+      new_class = this_namespace.send :const_set, name, klass
       new_class.ref_name =  ref_name
       update_my_array[new_class]
 #      logger.debug{"created:: Class #{new_class} < #{new_class.superclass} "}
