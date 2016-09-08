@@ -28,6 +28,10 @@ puts '-'* 35
 puts ORD.class_hierarchy.to_yaml
 
 puts ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n")
+puts '-'* 35
+puts "To connect to the TWS use » IB::Gateway.new  connect: true «"
+puts "Then IB::Gateway.tws is the current tws-instance."
+
 include OrientDB
 
 require 'irb'

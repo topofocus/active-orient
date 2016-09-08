@@ -34,15 +34,15 @@ Creates individual indices for child-classes if applied to the class itself.
     new_edge # returns the created edge (or an array of created edges
   end
 
-  # to do
-  # def delete
-  # delete an edge (as class method) 
-  # and 
-  # def remove
-  # delete an edge (as instance method)
-  #
-  def delete where: attributes
-    puts "work in progress"
+=begin
+Edge#delete fires a "delete edge" command to the database.
+The where statement can be empty ( "" or {}"), then all edges are removed 
+
+The rid-cache is reseted, too
+=end
+  def delete where: 
+    db.execute { "delete edge #{ref_name} #{db.compose_where(where)}" }
+    reset_rid_store
   end
   
   # remove works on record-level

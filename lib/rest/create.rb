@@ -231,6 +231,9 @@ creates a vertex-class, too, returns the Hash
       logger.error{response['content'].split(':')[1..-1].join(':')}
       logger.error{"No Object allocated"}
       nil # return_value
+    rescue Errno::EADDRNOTAVAIL => e
+      sleep(2)
+      retry
     end
   end
   alias create_document create_record

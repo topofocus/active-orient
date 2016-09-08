@@ -1,6 +1,16 @@
 class V   < ActiveOrient::Model
   ## link to the library-class
+ 
+=begin
+Vertex#delete fires a "delete edge" command to the database.
+The where statement can be empty ( "" or {}"), then all vertices are removed 
 
+The rid-cache is reseted, too
+=end
+  def self.delete where: 
+    db.execute { "delete vertex #{ref_name} #{db.compose_where(where)}" }
+    reset_rid_store
+  end
 =begin
 retrieves  connected edges
 

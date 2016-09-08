@@ -90,6 +90,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
   def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil # Set up for classes
     batch = {transaction: transaction, operations: yield}
     logger.progname= "Execute"
+#    puts "batch: #{batch[:operations]}"
     unless batch[:operations].blank?
       batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
@@ -122,6 +123,9 @@ Multible statements are transmitted at once if the Block provides an Array of st
 	    raise
 	  end
 	end 
+      rescue Errno::EADDRNOTAVAIL => e
+	sleep(2)
+	retry
       end
       if response.present? && response.code == 200
         if response.body['result'].present?

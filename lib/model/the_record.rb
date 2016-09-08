@@ -212,17 +212,19 @@ alias delete remove
     logger.progname = 'ActiveOrient::Model#Update'
     self.attributes.merge!(set) if set.present?
     self.attributes.merge!(args) if args.present?
-    self.attributes['updated_at'] =  DateTime.new
+    self.attributes['updated_at'] =  DateTime.now
     if rid.rid?
-    updated_dataset = db.update self, attributes, @metadata[:version]
-    # if the updated dataset changed, drop the changes made siently
-    if updated_dataset.is_a? ActiveOrient::Model
-    self.version =  updated_dataset.version
-    updated_dataset # return_value
+      updated_dataset = db.update self, attributes, @metadata[:version]
+      # if the updated dataset changed, drop the changes made siently
+      if updated_dataset.is_a? ActiveOrient::Model
+	self.version =  updated_dataset.version
+	updated_dataset # return_value
+      else
+	logger.error("Version Conflict: reloading database values")
+	reload!
+      end
     else
-    logger.error("Version Conflict: reloading database values")
-    reload!
-    end
+      save 
     end
 
   end
@@ -250,7 +252,7 @@ def save
   if rid.rid?
     update
   else
-     db_object=  DB.create_record  self, attributes: attributes 
+     db_object=  orientdb.create_record  self, attributes: attributes 
      @metadata[:cluster], @metadata[:record] = db_object.rid[0,db_object.rid.size].split(':').map( &:to_i)
      reload! db_object
   end

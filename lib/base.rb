@@ -41,6 +41,10 @@ module  ActiveOrient
       @@rid_store[rid] 
     end
 
+    def self.reset_rid_store
+      @@rid_store = Hash.new
+    end
+
     def self.store_rid obj
       if obj.rid.present? && obj.rid.rid?
 	  # return the presence of a stored object as true by the block
