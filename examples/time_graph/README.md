@@ -28,14 +28,14 @@ The following hierarchy is build:
 
 ```ruby
 - E				# ruby-class
-- - month_of		      TG::MONTH_OF
+- - month_of		  TG::MONTH_OF
 - - day_of		      TG::DAY_OF
 - - time_of		      TG::TIME_OF
 - V
-- - time_base		      TG::TimeBase
+- - time_base		  TG::TimeBase
 - - - jahr		      TG::Jahr
 - - - monat		      TG::Monat
-- - - stunde		      TG::Stunde
+- - - stunde		  TG::Stunde
 - - - tag		      TG::Tag
 ```
 And this Graph is realized
@@ -46,7 +46,7 @@ Jahr -- [Month_of] -- Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
 and populated by calling 
 
 ```ruby
-TG::CreateTime.populate_month( a year or a range )  # default: 1900 .. 2050
+TG::CreateTime.populate( a year or a range )  # default: 1900 .. 2050
 ```
 If only on year is specified, a Monat--Tag--Stunde-Grid is build, otherwise a Jahr--Monat--Tag one.
 You can check the Status by counting the records of the Classes
