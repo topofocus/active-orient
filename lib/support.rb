@@ -41,8 +41,10 @@ designs a list of "Key =  Value" pairs combined by "and" or the fillword provide
 		"#{key} = #{value.rrid}"
 	      when Numeric
           "#{key} = #{value}"
-	      when Array
-		"#{key}= #{value.to_orient}"
+	      when ::Array
+		"#{key} in [#{value.to_orient}]"
+	      when Range
+		"#{key} between #{value.first} and #{value.last} " 
 	      when DateTime
 		"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
 	      when Date
@@ -423,8 +425,6 @@ end
       unless @order.empty?
 	# the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
 	"order by " << [@order].flatten.map do |o|
-	  #puts "CLASS : "+o.class.to_s
-	  #puts o.to_s
 	  case o
 	  when String, Symbol, Array
 	    o.to_s

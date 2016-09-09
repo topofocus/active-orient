@@ -55,6 +55,7 @@ The change is transmitted to the database immediately
     end
 
     def [] *arg
+      #puts "ARG #{arg}"
       super
     end
 
@@ -93,12 +94,11 @@ The change is transmitted to the database immediately
     end
 
     def method_missing *args
-      begin
-        map{|x| x.send args.first}
+      
+        map{|x| x.send *args }
       rescue NoMethodError => e
         logger.progname = "OrientSupport::Array#MethodMissing"
         logger.error{"Undefined method: #{e.message}"}
-      end
     end
 
   end #Class

@@ -1,9 +1,10 @@
 # Execute with 
 #  ActiveOrient::OrientSetup.init_database
 #
-module ActiveOrient
-  module OrientSetup
+module TG 
+  module Setup
     def self.init_database
+      ActiveOrient::Init.define_namespace { TG }
       (logger= ActiveOrient::Base.logger).progname= 'OrientSetup#InitDatabase'
       vertexes =  ORD.class_hierarchy base_class: 'time_base'
 						# because edges are not resolved because of the namingconvention
@@ -28,14 +29,14 @@ module ActiveOrient
       #ActiveOrient::Init.vertex_and_egde_class
       ORD.create_vertex_class :time_base		      # --> TimeBase
       # hour, day: month cannot be alloacated, because Day is a class of DateTime and thus reserved
-      time_base_classes = ORD.create_classes( :stunde, :tag, :monat ){ :time_base } # --> Hour, Day, Month
+      time_base_classes = ORD.create_classes( :stunde, :tag, :monat, :jahr ){ TimeBase } # --> Hour, Day, Month
       TimeBase.create_property :value_string, type: :string  
       TimeBase.create_property :value, type:  :integer 						
       ## this puts an uniqe index on child-classes
       #time_base_classes.each{|y| y.create_index :value }
       
       # modified naming-convention in  model/e.rb
-      edges = ORD.create_edge_class :time_of, :day_of	     # --> TIME_OF, :DAY_OF
+      edges = ORD.create_edge_class :time_of, :day_of, :month_of	     # --> TIME_OF, :DAY_OF
       edges.each &:uniq_index
 
       ORD.database_classes  # return_value

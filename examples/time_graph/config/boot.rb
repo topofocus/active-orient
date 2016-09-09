@@ -11,7 +11,6 @@ end
 project_root = File.expand_path('../..', __FILE__)
 #require "#{project_root}/lib/active-orient.rb"
 # mixin for define_namespace 
-include ActiveOrient::Init
 
 # make shure that E and V are required first => sort by length
 models= Dir.glob(File.join( project_root, "model",'**', "*rb")).sort{|x,y| x.size <=> y.size }
@@ -40,7 +39,9 @@ puts "Using #{env}-environment"
 
 
 # lib/init.rb
-define_namespace yml: configyml, namespace: @namespace
+module TG
+end
+ActiveOrient::Init.define_namespace { TG }
 
 ActiveOrient::Model.model_dir =  "#{project_root}/#{ configyml.present? ? configyml[:model_dir] : "model" }"
 puts "BOOT--> Project-Root:  #{project_root}"

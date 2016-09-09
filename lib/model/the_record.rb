@@ -45,10 +45,15 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
   def query query
     
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    orientdb.execute do
+    result = orientdb.execute do
       sql_cmd[query.to_s]
     end
-  end
+    if result.is_a? Array
+      OrientSupport::Array.new work_on: self, work_with: result
+    else
+      result
+    end  # return value
+   end
 
 =begin
 queries the database starting with the current model-record.
@@ -309,16 +314,6 @@ How to handle other calls
       raise NameError
     end
   end
-  # rescue NameError => e
-  #   logger.progname = 'ActiveOrient::Model#MethodMissing'
-  #   if args.size == 1
-  #     logger.error{"Unknown Attribute: #{args.first} "}
-  #   else
-  #     logger.error{"Unknown Method: #{args.map{|x| x.to_s}.join(" / ")} "}
-  #   end
-  #   puts "Method Missing: Args: #{args.inspect}"
-  #   print e.backtrace.join("\n")
-  #   raise
 #end
 
 

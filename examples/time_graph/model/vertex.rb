@@ -1,1 +1,0 @@
-../../../lib/model/vertex.rb

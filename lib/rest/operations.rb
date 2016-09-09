@@ -129,7 +129,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
       end
       if response.present? && response.code == 200
         if response.body['result'].present?
-          result= JSON.parse(response.body)['result']
+          result=JSON.parse(response.body)['result']
 	  return result if raw.present?
           result.map do |x|
             if x.is_a? Hash

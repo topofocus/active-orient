@@ -2,17 +2,36 @@
 
 class Array
   def to_orient
-    map &:to_orient
+    map( &:to_orient).join(',')
   end
 
   def from_orient
     map &:from_orient
   end
 
-  def method_missing(method)
-    unless method == :to_hash || method == :to_str
+  def method_missing(method, *key)
+    #if method == :to_int
+    #  return self.first 
+    #else 
+
+    unless method == :to_hash || method == :to_str #|| method == :to_int
       return self.map{|x| x.public_send(method)}
+   # end
     end
+  end
+  # used to enable 
+  # def abc *key
+  # where key is a Range, an comma separated List or an item
+  # aimed to support #compose_where
+  def analyse
+    if first.is_a?(Range) 
+     first
+    elsif size ==1
+      first
+    else
+      self
+    end
+
   end
 end
 
@@ -165,6 +184,7 @@ class NilClass
   def from_orient
     nil
   end
+
 end
 
 class Numeric

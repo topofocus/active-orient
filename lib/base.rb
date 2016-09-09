@@ -175,9 +175,11 @@ The model instance fields are then set automatically from the opts Hash.
     end
 
     def []= key, val
+#      puts "here I am: #{key}, #{val}"
       val = val.rid if val.is_a?( ActiveOrient::Model ) && val.rid.rid?
       attributes[key.to_sym] = case val
 			       when Array
+#				 puts "I am an Array"
 				 if val.first.is_a?(Hash)
 				   v = val.map do |x|
 				     if x.is_a?(Hash)

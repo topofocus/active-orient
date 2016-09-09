@@ -17,92 +17,125 @@ To play around, start the console by
 The Database is initialized/resetted by calling
 
 ```ruby
-ActiveOrient::OrientSetup.init_database
+TG::Init.init_database
 ```
-
 This executes the code located in 'config/init_db.rb'
+
+After this, quit the console and start again.
+
 
 The following hierarchy is build:
 
 ```ruby
-- E
-- - day_of
-- - time_of
+- E				# ruby-class
+- - month_of		      TG::MONTH_OF
+- - day_of		      TG::DAY_OF
+- - time_of		      TG::TIME_OF
 - V
-- - time_base
-- - - monat
-- - - stunde
-- - - tag
+- - time_base		      TG::TimeBase
+- - - jahr		      TG::Jahr
+- - - monat		      TG::Monat
+- - - stunde		      TG::Stunde
+- - - tag		      TG::Tag
 ```
 And this Graph is realized
 
 ```ruby
-Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
+Jahr -- [Month_of] -- Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
 ```
 and populated by calling 
 
 ```ruby
-CreateTime.populate_month	# 1 One Month whith appropoiate Days and Hours
+TG::CreateTime.populate_month( a year or a range )  # default: 1900 .. 2050
 ```
-
-You can check the Status by counting the recods of the Classes
+If only on year is specified, a Monat--Tag--Stunde-Grid is build, otherwise a Jahr--Monat--Tag one.
+You can check the Status by counting the records of the Classes
 
 ```ruby
-Monat.count 		# 1
-Tag.count 			# 32
-Stunde.count		# 768
+TG::Jahr.count			# 151
+TG::Monat.count 		# 1812
+TG::Tag.count 			# 55152
+TG::Stunde.count		#
 ```
-which should be equal to the counts of the Edge-Classes DAY_OF and TIME_OF
+which should be equal to the counts of the Edge-Classes MONTH_OF, DAY_OF and TIME_OF
 
 In the Model-directory, customized methods simplify the usage of the graph.
 
 Some Examples:
+Assuming, you build a standard day-based grid
 
 ```ruby
-m =  Date.today.month  # current month
 
-Monat[m].tag.value
-=> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31] 
+include TG					# we can omit the TK prefix
 
-Monat[m].tag[9].stunde[9].value
-=> 9
+Jahr[2000]    # --> returns a single object
+=> #<TG::Jahr:0x00000004ced160 @metadata={"type"=>"d", "class"=>"jahr", "version"=>13, "fieldTypes"=>"out_month_of=g", "cluster"=>34, "record"=>101}, @d=nil, @attributes={"value"=>2000, "out_month_of"=>["#53:1209", "#54:1209", "#55:1209", "#56:1209", "#53:1210", "#54:1210", "#55:1210", "#56:1210", "#53:1211", "#54:1211", "#55:1211", "#56:1211"], "created_at"=>Fri, 09 Sep 2016 10:14:30 +0200}>
 
-Monat[month].tag[9].next.datum
- => "10.8.2016" 
 
-Stunde[9]					# [] is defined in model/timebase.rb
-=> An Array with Stunde-records 
-Stunde[9].datum				# datum is defined in model/stunde.rb
- => ["0.8.2016 9:00", "1.8.2016 9:00", "2.8.2016 9:00", "3.8.2016 9:00", "4.8.2016 9:00", "5.8.2016 9:00", "6.8.2016 9:00", "7.8.2016 9:00", "8.8.2016 9:00", "9.8.2016 9:00", "10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00", "13.8.2016 9:00", "14.8.2016 9:00", "15.8.2016 9:00", "16.8.2016 9:00", "17.8.2016 9:00", "18.8.2016 9:00", "19.8.2016 9:00", "20.8.2016 9:00", "21.8.2016 9:00", "22.8.2016 9:00", "23.8.2016 9:00", "24.8.2016 9:00", "25.8.2016 9:00", "26.8.2016 9:00", "27.8.2016 9:00", "28.8.2016 9:00", "29.8.2016 9:00", "30.8.2016 9:00", "31.8.2016 9:00"]
+Jahr[2000 .. 2005].value  # returns an array
+ => [2003, 2000, 2004, 2001, 2005, 2002] 
 
-Stunde[9][8 ..12].datum		# call datum on selected Stunde-records
- => ["8.8.2016 9:00", "9.8.2016 9:00", "10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00"] 
+Jahr[2000 .. 2005].monat(5..7).value  # returns the result of the month-attribute (or method)
+ => [[5, 6, 7], [5, 6, 7], [5, 6, 7], [5, 6, 7], [5, 6, 7], [5, 6, 7]] 
 
+Jahr[2000].monat(4, 7).tag(4, 15,24 ).datum  # adresses methods or attributes of the specified day's
+ => [["4.4.2000", "15.4.2000", "24.4.2000"], ["4.7.2000", "15.7.2000", "24.7.2000"]] 
+ ## unfortunatly »Jahr[2000 .. 2015].monat( 3,5 ).tag( 4 ..6 ).datum « does not fits now
+ ## instead »Jahr[2000..2015].map{|y| y.monat( 3,5 ).tag( 4 ..6 ).datum } « does the job.
 ```
 
-then you can assign appointments to these dates
+To filter datasets in that way, anything repersented is fetched from the database and works
+for small and large Grid's
+
+You can do neat ruby-array playings, too, which are limited to the usual sizes
+
+```ruby
+
+Tag[31][2..4].datum  # display three months with 31 days 
+ => ["31.10.1901", "31.1.1902", "31.5.1902"]
+
+```
+First, fetch all Tag-Objects with the Value 31. This is done by an ordinary  query, as defined in the 
+timebase model file. The result is an array of Tag-Objects. Then the  count of month since the first 
+Grid-Month can be queried by a second []-argument
+
+Not surprisingly, the first occurence of the day is not the earliest date in the grid. Its just the first one,
+fetched from the database.
+
+``` ruby
+Tag[1][1].datum
+=> "1.5.1900"    # Tag[1][0] correctly fetches "1.1.1900"
+Tag[1].last.datum
+ => "1.11.2050"
+ ## however, 
+Jahr[2050].monat(12).tag(1)  # exists:
+=> [["1.12.2050"]]
+```
+
 
 
 lets create a simple diary
 
 ```ruby
+include TG
+CreateTime.populate 2016
 ORD.create_vertex_class :termin
  => Termin
 ORD.create_edge_class   :date_of
  => DATE_OF
-DATE_OF.create from: Monat[m].tag[9].stunde[12], 
+DATE_OF.create from: Monat[8].tag(9).stunde(12), 
 	       to: Termin.create( short: 'Mittagessen', 
 				  long: 'Schweinshaxen essen mit Lieschen Müller', 
 				  location: 'Hofbauhaus, München' )
  => #<DATE_OF:0x0000000334e038 (..) @attributes={"out"=>"#21:57", "in"=>"#41:0", (..)}> 
 # create some regular events
 # attach breakfirst at 9 o clock from the 10th to the 21st Day in the current month
-DATE_OF.create from: Stunde[9][10..21], to: Termin.create( :short => 'Frühstück' )
+DATE_OF.create from: Monat[8].tag(10 .. 21).stunde( 9 ), to: Termin.create( :short => 'Frühstück' )
  => #<DATE_OF:0x000000028d5688 @metadata={(..) "cluster"=>45, "record"=>8}, 
 			      @attributes={"out"=>"#22:188", "in"=>"#42:0",(..)}>
 
 t = Termin.where short: 'Frühstück'
-t.in_time_of.out.first.datum
+t.in_date_of.out.first.datum
   => ["10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00", "13.8.2016 9:00", "14.8.2016 9:00", "15.8.2016 9:00", "16.8.2016 9:00", "17.8.2016 9:00", "18.8.2016 9:00", "19.8.2016 9:00", "20.8.2016 9:00", "21.8.2016 9:00"]
 
 

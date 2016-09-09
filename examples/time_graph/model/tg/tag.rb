@@ -1,5 +1,5 @@
 #ActiveOrient::Model.orientdb_class name: 'time_base', superclass: 'V'
-class  Tag  < TimeBase
+class  TG::Tag  < TG::TimeBase
 def monat
   in_day_of.out.value_string.first
 end
@@ -8,10 +8,14 @@ def die_stunde h
     h.to_i >0 && h.to_i<31 ? out_time_of[h].in : nil
   end
   
-
-  def stunde
+  def stunde *key
+    if key.empty?
     out_time_of.in
+    else
+    query( "select  expand (out_time_of.in[#{db.generate_sql_list 'value' => key.analyse}]) from #{rrid}  ")
+    end
   end
+
 
   def monat
     in_day_of.out.first
@@ -24,6 +28,7 @@ def die_stunde h
   end
 
   def datum
-    "#{ value}.#{monat.value}.#{Date.today.year}"
+    m = monat
+    "#{ value}.#{m.value}.#{m.jahr.value}"
   end
 end
