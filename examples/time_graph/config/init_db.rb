@@ -1,4 +1,4 @@
-# Execute with 
+# Execut with 
 #  ActiveOrient::OrientSetup.init_database
 #
 module TG 
@@ -16,11 +16,12 @@ module TG
 	logger.info{  "The Class: "+the_class.to_s }
 	the_class.delete_class
       end
-      
-      logger.info{ "  Deleting Class and Classdefinitions" }
-      vertexes.each{|v| delete_class[ v, :time_base ]}
-      delete_class[ :time_base, :V ] if defined?(TimeBase)
-      edges.each{|e| delete_class[ e, :E ] }
+      if defined?(TimeBase)
+	logger.info{ "  Deleting Class and Classdefinitions" }
+	vertexes.each{|v| delete_class[ v, :time_base ]}
+	delete_class[ :time_base, :V ] 
+	edges.each{|e| delete_class[ e, :E ] }
+      end
 
       logger.info{ "  Creating Classes " }
   ORD.create_classes 'E', 'V'
@@ -36,7 +37,7 @@ module TG
       #time_base_classes.each{|y| y.create_index :value }
       
       # modified naming-convention in  model/e.rb
-      edges = ORD.create_edge_class :time_of, :day_of, :month_of	     # --> TIME_OF, :DAY_OF
+      edges = ORD.create_edge_class :time_of, :day_of, :month_of, :grid_of	     # --> TIME_OF, :DAY_OF
       edges.each &:uniq_index
 
       ORD.database_classes  # return_value

@@ -1,14 +1,33 @@
-#Example: Time Graph
+# Time Graph
 
 The bin-directory contains a customized console-application. 
 Any libraries are included and one can start exploring the features immediately.
 
 *Prerequisites* : 
-* Edit the Gemfile, update the pathes to include the orientdb_jruby an d activeorient gem
+* Edit the Gemfile, update the paths to include the orientdb_jruby and activeorient gem
 * Run "Bundle install" and "Bundle update"
 * customize config/connect.yml
 
-There is a rspec-section, run "bundle exec guard", edit the spec-files and start the test by saving the dataset.
+**or** start a new project
+include the provided gem in the gemfile:
+ ```
+## change here to the location of ActiveOrient
+ gem 'active-orient' , :path => '/home/topo/activeorient'
+ gem 'orientdb_time_graph', :path => '/home/topo/activeorient/examples/time_graph'
+```
+To start note:
+```
+require 'bundler/setup'
+require 'orientdb_time_graph'
+
+TG.set_defaults { user: 'xx', password: 'xxx', database: 'xyz' } 
+TG.connect
+ActiveOrient::Init.define_namespace { Object }
+ORD = ActiveOrient::OrientDB.new  preallocate:  true
+
+```
+The time-graph acts as a service, classes are encasulated in the TG-namespace.
+
 
 To play around, start the console by
   cd bin
@@ -28,17 +47,18 @@ The following hierarchy is build:
 
 ```ruby
 - E				# ruby-class
-- - month_of		  TG::MONTH_OF
+- - month_of		      TG::MONTH_OF
 - - day_of		      TG::DAY_OF
 - - time_of		      TG::TIME_OF
+- - grid_of		      TG::GRID_OF
 - V
-- - time_base		  TG::TimeBase
+- - time_base		      TG::TimeBase
 - - - jahr		      TG::Jahr
 - - - monat		      TG::Monat
-- - - stunde		  TG::Stunde
+- - - stunde		      TG::Stunde
 - - - tag		      TG::Tag
 ```
-And this Graph is realized
+This Graph is realized
 
 ```ruby
 Jahr -- [Month_of] -- Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
@@ -46,7 +66,7 @@ Jahr -- [Month_of] -- Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
 and populated by calling 
 
 ```ruby
-TG::CreateTime.populate( a year or a range )  # default: 1900 .. 2050
+TG::CreateTime.populate( a single year or a range )  # default: 1900 .. 2050
 ```
 If only on year is specified, a Monat--Tag--Stunde-Grid is build, otherwise a Jahr--Monat--Tag one.
 You can check the Status by counting the records of the Classes
@@ -84,10 +104,11 @@ Jahr[2000].monat(4, 7).tag(4, 15,24 ).datum  # adresses methods or attributes of
  ## instead »Jahr[2000..2015].map{|y| y.monat( 3,5 ).tag( 4 ..6 ).datum } « does the job.
 ```
 
-To filter datasets in that way, anything repersented is fetched from the database and works
-for small and large Grid's
+To filter datasets in that way, anything represented is queried from the database. In contrast to
+a pure ruby implementation this works for small and large grid's.
 
-You can do neat ruby-array playings, too, which are limited to the usual sizes
+Obviously, you can do neat ruby-array playings, which are limited to the usual sizes.
+For example. as »TAG[31]« returns an array, the elements can be treated with ruby flavour:
 
 ```ruby
 
@@ -95,9 +116,7 @@ Tag[31][2..4].datum  # display three months with 31 days
  => ["31.10.1901", "31.1.1902", "31.5.1902"]
 
 ```
-First, fetch all Tag-Objects with the Value 31. This is done by an ordinary  query, as defined in the 
-timebase model file. The result is an array of Tag-Objects. Then the  count of month since the first 
-Grid-Month can be queried by a second []-argument
+First all Tag-Objects with the Value 31 are queried. This gives »Jan, Mar, May ..«. Then one can inspect the array, in this case by slicing a range.
 
 Not surprisingly, the first occurence of the day is not the earliest date in the grid. Its just the first one,
 fetched from the database.
@@ -112,7 +131,29 @@ Jahr[2050].monat(12).tag(1)  # exists:
 => [["1.12.2050"]]
 ```
 
+## Horizontal Connections
 
+Besides the hierarchically TimeGraph »Jahr <-->Monat <--> Tag <--> Stunde«  the Vertices are connected
+horizontally via »grid_to«-Edges. This enables an easy access to the neighbours.
+
+On the TG::TimeBase-Level a method »environment« is implemented, that gathers the adjacent vertices 
+via traverse.
+
+``` ruby
+start =  TG::Jahr[2000].monat(4).tag(7).first.first
+start.environment(3).datum
+ => ["4.4.2000", "5.4.2000", "6.4.2000", "7.4.2000", "8.4.2000", "9.4.2000", "10.4.2000"] 
+
+2.3.1 :003 > start.environment(3,4).datum
+ => ["4.4.2000", "5.4.2000", "6.4.2000", "7.4.2000", "8.4.2000", "9.4.2000", "10.4.2000", "11.4.2000"] 
+ 
+start.environment(0,3).datum
+ => ["7.4.2000", "8.4.2000", "9.4.2000", "10.4.2000"] 
+```
+
+
+
+## Diary
 
 lets create a simple diary
 
@@ -123,6 +164,8 @@ ORD.create_vertex_class :termin
  => Termin
 ORD.create_edge_class   :date_of
  => DATE_OF
+DATE_OF.uniq_index	# put contrains to the edge-class, accept only one entry per item 
+
 DATE_OF.create from: Monat[8].tag(9).stunde(12), 
 	       to: Termin.create( short: 'Mittagessen', 
 				  long: 'Schweinshaxen essen mit Lieschen Müller', 
@@ -138,25 +181,5 @@ t = Termin.where short: 'Frühstück'
 t.in_date_of.out.first.datum
   => ["10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00", "13.8.2016 9:00", "14.8.2016 9:00", "15.8.2016 9:00", "16.8.2016 9:00", "17.8.2016 9:00", "18.8.2016 9:00", "19.8.2016 9:00", "20.8.2016 9:00", "21.8.2016 9:00"]
 
-
 ```
-
-
-Another approach, starting with the simple graph 
-
-
-
-```ruby
-Monat[month].tag.each{|d| d.stunde.each{|s| s.termin=[]; s.save } } # populate hour-vertices 
-# we append our dates to the termin-property
-Monat[month].tag[9].stunde[8].termin << "Post"
-Monat[month].tag[9].stunde[9].termin << "zweites Frühstück"
-Monat[month].tag.each{|t| t.stunde[12].termin << "Mittag"}
-```
-
-
-
-
-
-
 
