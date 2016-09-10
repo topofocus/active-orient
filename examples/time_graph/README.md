@@ -8,8 +8,9 @@ Any libraries are included and one can start exploring the features immediately.
 * Run "Bundle install" and "Bundle update"
 * customize config/connect.yml
 
-**or** start a new project
-include the provided gem in the gemfile:
+**or** start a new project 
+
+Include the provided gem in the gemfile:
  ```
 ## change here to the location of ActiveOrient
  gem 'active-orient' , :path => '/home/topo/activeorient'
