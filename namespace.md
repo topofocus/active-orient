@@ -56,11 +56,13 @@ This takes place by requiring 'ib-ruby' in 'config/boot.rb'
 
 ```
 
-After row 80, the namspace is changed to "TG" (TimeGraph). This should provide a service to 
-store data in a structured manner. The logic is defined in 'model/tg' located in our project-directory-tree.
-Refer to the example-section to get some hints, what can be defined there.
+After row 80, the namspace is changed to "TG" (TimeGraph).  The example provides a gem as well. Just 
+»require 'orientdb_time_graph'« and call »TG.connect« to include it properly.
 
-At last, we have to switch to the object-layer, where we want to define the working-classes. Their 
+The code above shows how to integrate the classes within the structure of the project. The difference is the placement
+of the model-files. With the gem, they are located in the root-directory of the gem. The other approach looks in the model-directory of the project (model/tg).
+
+Befor we start, we have to switch to the object-layer, where we want to define the working-classes. Their 
 logic is defined in model-files in 'model'.
 
 ```ruby
