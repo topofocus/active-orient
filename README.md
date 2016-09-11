@@ -318,15 +318,15 @@ this executes the query and returns the adressed rid's, which are eventually ret
 #### Match
 
 A Match-Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
-records. In the simplest version this can be returnd:
+records. In the simplest version this can be returned:
   
 ```ruby
   ORD.create_class :Industry
   Industry.match where:{ name: "Communications" }
-  => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
+  => #<Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
 ```
 
-The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
+The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set. *Note* that the Match statement returns a »Query«-record. Its up to the usere, to transform the attributes to Model-Objects. This is done by the »to_orient« directive, ie. »xx.Industries.to_orient «
 
 ```ruby
   Industry.match where name: "Communications" 
