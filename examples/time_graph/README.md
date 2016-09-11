@@ -10,11 +10,12 @@ Any libraries are included and one can start exploring the features immediately.
 
 **or** start a new project 
 
-Include the provided gem in the gemfile:
+Move the »time_graph« directroy to another place  and
+include it in the gemfile:
  ```
 ## change here to the location of ActiveOrient
  gem 'active-orient' , :path => '/home/topo/activeorient'
- gem 'orientdb_time_graph', :path => '/home/topo/activeorient/examples/time_graph'
+ gem 'orientdb_time_graph', :path => '/home/topo/time_graph'
 ```
 To start note:
 ```
