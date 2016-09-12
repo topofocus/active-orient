@@ -4,16 +4,16 @@ https://github.com/topofocus/orientdb_time_graph
 
 from the readme: 
 
-# Time Graph
+# Time Graph 
 
-The bin-directory contains a customized console-application. 
-Any libraries are included and one can start exploring the features immediately.
+Simple Time Graph using ActiveOrient/OrientDB. 
 
 *Prerequisites* : 
+* Install and setup OrientDB
 * Run "Bundle install" and "Bundle update"
 * customize config/connect.yml
 
-**or** start a new project and include the gem in sthe usual manner.
+**or** start a new project and include the gem in the usual manner.
 
 To play around, start the console by
 ```
@@ -45,7 +45,7 @@ and populated by calling
 ```ruby
 TG::TimeGraph.populate( a single year or a range )  # default: 1900 .. 2050
 ```
-If only on year is specified, a Monat--Tag--Stunde-Grid is build, otherwise a Jahr--Monat--Tag one.
+If only one year is specified, a Monat--Tag--Stunde-Grid is build, otherwise a Jahr--Monat--Tag one.
 You can check the Status by calling 
 
 ```ruby
@@ -159,6 +159,4 @@ t.in_date_of.out.first.datum
   => ["10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00", "13.8.2016 9:00", "14.8.2016 9:00", "15.8.2016 9:00", "16.8.2016 9:00", "17.8.2016 9:00", "18.8.2016 9:00", "19.8.2016 9:00", "20.8.2016 9:00", "21.8.2016 9:00"]
 
 ```
-
-
 
