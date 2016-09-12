@@ -1,8 +1,0 @@
----
-:active_orient:
-## Namespace: Prefix of Model-Objects. :self -> ActiveOrient::Model::{name}
-##				       :object => No Prefix
-##				       :active_orient => ActiveOrient::{name}
- :namespace: :object
- :model_dir: 'model'
-

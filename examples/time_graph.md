@@ -1,49 +1,26 @@
+The Time-Graph Example is outsourced  and lives as a seperate gem.
+
+https://github.com/topofocus/orientdb_time_graph
+
+from the readme: 
+
 # Time Graph
 
 The bin-directory contains a customized console-application. 
 Any libraries are included and one can start exploring the features immediately.
 
 *Prerequisites* : 
-* Edit the Gemfile, update the paths to include the orientdb_jruby and activeorient gem
 * Run "Bundle install" and "Bundle update"
 * customize config/connect.yml
 
-**or** start a new project
-include the provided gem in the gemfile:
- ```
-## change here to the location of ActiveOrient
- gem 'active-orient' , :path => '/home/topo/activeorient'
- gem 'orientdb_time_graph', :path => '/home/topo/activeorient/examples/time_graph'
-```
-To start note:
-```
-require 'bundler/setup'
-require 'orientdb_time_graph'
-
-TG.set_defaults { user: 'xx', password: 'xxx', database: 'xyz' } 
-TG.connect
-ActiveOrient::Init.define_namespace { Object }
-ORD = ActiveOrient::OrientDB.new  preallocate:  true
-
-```
-The time-graph acts as a service, classes are encasulated in the TG-namespace.
-
+**or** start a new project and include the gem in sthe usual manner.
 
 To play around, start the console by
+```
   cd bin
   ./active-orient-console t  # test-modus
-
-The Database is initialized/resetted by calling
-
-```ruby
-TG::Init.init_database
 ```
-This executes the code located in 'config/init_db.rb'
-
-After this, quit the console and start again.
-
-
-The following hierarchy is build:
+The Database is automatically initialized and the following hierarchy is build:
 
 ```ruby
 - E				# ruby-class
@@ -66,19 +43,19 @@ Jahr -- [Month_of] -- Monat --[DAY_OF]-- Tag --[TIME_OF]-- Stunde
 and populated by calling 
 
 ```ruby
-TG::CreateTime.populate( a single year or a range )  # default: 1900 .. 2050
+TG::TimeGraph.populate( a single year or a range )  # default: 1900 .. 2050
 ```
 If only on year is specified, a Monat--Tag--Stunde-Grid is build, otherwise a Jahr--Monat--Tag one.
-You can check the Status by counting the records of the Classes
+You can check the Status by calling 
 
 ```ruby
-TG::Jahr.count			# 151
-TG::Monat.count 		# 1812
-TG::Tag.count 			# 55152
-TG::Stunde.count		#
-```
-which should be equal to the counts of the Edge-Classes MONTH_OF, DAY_OF and TIME_OF
+TG::TimeGraph.populate 2000 -2003
+TG.info
+-------------- TIME GRAPH ------------------
+Allocated Years : 
+2000; 2001; 2002; 2003 
 
+```
 In the Model-directory, customized methods simplify the usage of the graph.
 
 Some Examples:
@@ -86,7 +63,7 @@ Assuming, you build a standard day-based grid
 
 ```ruby
 
-include TG					# we can omit the TK prefix
+include TG					# we can omit the TG prefix
 
 Jahr[2000]    # --> returns a single object
 => #<TG::Jahr:0x00000004ced160 @metadata={"type"=>"d", "class"=>"jahr", "version"=>13, "fieldTypes"=>"out_month_of=g", "cluster"=>34, "record"=>101}, @d=nil, @attributes={"value"=>2000, "out_month_of"=>["#53:1209", "#54:1209", "#55:1209", "#56:1209", "#53:1210", "#54:1210", "#55:1210", "#56:1210", "#53:1211", "#54:1211", "#55:1211", "#56:1211"], "created_at"=>Fri, 09 Sep 2016 10:14:30 +0200}>
@@ -105,10 +82,10 @@ Jahr[2000].monat(4, 7).tag(4, 15,24 ).datum  # adresses methods or attributes of
 ```
 
 To filter datasets in that way, anything represented is queried from the database. In contrast to
-a pure ruby implementation this works for small and large grid's.
+a pure ruby implementation, this works for small and large grid's.
 
 Obviously, you can do neat ruby-array playings, which are limited to the usual sizes.
-For example. as »TAG[31]« returns an array, the elements can be treated with ruby flavour:
+For example. As »TAG[31]« returns an array, the elements can be treated with ruby flavour:
 
 ```ruby
 
@@ -159,7 +136,7 @@ lets create a simple diary
 
 ```ruby
 include TG
-CreateTime.populate 2016
+TimeiGraph.populate 2016
 ORD.create_vertex_class :termin
  => Termin
 ORD.create_edge_class   :date_of
@@ -182,4 +159,6 @@ t.in_date_of.out.first.datum
   => ["10.8.2016 9:00", "11.8.2016 9:00", "12.8.2016 9:00", "13.8.2016 9:00", "14.8.2016 9:00", "15.8.2016 9:00", "16.8.2016 9:00", "17.8.2016 9:00", "18.8.2016 9:00", "19.8.2016 9:00", "20.8.2016 9:00", "21.8.2016 9:00"]
 
 ```
+
+
 
