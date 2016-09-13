@@ -47,9 +47,10 @@ module RestDelete
 	ActiveOrient.database_classes.delete(cl)
       end
     rescue RestClient::InternalServerError => e
-      if get_database_classes(requery: true).include?(cl)
+      sentence=  JSON.parse( e.response)['errors'].last['content']
+      if database_classes(requery: true).include?(cl)
 	logger.error{"Class #{cl} still present."}
-	logger.error{e.inspect}
+	logger.error{ sentence }
 	false
       else
 	logger.error{e.inspect}
