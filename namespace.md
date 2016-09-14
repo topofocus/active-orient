@@ -62,14 +62,23 @@ After row 80, the namspace is changed to "TG" (TimeGraph).  The example provides
 The code above shows how to integrate the classes within the structure of the project. The difference is the placement
 of the model-files. With the gem, they are located in the root-directory of the gem. The other approach looks in the model-directory of the project (model/tg).
 
-Befor we start, we have to switch to the object-layer, where we want to define the working-classes. Their 
-logic is defined in model-files in 'model'.
+Before we start, we  switch to the object-layer, where we want to define the working-classes. Their 
+logic is defined in model-files in 'model'. And we want to make shure, that all database-classes are allocated
+to ruby classes. 
 
 ```ruby
 97   ActiveOrient::Init.define_namespace :object
-98 
+98   ActiveOrient::Model.keep_models_without_file = true
 99   ORD = ActiveOrient::OrientDB.new  preallocate: true
 ```
+
+**note** The preallocation-algorithm trys to load any class. If »ActiveOrient::Model.keep_models_without_file«
+is set to false, classes are allocated only, if a model-file is present. As a consequence, any appropopiate
+model-file is loaded. 
+
+Any  previously allocated class can thus be extended, providing a proper model-file. For example: If we 
+allocated a class «Contract« in the namspace »IB«, methods for this class are included from the model-dir specified in the gem *and* in the actual-model-directory ( in this case: model/ib/contract.rb ). 
+
 
 As a result something like this appears:
 
@@ -98,5 +107,5 @@ new_test  ->  NewTest
 ```
 
 By changing the namespace-scope with  'ActiveOrient::Init.define_namespace'  its always possible to 
-change propeties, include links and edges or to add  and remove classes in the Sub-Modules.
+change properties, include links and edges or to add  and remove classes in the Sub-Modules.
 

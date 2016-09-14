@@ -257,7 +257,7 @@ def save
   if rid.rid?
     update
   else
-     db_object=  orientdb.create_record  self, attributes: attributes 
+     db_object=  db.create_record  self, attributes: attributes 
      @metadata[:cluster], @metadata[:record] = db_object.rid[0,db_object.rid.size].split(':').map( &:to_i)
      reload! db_object
   end

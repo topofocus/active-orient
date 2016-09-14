@@ -227,10 +227,18 @@ creates a vertex-class, too, returns the Hash
       ActiveOrient::Model.orientdb_class(name: data['@class'], superclass: :find_ME).new data
       end
     rescue RestClient::InternalServerError => e
-      response = JSON.parse(e.response)['errors'].pop
-      logger.error{response['content'].split(':')[1..-1].join(':')}
-      logger.error{"No Object allocated"}
-      nil # return_value
+      sentence=  JSON.parse( e.response)['errors'].last['content']
+      if sentence =~ /found duplicated key/
+	rid = sentence.split("#").last
+	logger.info{ "found duplicated Key --> loaded #{rid} instead of creating "}
+	## reading database content -- maybe update attributes?
+	get_record rid
+      else
+	response = JSON.parse(e.response)['errors'].pop
+	logger.error{response['content'].split(':')[1..-1].join(':')}
+	logger.error{"No Object allocated"}
+	nil # return_value
+       end
     rescue Errno::EADDRNOTAVAIL => e
       sleep(2)
       retry
