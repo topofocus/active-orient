@@ -27,9 +27,9 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 =end
 
   def class_hierarchy base_class: '',  system_classes: nil
-    @all_classes = get_classes('name', 'superClass') #if requery || @all_classes.blank?
+    @actual_class_hash = get_classes('name', 'superClass') #if requery || @all_classes.blank?
     def fv s   # :nodoc:
-  	@all_classes.find_all{|x| x['superClass']== s}.map{|v| v['name']}
+  	@actual_class_hash.find_all{|x| x['superClass']== s}.map{|v| v['name']}
     end
 
     def fx v # :nodoc:
@@ -78,7 +78,7 @@ Service-Method for Model#OrientdbClass
   def get_db_superclass name
     @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
    z= @actual_class_hash.find{|x,y|  x['name'] == name.to_s }
-   z['superclass'] unless z.nil?
+   z['superClass'] unless z.nil?
 
   end
 

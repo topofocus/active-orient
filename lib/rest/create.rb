@@ -86,7 +86,7 @@ creates a vertex-class, too, returns the Hash
 #and assign to this existing one.
 =end
   def create_classes *classes, &b
-    returt if classes.empty?
+    return if classes.empty?
 
     classes =  classes.pop if classes.size == 1
     consts = allocate_classes_in_ruby( classes , &b )

@@ -202,6 +202,12 @@ Edges provide bidirectional Links. They are easily handled
 			       from: start,
 			       to: the_end
 
+  start.the_edge  # --> Array of "TheEdge"-instances connected to the vertex
+  start.the_edge.where transform_to: 'good'     # ->  empty array
+  start.the_edge.where transform_to: 'very bad' #-->  previously connectd edge
+  start.something     # 'nice'
+  end.something	      # 'not_nice'
+  start.the_edge.where( transform_to: 'very bad').in.something  # => ["not_nice"] 
   (...)
   the_edge.delete # To delete the edge
 ```

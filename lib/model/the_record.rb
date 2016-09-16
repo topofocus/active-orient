@@ -270,7 +270,7 @@ end
   def reload! updated_dataset = nil
     updated_dataset = db.get_record(rid) if updated_dataset.nil?
     @metadata[:version] = updated_dataset.version
-    attributes = updated_dataset.attributes
+    self.attributes = updated_dataset.attributes
     self  # return_value  (otherwise only the attributes would be returned)
   end
 
