@@ -12,23 +12,37 @@ The rid-cache is reseted, too
     reset_rid_store
   end
 
-  def detect_inherent_edge kind,  edge_name
+  def detect_inherent_edge kind,  edge_name  # :nodoc:
     ## returns a list of inherented classes
     get_superclass = ->(e) do
       n = ORD.get_db_superclass(e)
       n =='E' ? e : e + ',' + get_superclass[n]
     end
-    the_edge = @metadata[:edges][kind].detect{|y| get_superclass[y].split(',').detect{|x| x == edge_name.to_s } }
+    if edge_name.present?
+    e_name =  edge_name.is_a?( Class) ? edge_name.ref_name : edge_name.to_s
+    the_edge = @metadata[:edges][kind].detect{|y| get_superclass[y].split(',').detect{|x| x == edge_name } }
     
     candidate= attributes["#{kind.to_s}_#{the_edge}"]
     candidate.present?  ? candidate.map( &:from_orient ) : []
+    else
+      edges(kind).map &:from_orient
+    end
   end
+=begin
+»in« and »out« provide the main access to edges.
 
-  def in edge_name
+If called without a parameter, all edges connected are displayed.
+
+If called with a string, symbol or class, the edge-class is resolved and even inherented 
+edges are retrieved.
+
+=end
+
+  def in edge_name= nil
     detect_inherent_edge :in, edge_name
   end
 	
-  def out edge_name
+  def out edge_name =  nil
     detect_inherent_edge :out, edge_name
   end
 =begin
@@ -87,6 +101,27 @@ To fetch the associated records use the ActiveOrient::Model.autoload_object meth
     edges.map{|x| attributes[x]}.flatten
   end
 
+=begin
+»in_edges« and »out_edges« are shortcuts to »edges :in« and »edges :out«
+
+Its easy to expand the result:
+  tg.out( :ohlc).out.out_edges
+   => [["#102:11032", "#121:0"]] 
+   tg.out( :ohlc).out.out_edges.from_orient
+   => [[#<TG::GRID_OF:0x00000002620e38
+
+this displays the out-edges correctly
+
+whereas
+tg.out( :ohlc).out.edges( :out)
+ => [["#101:11032", "#102:11032", "#94:10653", "#121:0"]] 
+
+returns all edges. The parameter (:out) is not recognized, because out is already a nested array.
+
+this
+  tg.out( :ohlc).first.out.edges( :out)
+is a walkaround, but using in_- and out_edges is more  elegant.
+=end
   def in_edges
     edges :in
   end
