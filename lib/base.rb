@@ -108,16 +108,26 @@ The model instance fields are then set automatically from the opts Hash.
 	  end
 
 	  if @metadata[:fieldTypes ].present? && (@metadata[:fieldTypes] =~ /=g/)
+	    @metadata[:edges] = { :in => [], :out => [] }
 	    edges = @metadata['fieldTypes'].split(',').find_all{|x| x=~/=g/}.map{|x| x.split('=').first}
+	  #  puts "Detected EDGES: #{edges.inspect}"
 	    edges.each do |edge|
 	      operator, *base_edge = edge.split('_')
 	      base_edge = base_edge.join('_')
-	      unless self.class.instance_methods.detect{|x| x == base_edge}
-		## define two methods: out_{Edge}/in_{Edge} -> edge.
-		self.class.define_property base_edge, nil
-		self.class.send :alias_method, base_edge.underscore, edge
-	      end
+	      @metadata[:edges][operator.to_sym] << base_edge
 	    end
+	  #    unless self.class.instance_methods.detect{|x| x == base_edge}
+	  #      ## define two methods: out_{Edge}/in_{Edge} -> edge.
+	  #      self.class.define_property base_edge, nil
+	  #      allocate_edge_method = -> (edge)  do
+	  #        unless (ee=db.get_db_superclass(edge)) == "E"
+	  #          allocate_edge_method[ee]
+	  #          self.class.send :alias_method, base_edge.underscore, edge
+	  #      ## define inherented classes, tooa
+	  #      
+
+	  #    end
+	  #  end
 	  end
 	end
 	self.attributes = attributes # set_attribute_defaults is now after_init callback

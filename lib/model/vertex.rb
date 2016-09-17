@@ -11,6 +11,26 @@ The rid-cache is reseted, too
     db.execute { "delete vertex #{ref_name} #{db.compose_where(where)}" }
     reset_rid_store
   end
+
+  def detect_inherent_edge kind,  edge_name
+    ## returns a list of inherented classes
+    get_superclass = ->(e) do
+      n = ORD.get_db_superclass(e)
+      n =='E' ? e : e + ',' + get_superclass[n]
+    end
+    the_edge = @metadata[:edges][kind].detect{|y| get_superclass[y].split(',').detect{|x| x == edge_name.to_s } }
+    
+    candidate= attributes["#{kind.to_s}_#{the_edge}"]
+    candidate.present?  ? candidate.map( &:from_orient ) : []
+  end
+
+  def in edge_name
+    detect_inherent_edge :in, edge_name
+  end
+	
+  def out edge_name
+    detect_inherent_edge :out, edge_name
+  end
 =begin
 retrieves  connected edges
 
@@ -65,6 +85,13 @@ To fetch the associated records use the ActiveOrient::Model.autoload_object meth
 
     edges = attributes.keys.find_all{ |x| x =~  expression }
     edges.map{|x| attributes[x]}.flatten
+  end
+
+  def in_edges
+    edges :in
+  end
+  def out_edges
+    edges :out
   end
 
   def remove

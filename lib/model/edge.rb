@@ -29,6 +29,8 @@ Creates individual indices for child-classes if applied to the class itself.
   def create  **keyword_arguments
     new_edge = db.create_edge self, **keyword_arguments
     new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
+    to.reload! if to.is_a? ActiveOrient::Model
+    from.reload! if from.is_a? ActiveOrient::Model
     # vertices must be reloaded
 
     new_edge # returns the created edge (or an array of created edges

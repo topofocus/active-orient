@@ -7,14 +7,14 @@
 require 'logger'
 LogLevel = Logger::WARN
 require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
-  
+
  require 'orientdb' if RUBY_PLATFORM == 'java'
  require 'yaml'
 
 puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
 puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
 
-puts '-'* 35
+puts '-'* 45
 ns= case ActiveOrient::Model.namespace 
   when Object
     "No Prefix, just ClassName#CamelCase"
@@ -22,15 +22,14 @@ ns= case ActiveOrient::Model.namespace
      ActiveOrient::Model.namespace.to_s + "{ClassName.camelcase}"
     end
 puts "Namespace for model-classes : #{ns}"
-puts "Allocated Classes (Hierarchy) ( Modelclasses are Camelized ):"
-puts '-'* 35
+puts "Present Classes (Hierarchy) "
 
 puts ORD.class_hierarchy.to_yaml
-
+puts ""
+puts "Active Classes  ->  ActiveOrient ClassName"
+puts '-'* 45
 puts ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n")
-puts '-'* 35
-puts "To connect to the TWS use » IB::Gateway.new  connect: true «"
-puts "Then IB::Gateway.tws is the current tws-instance."
+puts '-'* 45
 
 include OrientDB
 

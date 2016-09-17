@@ -201,16 +201,32 @@ Edges provide bidirectional Links. They are easily handled
   the_edge = TheEdge.create attributes: {transform_to: 'very bad'},
 			       from: start,
 			       to: the_end
-
-  start.the_edge  # --> Array of "TheEdge"-instances connected to the vertex
-  start.the_edge.where transform_to: 'good'     # ->  empty array
-  start.the_edge.where transform_to: 'very bad' #-->  previously connectd edge
-  start.something     # 'nice'
-  end.something	      # 'not_nice'
-  start.the_edge.where( transform_to: 'very bad').in.something  # => ["not_nice"] 
-  (...)
-  the_edge.delete # To delete the edge
 ```
+Edges are connected to vertices by »in« and »out«-Methods.
+Inherence is supported.
+
+i.e.
+```ruby
+  ORD.create_class( top_edge ) { THE_EDGE }
+  ORD.create_class( on_top_edge ) { TOP_EDGE }
+
+  ON_TOP_Edge.create  from: start, to: the_end
+  start.reload!
+  start.out :the_edge 
+  => [#<TOP_EDGE:0x00000001d92f28 @metadata= ... ]
+```
+
+Edge-links are displayed and retrieved by
+```ruby
+  start.edges	  # :in | :out | :all 
+   => ["#73:0"] 
+  
+  start.edges(:out).map &:from_orient
+  => [#<TOP_EDGE:0x00000001d92f28 @metadata= ... ]
+
+```
+
+
 The create-Method od Edge-Classes takes a block. Then all statements are transmitted in batch-mode.
 Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, then
 ```ruby
@@ -226,31 +242,6 @@ Assume, Vertex1 and Vertex2 are Vertex-Classes and TheEdge is an Edge-Class, the
 ```
 connects the vertices and provides a variable "key" and a common "study" attribute to each edge.
 
-There is a basic support for traversals through a graph.
-The Edges are accessed  by their names (downcase).
-```ruby
-  start = TheVertex.where: {something: "nice"}
-  start[0].e1[0]
-  --> #<E1:0x000000041e4e30	
-      @metadata={"type"=>"d", "class"=>"E1", "version"=>60, "fieldTypes"=>"out=x,in=x", "cluster"=>16, "record"=>43}, 
-      @attributes={"out"=>"#31:23", "in"=>"#31:15", "transform_to"=>"very bad" }>
-```
-
-The Attributes "in" and "out" can be used to move across the graph
-
-```ruby
-   start[0].e1[0].out.something
-   # ---> "not_nice"
-   start[0].e1[0].in.something
-   # ---> "nice"
-```
-
-(Experimental) In alternative you can "humanize" your code in the following way:
-
-```ruby
-   Vertex.add_edge_link name: "ends",  edge: TheEdge
-   start.ends.something # <-- Similar output as start[0].e1[0].out.something
-```
 
 #### Queries
 
@@ -355,3 +346,17 @@ accessed starting at Industry defining
 The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
 
 By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be constructed. 
+
+
+
+#  deactivated behavior: to turn it on, some work on base.rb is required
+#
+#  start.the_edge  # --> Array of "TheEdge"-instances connected to the vertex
+#  start.the_edge.where transform_to: 'good'     # ->  empty array
+#  start.the_edge.where transform_to: 'very bad' #-->  previously connectd edge
+#  start.something     # 'nice'
+#  end.something	      # 'not_nice'
+#  start.the_edge.where( transform_to: 'very bad').in.something  # => ["not_nice"] 
+#  (...)
+#  the_edge.delete # To delete the edge
+#```
