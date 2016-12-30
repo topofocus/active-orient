@@ -15,7 +15,7 @@ class Array
     #else 
 
     unless method == :to_hash || method == :to_str #|| method == :to_int
-      return self.map{|x| x.public_send(method)}
+      return self.map{|x| x.public_send(method, *key)}
    # end
     end
   end
@@ -41,6 +41,20 @@ end
 #  end
 #end
 if RUBY_PLATFORM == 'java'
+
+## JavaMath:.BigDecimal does not premit mathematical operations
+## We convert it to RubyBigDecimal to represent it (if present in the DB) and upon loading from the DB
+
+class Java::JavaMath::BigDecimal
+  def to_f
+    BigDecimal.new self.to_s 
+  end
+
+  def from_orient
+    BigDecimal.new self.to_s
+  end
+  
+end
   class Java::ComOrientechnologiesOrientCoreDbRecordRidbag::ORidBag
     def from_orient
       to_a.from_orient
@@ -204,6 +218,12 @@ end
 class String
   def capitalize_first_letter
     self.sub(/^(.)/) { $1.capitalize }
+  end
+
+  def where **args
+    if rid?
+      from_orient.where **args
+    end
   end
 
   def from_orient
