@@ -1,5 +1,6 @@
 module  ActiveOrient
   require 'active_model'
+  require 'active_model/serializers'
 
 # Base class for tableless IB data Models, extends ActiveModel API
 
