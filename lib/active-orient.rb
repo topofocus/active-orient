@@ -1,7 +1,7 @@
 
 module OrientDB
   UsingJava = RUBY_PLATFORM == 'java' ?  true : false
-  unless RUBY_PLATFORM == 'java'
+  unless UsingJava
    DocumentDatabase       = nil
    DocumentDatabasePool   = nil
    DocumentDatabasePooled = nil
@@ -26,12 +26,14 @@ module OrientDB
    # RecordSet             = nil
   end
 end  # module OrientDB
+require 'active_model'
+#require 'active_model/serializers'
 require_relative "support.rb"
 require_relative "base.rb"
 require_relative "base_properties.rb"
 require_relative "orient.rb"
 #require_relative "query.rb"
-if RUBY_PLATFORM == 'java'
+if OrientDB::UsingJava
   require_relative 'java-api.rb'
   end
 require_relative "orientdb_private.rb" # manage private functions
