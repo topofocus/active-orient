@@ -85,9 +85,10 @@ All database-classes are preallocated after connecting to the database. Thus you
 
 If the "rid" is known, any Object can be retrieved and correctly allocated by
 ```ruby
-  the_object =  ActiveOrient::Model.autoload_object "xx:yy" # or "#xx:yy"
+  the_object =  V.autoload_object "xx:yy" # or "#xx:yy"
   --->  {ActiveOrient::Model} Object 
 ```
+The database-class  «V» is present in any case. Any model-class can be used, even the parent »ActiveOrient::Model«
 
 #### Properties
 The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
