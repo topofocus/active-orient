@@ -362,8 +362,8 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
     #puts q.compose
     query_database q
   end
-  def where **attributes 
-    ##puts "ATTRIBUTES: "+attributes.inspect
+  def where *attributes 
+   ## puts "ATTRIBUTES: "+attributes.inspect
     q = OrientSupport::OrientQuery.new from: self, where: attributes
     query_database q
   end

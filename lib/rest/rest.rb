@@ -100,7 +100,7 @@ A Sample:
         if first_tentative
   	      logger.info{"Database #{database} NOT present --> creating"}
   	      first_tentative = false
-  	      create_database
+  	      create_database database: database
   	      retry
         else
   	      Kernel.exit

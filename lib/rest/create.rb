@@ -8,24 +8,24 @@ module RestCreate
   Returns the name of the working-database
 =end
 
-  def create_database type: 'plocal', database: nil
+  def create_database type: 'plocal', database: 
     logger.progname = 'RestCreate#CreateDatabase'
-  	old_d = ActiveOrient.database
-  	ActiveOrient.database_classes = []
-  	ActiveOrient.database = database if database.present?
-  	begin
+    old_d = ActiveOrient.database
+    ActiveOrient.database_classes = []
+    ActiveOrient.database = database 
+    begin
       response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
       if response.code == 200
-        logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
+	logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
       else
-        ActiveOrient.database = old_d
-        logger.error{"Database #{name} was NOT created. Working Database is still #{ActiveOrient.database}"}
+	logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
+	ActiveOrient.database = old_d
       end
     rescue RestClient::InternalServerError => e
+      logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
       ActiveOrient.database = old_d
-      logger.error{"Database #{name} was NOT created. Working Database is still #{ActiveOrient.database}"}
     end
-    ActiveOrient.database
+    ActiveOrient.database  # return_value
   end
 
   ######### CLASS ##########
@@ -218,6 +218,7 @@ creates a vertex-class, too, returns the Hash
     attributes = yield if attributes.empty? && block_given?
     # @class must not quoted! Quote only attributes(strings)
     post_argument = {'@class' => classname(o_class)}.merge(attributes.to_orient)
+   # puts post_argument.inspect
     begin
       response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
@@ -228,6 +229,7 @@ creates a vertex-class, too, returns the Hash
       end
     rescue RestClient::InternalServerError => e
       sentence=  JSON.parse( e.response)['errors'].last['content']
+      puts sentence.to_s
       if sentence =~ /found duplicated key/
 	rid = sentence.split("#").last
 	logger.info{ "found duplicated Key --> loaded #{rid} instead of creating "}

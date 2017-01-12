@@ -4,9 +4,9 @@
  :port: 2480
  :logger: stdout           # 'file' or 'stdout'
  :database: 
-   :development: DEV
+   :development: GratefulDeadConcerts
    :production: hcn_data
-   :test:  tempera
+   :test:  temp
  :admin:
    :user: hctw
    :pass: hc
