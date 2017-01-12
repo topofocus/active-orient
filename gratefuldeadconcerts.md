@@ -42,7 +42,8 @@ V.where type: 'artist'
 ```
 
 * Select all the songs that have been performed  10 times 
-** Display songnames and authors
+
+Display songnames and authors
 
 
 ```ruby
@@ -52,13 +53,13 @@ song_10.name
 song_10.out_written_by.in.name 
 => [["Dolly_Parton"], ["Bob_Dylan"], ["Petersen"]]
 ```
-*Select all the songs that have been performed  more or less 10 times 
+* Select all the songs that have been performed  more or less 10 times 
 
 ```ruby
 V.where "type = 'song’ and performances > 10"
 V.where "type = 'song’ and performances < 10"
 ```
-Count all songs and artists
+* Count all songs and artists
 
 ```ruby
 V.count where: { type: 'song' }
