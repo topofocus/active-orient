@@ -41,7 +41,7 @@ V.autoload_object '#9:8'
 V.where type: 'artist'
 ```
 
-*Select all the songs that have been performed  10 times 
+* Select all the songs that have been performed  10 times 
 ** Display songnames and authors
 
 
