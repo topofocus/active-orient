@@ -3,7 +3,7 @@ Use OrientDB to persistently store dynamic Ruby-Objects and use database queries
 datasets.
 
 #### Other Documents
-- [Experiment with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
+- [Experiments with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
 
 - [Namespace Support](./namespace.md)
 
