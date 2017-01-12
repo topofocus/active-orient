@@ -2,7 +2,14 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
-You need a ruby 2.3  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
+#### Other Documents
+- [Experiment with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
+
+- [Namespace Support](./namespace.md)
+
+- [TimeGraph Implementation](examples/time_graph.md)
+
+You need a ruby 2.3, 2.4  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
 The jruby-part is experimental.
 
 For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
@@ -12,7 +19,7 @@ cd bin
 ./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
 ```
 
-»ORD« is the Database-Instance itself. If the Database noticed is not present, it is created on startup.
+«ORD» or «DB» is the Database-Instance itself. If the Database noticed is not present, it is created on startup.
 A simple SQL-Query is submitted by providing a Block to »execute«
  ```ruby
  result =  ORD.execute { "select * from Stock" } 
@@ -347,6 +354,13 @@ The result-set has two attributes: Industries and Subcategories, pointing to the
 
 By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be constructed. 
 
+
+#### Other Documents
+- [Experiment with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
+
+- [Namespace Support](./namespace.md)
+
+- [TimeGraph Implementation](examples/time_graph.md)
 
 
 #  deactivated behavior: to turn it on, some work on base.rb is required
