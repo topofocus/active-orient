@@ -9,11 +9,18 @@ datasets.
 
 - [TimeGraph Implementation](examples/time_graph.md)
 
+- rails 5-support (in preparation)
+
 You need a ruby 2.3, 2.4  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
 The jruby-part is experimental.
 
-For a quick start, clone the project, run bundle install & bundle update, update config/connect.yml, create the documentation by calling »rdoc«
-and start an irb-session: 
+### Quick Start
+
+ - clone the project, 
+ - run bundle install & bundle update, 
+ - update config/connect.yml, 
+ - create the documentation by calling »rdoc«
+ - start an irb-session by calling  
 ```
 cd bin
 ./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
