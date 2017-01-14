@@ -1,0 +1,10 @@
+---
+:active_orient:
+## Namespace: Prefix of Model-Objects. :self -> ActiveOrient::Model::{name}
+##				       :object => No Prefix
+##				       :active_orient => ActiveOrient::{name}
+ :namespace: :object
+## model_dir: Path to model-files relative to the root of the application
+## ie. app/model  or model
+ :model_dir: 'lib/orient'
+

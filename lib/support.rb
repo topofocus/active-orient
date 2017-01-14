@@ -366,15 +366,12 @@ end
     end
 
     def distinct d
-  	  @projection << case d
+  	  @projection <<  case d
   		when String, Symbol
   		  "distinct( #{d.to_s} )"
-  		when Array
-  		  "distinct( #{d.first} ) as #{d.last}"
-  		when Hash
-  		  "distinct( #{d.first.first} ) as #{d.first.last}"
-  		else
-  		  ""
+		else
+		  dd= d.to_a.flatten
+  		  "distinct( #{dd.first.to_s} ) as #{dd.last}"
   		end
   	  compose  # return the hole query
     end
