@@ -45,6 +45,7 @@ After that, copy
 * __active_orient/rails/activeorient.rb__   to   /config/initializers  in the rails-project dir
 * __active_orient/rails/connect.yml__ to /config
 * __active_orient/rails/config.yml__ to /config
+
 and modify the yml-files accordingly.
 
 Now its time to run the  bundler
