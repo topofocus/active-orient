@@ -9,7 +9,7 @@ datasets.
 
 - [TimeGraph Implementation](examples/time_graph.md)
 
-- rails 5-support (in preparation)
+- [rails 5-integration](./rails.md)
 
 You need a ruby 2.3, 2.4  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
 The jruby-part is experimental.
