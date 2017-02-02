@@ -1,7 +1,6 @@
 # Active Orient and Rails
 
-There are only a few steps nessesary, to use Orientdb via ActiveOrient in Rails.
-
+The usage of Orientdb via ActiveOrient in Rails requires just a few steps.
 Based on a Rails 5 installation
 
 ```ruby
@@ -31,7 +30,7 @@ rails s puma
 should work at this stage.
 
 ## Modify the Gemfile
-We have to tell rails to use orientdb and active-orient
+Inform rails to use orientdb and active-orient
 
 ```
 echo " gem 'active-orient' , :path => '/home/your_cloned_active_orient_path/activeorient' " >> Gemfile
@@ -48,13 +47,13 @@ After that, copy
 
 and modify the yml-files accordingly.
 
-Now its time to run the  bundler
+Run the  bundler
 
 ```
 bundle install & bundle update
 ```
 
-The database should be present in the rails console
+The database should be present in the rails console, and 
 ```ruby
 rails c
 
@@ -81,9 +80,10 @@ After envoking the rails console, the logfile displays sucessfully loaded and mi
 14.01.(08:28:45) INFO->ModelClass#RequireModelFile:..:/home/topo/workspace/orient-rails/lib/orient/v.rb sucessfully loaded
 ```
 
-## Model-file Examlple
+## Model-file Example
 
-To query the GratefulDeadConcerts Database, this can be used in «v.rb»
+To query the GratefulDeadConcerts Database, «v.rb» hosts the essential model methods.
+As always, use «def self.{method}« for class methods and simply «def {method}» for methods working on the record level.
 
 ```
 1 class V 
@@ -119,7 +119,7 @@ Now
   V.types
   V.artists limit: 15, skip: 34, sort: :desc 
 ```
-can be used everywhere.
+queries the database, fetches 15 artists and can be used everywhere.
 
 
 
