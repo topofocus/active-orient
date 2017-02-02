@@ -151,13 +151,12 @@ describe ActiveOrient::OrientDB do
       b = Exchange.create :label => 'Berlin'
       s = Exchange.create :label => 'Stuttgart'
       ds =Property.create con_id: 12355
-      ds.add_item_to_property( :exchanges ){ [f,b,s] }
-      #	  ds.add_item_to_property :exchanges, b
+      ds.add_item_to_property :exchanges , f,b,s      #	  ds.add_item_to_property :exchanges, b
       #	  ds.add_item_to_property :exchanges, s
       expect( ds.exchanges ).to have(3).items
       expect( Property.custom_where( "'Stuttgart' in exchanges.label").first ).to eq ds
       expect( Property.custom_where( "'Hamburg' in exchanges.label") ).to  be_empty
-      ds.remove_item_from_property( :exchanges){ [b,s] }
+      ds.remove_item_from_property :exchanges, b,s 
       expect( ds.exchanges ).to have(1).items
     end
 
@@ -165,24 +164,24 @@ describe ActiveOrient::OrientDB do
 #      pending( "Query Database for last entry does not work in 2.2" )
       predefined_property
       DB.create_class :industry
-      property_record=  Property.create  con_id: 12346
-      ['Construction','HealthCare','Bevarage'].each do | industry |
-	property_record.add_item_to_property :property, Industry.create( label: industry)
-      end
+      property_record=  Property.create  con_id: 12346, property: []
+      industries =  ['Construction','HealthCare','Bevarage']
+      industries.each{| industry | property_record.property <<  Industry.create( label: industry ) }
       # to query: select * from Property where 'Stuttgart' in exchanges.label
       # or select * from Property where exchanges contains ( label = 'Stuttgart' )
       #
+      expect( property_record.property.label ).to eq industries 
+
       pr =  Property.custom_where( "'HealthCare' in property.label").first
       expect( pr ).to eq property_record
 
       expect( property_record.con_id ).to eq 12346
       expect( property_record.property ).to be_a Array
       expect( property_record.property ).to have(3).records
-      puts property_record.property.map( &:label).join(":")
-      puts Industry.all.map(&:label).join(" -- ")
-      expect( property_record.property.last ).to eq Industry.all.last
+      expect( property_record.property.last ).to eq Industry.last
 
-      expect( property_record.property[2].label ).to eq 'Bevarage'
+      expect( property_record.property[2].label ).to eq industries[2]
+      expect( property_record.property.label[2] ).to eq industries[2]
       expect( property_record.property.find{|x| x.label == 'HealthCare'}).to be_a Industry
 
 

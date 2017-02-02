@@ -24,32 +24,38 @@ module RestOperations
     result.first['COUNT'] rescue  0  # return_value
   end
 
-
-  def manipulate_relation record,  method, array, items  # :nodoc: #
-    execute_array = Array.new
-    method =  method.to_s.upcase
-
-    add_2_execute_array = -> (it) do
-      command = "UPDATE ##{record.rid} #{method} #{array} = #{it.to_orient } " #updating}"
-      command.gsub!(/\"/,"") if it.is_a? Array
-      #puts "COMMAND:: #{command}"
-      execute_array << {type: "cmd", language: "sql", command: command}
-    end
-
-    items.each{|x| add_2_execute_array[x] }
-    r= execute{ execute_array }
-
-    if r.present?
-      case  method
-      when 'ADD'
-	items.each{|x| record.attributes[array] << x}
-      when 'REMOVE'
-	items.map{|x| record.attributes[array].delete x.is_a?(ActiveOrient::Model) ? x.rid : x}
-      else
-      end
-      record.increment_version
-    end
-  end
+## historic method 
+#  def manipulate_relation record,  method, array, items  # :nodoc: #
+#    execute_array = Array.new
+#    method =  method.to_s.upcase
+#
+#    add_2_execute_array = -> (it) do
+#      command = "UPDATE ##{record.rid} #{method} #{array} = #{it.to_or } " #updating}"
+#      command.gsub!(/\"/,"") if it.is_a? Array
+#      puts "COMMAND:: #{command}"
+#      execute_array << {type: "cmd", language: "sql", command: command}
+#    end
+#
+#    items.to_a.each{|x| add_2_execute_array[x] }
+##    puts "******************"
+##    puts record.inspect
+##    puts "-----"
+##    puts execute_array.join('\n')
+#    r= execute{ execute_array }
+#    puts record.inspect
+#    puts r.inspect
+##    puts "******************"
+#    if r.present?
+#      case  method
+#      when 'ADD'
+#	items.each{|x| record.attributes[array] << x}
+#      when 'REMOVE'
+#	items.map{|x| record.attributes[array].delete x}
+#      else
+#      end
+#      record.increment_version
+#    end
+#  end
 =begin
 Executes a list of commands and returns the result-array (if present)
 

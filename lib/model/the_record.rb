@@ -102,7 +102,6 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
   def update_item_property method, array, item = nil, &ba # :nodoc:
  #   begin
       logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
-      #self.attributes[array] = OrientSupport::Array.new(self) unless attributes[array].present?
       self.attributes[array] = Array.new unless attributes[array].present?
 
       items = if item.present?
@@ -111,10 +110,6 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
 		yield
 	      end
       db.manipulate_relation self, method, array, items
-      #rescue RestClient::InternalServerError => e
-#	logger.error{"Duplicate found in #{array}"}
-#	logger.error{e.inspect}
-#      end
     end
 =begin
 Add Items to a linked or embedded class
@@ -161,36 +156,42 @@ If only single Items are to insert, use
 
 =end
 
-  def add_item_to_property array, item = nil, &b
-    items = block_given? ? yield : nil
-    update_item_property "ADD", array, item, &b
-    self # return_value
-  end
-#  alias add_items_to_property add_item_to_property
-  ## historical aliases
-#  alias update_linkset  add_item_to_property
-#  alias update_embedded  add_item_to_property
+  def add_item_to_property array, *item
+       item =  yield if block_given?
+	if attributes.keys.include? array.to_s
+	  item.each{|x| self.attributes[array].push x.to_orient }
+	  update
+	else
+	  update array=> item 
+	end	
+#  rescue NoMethodError
+    #undefined method `<<' for nil:NilClass
 
-  def set_item_to_property array, item = nil, &b
-    update_item_property "SET", array, item, &b
   end
 
-  def remove_item_from_property array, item = nil, &b
-    update_item_property "REMOVE", array, item, &b
-    if block_given?
-        items =  yield
-        items.each{|x| self.attributes[array].delete(x)}
-    elsif item.present?
-        a = attributes
-        a.delete item
-        self.attributes[array].delete(item)
+
+  def set_item_to_property array, *item
+      update  array.to_s => item
+  end
+
+  def remove_position_from_property array, *pos
+      if attributes[array].is_a? Array
+        pos.each{|x| self.attributes[array].delete_at( x )}
+	update
       end
-    self # return_value
+  end
+  def remove_item_from_property array, *item 
+      if attributes[array].is_a? Array
+        item.each{|x| self.attributes[array].delete( x.to_orient )}
+	update
+      else
+	logger.error  "Wrong attribute: #{attributes[array]}"
+      end
   end
 
   ############# DELETE ###########
 
-#  Removes the Model-Instance from the databasea
+#  Removes the Model-Instance from the database
 #  todo:  overloaded in vertex and edge
 
 def remove 
@@ -210,6 +211,7 @@ alias delete remove
     obj = ActiveOrient::Model::Contracts.first
     obj.name =  'new_name'
     obj.update set: { yesterdays_event: 35 }
+
  ** note: The keyword »set« is optional
 =end
 

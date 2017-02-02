@@ -2,7 +2,7 @@
 
 class Array
   def to_orient
-    map( &:to_orient).join(',')
+    map( &:to_orient) # .join(',')
   end
 
   def from_orient
@@ -141,6 +141,9 @@ class Symbol
   def from_orient
     self
   end
+  def to_a
+    [ self ]
+  end
 end
 class FalseClass
   def from_orient
@@ -213,6 +216,10 @@ class Numeric
   def to_or
    "#{self.to_s}"
   end
+
+  def to_a
+    [ self ]
+  end
 end
 
 class String
@@ -273,7 +280,10 @@ class String
   def to_or
    quote
   end
-
+  
+  def to_a
+    [ self ]
+  end
 
     def quote
       str = self.dup

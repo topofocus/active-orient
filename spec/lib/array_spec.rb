@@ -26,26 +26,29 @@ describe OrientSupport::Array do
 
 
   context "add and populate an Array" do
-    before(:each){ testrecord.update set: { ll:  ['test', 5, 8 , 7988, "uzg"] } }
+    before(:each){ testrecord.update set: { ll:  ['test','test_2', 5, 8 , 7988, "uzg"] } }
 
     it "initialize the Object"  do
       expect( testrecord.ll ).to be_a OrientSupport::Array
       expect( testrecord.ll.first ).to eq "test"
-      expect( testrecord.ll[2] ).to eq 8
+      expect( testrecord.ll[2] ).to eq 5
+      expect( testrecord.version ).to be 2
     end
     it "modify the Object"  do
-      expect{ testrecord.add_item_to_property( :ll, 't') ; testrecord.reload! }.to change { testrecord.version }.by 1
+      puts "Testrecord.ll #{testrecord.ll}"
+      expect{ testrecord.add_item_to_property( :ll, 't')  }.to change { testrecord.version }.by 1
       expect{ testrecord.ll << 78 }.to change { testrecord.ll.size }.by 1
       expect{ testrecord.ll << 79 }.to change { testrecord.version }.by 1
 
-      expect{ testrecord.ll.delete_at(2) }.to change { testrecord.ll.size }.by -1
-      expect{ testrecord.ll.delete 'test' }.to change { testrecord.ll.size }.by -1
+      expect{ testrecord.remove_item_from_property :ll, 'test' }.to change { testrecord.ll.size }.by -1
+      expect{ testrecord.ll.remove 'test_2' }.to change { testrecord.ll.size }.by -1
+      expect{ testrecord.ll.remove_at(2) }.to change { testrecord.ll.size }.by -1
       # multible deletions result in only one version increment
       expect do
-        expect{ testrecord.ll.delete 7988, 'uzg', 788, 79  }.to change { testrecord.ll.size }.by( -3 )
-	puts testrecord.ll.inspect
-	puts testrecord.version
-	testrecord.reload!
+        expect{ testrecord.ll.remove 7988, 'uzg', 788, 79  }.to change { testrecord.ll.size }.by( -2 )
+#	puts testrecord.ll.inspect
+#	puts testrecord.version
+#	testrecord.reload!
       end.to change{  testrecord.version }.by 1
     end
 
@@ -61,37 +64,42 @@ describe OrientSupport::Array do
     end
     it "update the object"  do
       expect{ testrecord.ll[0]  =  "a new Value " }.to change{ testrecord.version }
-      expect( testrecord.ll ).to eq [ "a new Value ", 5, 8 , 7988, 'uzg']
+      expect( testrecord.ll ).to eq [ "a new Value ", "test_2", 5, 8 , 7988, 'uzg']
 
     end
 
 
     context "Work with arrays containing links" do
-      before(:all) do
-
-        @new_record = TestModel.create ll: [ ]
-        (1..9).each do |i|
-          @new_record.ll << i
-          @new_record.ll << LinkClass.create( att: "#{i} attribute" )
-        end
-      end
-
+#      before(:all) do
+#	begin
+#        @new_record = TestModel.create ll: [ ]
+#	(1..9).each{|i| @new_record.ll << i ; @new_record.ll << LinkClass.create( att: "#{i} attribute" ) }
+#	rescue TypeError
+#	  puts "error handled"
+#	end
+#      end
+#
       it "verify the datastructure" do
-        expect( @new_record.ll ).to have(18).items
-        expect( @new_record.ll.first).to eq 1
-        expect( @new_record.ll.at(1)).to eq LinkClass.first
+        new_record = TestModel.create ll: [ ]
+	lk = LinkClass.create att: "{i} attribute" 
+	(1..9).each{|i| new_record.ll << i ; new_record.ll <<  lk } # LinkClass.create( att: "#{i} attribute" ) }
+        expect( new_record.ll ).to have(18).items
+        expect( new_record.ll.first).to eq 1
+        expect( new_record.ll.at(1)).to eq LinkClass.first
         #      puts @new_record.ll.map{|y| y.is_a?( REST::Model )? y.att : y }.join(' ; ')
       end
 
       it "add and remove records" do
-        expect{ @new_record.ll << LinkClass.create( new: "Neu" ) }.to change { @new_record.ll.size }.by 1
-        expect{ @new_record.ll.delete  LinkClass.all.last }.to change { @new_record.ll.size }.by -1
-        expect{ @new_record.ll.delete  9 }.to change { @new_record.ll.size }.by -1
-        expect{ @new_record.ll.delete 19 }.not_to change { @new_record.ll.size }
-        expect{ @new_record.ll.delete  1,8 }.to change { @new_record.ll.size }.by -2
-        expect{ @new_record.ll.delete_if{|x| x.is_a?(Numeric)}}.to change {@new_record.ll.size }.by -6
-        expect{ @new_record.ll.delete_if{|x| x.is_a?(ActiveOrient::Model) && x.att.to_i == 3}}.to change {@new_record.ll.size }.by -1
-        expect{ @new_record.ll.delete_if{|x| x == LinkClass.first.rid}}.to change {@new_record.ll.size }.by -1
+      pending( "test for adding an existing link to the array: mixed arrays are not supported in 2.2" )
+        new_record = TestModel.create ll: [ ]
+        expect{ new_record.ll << LinkClass.create( new: "Neu" ) }.to change { new_record.ll.size }.by 1
+        expect{ new_record.ll.remove  LinkClass.last }.to change { new_record.ll.size }.by -1
+        expect{ new_record.ll.remove  9 }.to change { new_record.ll.size }.by -1
+        expect{ new_record.ll.remove 19 }.not_to change { new_record.ll.size }
+        expect{ new_record.ll.remove  1,8 }.to change { new_record.ll.size }.by -2
+        expect{ new_record.ll.delete_if{|x| x.is_a?(Numeric)}}.to change {new_record.ll.size }.by -6
+        expect{ new_record.ll.delete_if{|x| x.is_a?(ActiveOrient::Model) && x.att.to_i == 3}}.to change {new_record.ll.size }.by -1
+        expect{ new_record.ll.delete_if{|x| x == LinkClass.first.rid}}.to change {new_record.ll.size }.by -1
       end
     end
   end
@@ -167,9 +175,9 @@ describe OrientSupport::Array do
       expect( @new_record.aLinkSet.at(0).att ).to eq "1 attribute"
     end
     it "add and remove records"  do 
-      pending( "test for adding an existing link to the array: the error  has to be checked" )
+      pending( "test for adding an existing link to the array: mixed arrays are not supported in 2.2" )
       expect{ @new_record.aLinkSet << LinkClass.create( new: "Neu" ) }.to change { @new_record.aLinkSet.size }.by 1
-      	expect{ @new_record.aLinkSet.delete  LinkClass.all.last }.to change { @new_record.aLinkSet.size }.by -1
+      	expect{ @new_record.aLinkSet.delete  LinkClass.last }.to change { @new_record.aLinkSet.size }.by -1
       # gives an Error - its not possible to mix links with other objects
      	expect{ @new_record.aLinkSet <<   6 }.not_to change { @new_record.aLinkSet.size }
 	### this fails!!

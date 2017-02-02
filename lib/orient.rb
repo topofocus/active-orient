@@ -35,11 +35,8 @@ Append the argument to the Array, changes the Array itself.
 
 The change is transmitted to the database immediately
 =end
-    def << arg
-#      print "\n <<---> #{@name}, #{arg} <--- \n"
-      if @name.present?
-	@orient.add_item_to_property(@name, arg)
-      end
+    def << *arg
+      @orient.add_item_to_property(@name, *arg) if @name.present?
       super
     end
 
@@ -54,34 +51,32 @@ The change is transmitted to the database immediately
       @orient.update set: {@name => self} if @name.present?
     end
 
-    def [] *arg
-      #puts "ARG #{arg}"
-      super
+#    def [] *arg
+#      #puts "ARG #{arg}"
+#      super
+#    end
+#
+=begin
+Remove_at performs Array#delete_at
+=end
+    def remove_at *pos
+      @orient.remove_position_from_property(@name,*pos) if @name.present?
     end
 
-    def delete_at *pos
-      if @name.present?
-        delete self[*pos]
-      else
-	      super
-      end
-    end
+#
+#    alias :del_org :delete 
+=begin
+Remove performs Array#delete 
 
-    def delete_if
-      if @name.present?
-        delete *self.map{|y| y if yield(y)}.compact  # if the block returns true then delete the item
-      else
-	      super
-      end
+If the Array-element is a link, this is removed, the linked table is untouched
+=end
+    def remove  *item
+      @orient.remove_item_from_property(@name,*item) if @name.present?
     end
-
-    def delete *item
-      @orient.remove_item_from_property(@name){item} if @name.present?
-    end
-
+###
     ## just works with Hashes as parameters
     def where *item
-      where_string = item.map{|m| where_string = compose_where m}.join(' and ')
+      where_string = item.map{|m| where_string = compose_where( m ) }.join(' and ')
        subquery= OrientSupport::OrientQuery.new from: @orient, projection: "expand( #{@name})"
        q= OrientSupport::OrientQuery.new from: subquery, where: item
 #      query = "SELECT FROM ( SELECT EXPAND( #{@name} ) FROM #{@orient.classname})  #{where_string} "
@@ -150,10 +145,6 @@ The change is transmitted to the database immediately
 
     end
 
-#    def << 
-  
-
-#    def to_orient
 #     self
 #    end
 

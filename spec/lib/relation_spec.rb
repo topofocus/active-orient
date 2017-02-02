@@ -30,8 +30,8 @@ describe ActiveOrient::OrientDB do
 
     it "check base"  do
       (0..9).each do | b |
-	base =  Base.where( label: b)
-	expect( base).to be_a Array
+	base =  Base.where( label: b )
+	expect( base ).to be_a Array
 	expect( base.size ).to eq 1
 	base= base.first
 	if RUBY_PLATFORM == 'java'
@@ -39,8 +39,8 @@ describe ActiveOrient::OrientDB do
 	else
 	expect( base.first_list ).to be_a Array
 	end
-	expect( base.first_list ).to have(10).items
-	base.first_list.each{|fl| expect( fl.second_list ).to have(10).items }
+      expect( base.first_list ).to have(10).items
+      base.first_list.each{|fl| expect( fl.second_list ).to have(10).items }
       end
     end
 
@@ -177,7 +177,7 @@ describe ActiveOrient::OrientDB do
 
     it "updates that document"   do
       r=  ORD.create_record  DocKlasse10, attributes: { con_id: 340, symbol: 'EWZ' }
-      rr =  ORD.update_documents  DocKlasse10,
+      rr =  ORD.update_records  DocKlasse10,
 	set: { :symbol => 'TWR' },
 	where: { con_id: 340 }
 
