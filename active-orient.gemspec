@@ -8,8 +8,8 @@ Gem::Specification.new do |s|
   s.email       = ["topofocus@gmail.com"]
   s.homepage    = 'https://github.com/topofocus/active-orient'
   s.licenses    = ['MIT']
-  s.summary     = 'Pure ruby client for OrientDB based on ActiveModel'
-  s.description = 'Persistent ORM for OrientDB, based on ActiveModel' 
+  s.summary     = 'Pure ruby client for OrientDB(V.2.2) based on ActiveModel'
+  s.description = 'Persistent ORM for OrientDB(V.2.2), based on ActiveModel. Rails 5 compatible' 
   s.platform	= Gem::Platform::RUBY
   s.required_ruby_version = '>= 2.2.5'
   s.date 	= Time.now.strftime "%Y-%m-%d"
