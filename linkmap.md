@@ -5,7 +5,7 @@ The most important difference between OrientDB and a Relational Database is that
 For this reason, the classic JOIN syntax is not supported. OrientDB uses the "dot (.) notation" to navigate LINKS
 (OrientDB-documation)
 
-This supported by ActiveOrient in a very convient way.
+This is supported by ActiveOrient in a very convient way.
 
 ## Playing with Arrays and Linkmaps
 
