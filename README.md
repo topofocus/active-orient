@@ -3,7 +3,7 @@ Use OrientDB to persistently store dynamic Ruby-Objects and use database queries
 datasets.
 
 #### Other Documents
-- [Experiments with Joins / Linkmaps ](.linkmap.md)
+- [Experiments with Joins / Linkmaps ](./linkmap.md)
 
 - [Experiments with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
 
@@ -366,7 +366,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
 
 #### Other Documents
-- [Experiments with Joins / Linkmaps ](.linkmap.md)
+- [Experiments with Joins / Linkmaps ](./linkmap.md)
 
 - [Experiment with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
 
