@@ -61,14 +61,13 @@ The CRUD-Process (create, read = query, update and remove) is performed as
     ORD.create_class :m
     # create a record
     M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
-    # or
-    new_record =  M.new  age: 46, interests: [ 'swimming', 'biking', 'reading' ]
-    new_record.save   # alternative: new_record.update
     # query the database
     hugo = M.where( name: 'Hugo' ).first
     # update the dataset
     hugo.update father: M.create( name: "Volker", age: 76 )  # we create an internal link
     hugo.father.name	# --> volker
+    # change array elements
+    hugo.interests << "dancing"  # --> [ 'swimming', 'biking', 'reading', 'dancing' ]
     M.remove hugo 
     M.delete_class	# removes the class from OrientDB and deletes the ruby-object-definition
  ```
