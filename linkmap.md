@@ -62,7 +62,7 @@ p.property[2].update
 p.property.label
  => ["Construction", "HealthCare", "zu"]
 Industry.last.label
- => 4
+ => "zu"
 
 
 ```
