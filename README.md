@@ -57,14 +57,17 @@ loaded automatically afert executing #CreateClass (and through the preallocation
 #### CRUD
 The CRUD-Process (create, read = query, update and remove) is performed as
 ```ruby	
-    ORD.create_class :M
+    # create the class
+    ORD.create_class :m
+    # create a record
     M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
     # or
     new_record =  M.new  age: 46, interests: [ 'swimming', 'biking', 'reading' ]
     new_record.save   # alternative: new_record.update
-    ##
+    # query the database
     hugo = M.where( name: 'Hugo' ).first
-    hugo.update set: { :father => M.create( name: "Volker", age: 76 ) } # we create an internal link
+    # update the dataset
+    hugo.update father: M.create( name: "Volker", age: 76 )  # we create an internal link
     hugo.father.name	# --> volker
     M.remove hugo 
     M.delete_class	# removes the class from OrientDB and deletes the ruby-object-definition
@@ -104,13 +107,6 @@ The schemaless mode has many limitations. ActiveOrient offers a Ruby way to defi
  M.create_property :name,    index: :unique	# or  M.create_property( 'name' ){ :unique }
  ```
 
-(Experimental) You can put restrictions on your properties with the command "alter_property":
-
-```ruby
-  M.alter_property property: "value", attribute: "MIN", alteration: 0
-  M.alter_property property: "value", attribute: "MAX", alteration: 23
-```
-
 #### Active Model interface
 
 As for ActiveRecord-Tables, the Model-class itself provides methods to inspect and filter datasets form the database.
@@ -118,8 +114,7 @@ As for ActiveRecord-Tables, the Model-class itself provides methods to inspect a
 ```ruby
   M.all   
   M.first
-  M.last  	# notice: last does not work in orientdb version 2.2, because the sorting algorithm for rid's is damaged
-  M.all.last    # or M.where( ... ).last  walkaround for  Orientdb V 2.2
+  M.last
   M.where town: 'Berlin'
 
   M.count where: { town: 'Berlin' }
