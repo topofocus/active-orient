@@ -25,11 +25,11 @@ puts "Namespace for model-classes : #{ns}"
 puts "Present Classes (Hierarchy) "
 
 puts ORD.class_hierarchy.to_yaml
-puts ""
-puts "Active Classes  ->  ActiveOrient ClassName"
-puts '-'* 45
-puts ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n")
-puts '-'* 45
+#puts ""
+#puts "Active Classes  ->  ActiveOrient ClassName"
+#puts '-'* 45
+puts ActiveOrient::show_classes
+#puts '-'* 45
 
 include OrientDB
 

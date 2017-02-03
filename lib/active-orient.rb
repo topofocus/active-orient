@@ -53,7 +53,16 @@ mattr_accessor :database
 mattr_accessor :database_classes
 mattr_accessor :default_server
 
+# displays all allocated classes
+# usage:  puts ActiveOrient::show_classes
+def self.show_classes
 
+ '-'* 45+"\n"+
+ "Database Class  ->  ActiveOrient ClassName\n"+
+ '-'* 45+"\n"+
+  ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n") + "\n"+
+ '-'* 45 + "\n"
+end
 
 end
 
