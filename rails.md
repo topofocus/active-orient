@@ -17,7 +17,7 @@ create your working directory and initialize the system
 
 ```ruby
 mkdir rails_project; cd rails_project
-rails -OCT .
+rails new -OCT .
 ```
 This initializes a Rails-Stack, without active-record, action-cable and the test-suite.
 (We will use rspec later)
@@ -45,7 +45,8 @@ After that, copy
 * __active_orient/rails/connect.yml__ to /config
 * __active_orient/rails/config.yml__ to /config
 
-and modify the yml-files accordingly.
+and modify the yml-files accordingly. 
+(Depending on your settings, you might have to adjust tab-levels)
 
 Run the  bundler
 
@@ -53,17 +54,45 @@ Run the  bundler
 bundle install & bundle update
 ```
 
-The database should be present in the rails console, and 
+The database is present in the rails console, and 
 ```ruby
 rails c
+puts ActiveOrient:show_classes
 
 V.count
 V.first
 E.count
-puts ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n")
 
 ```
-should work.
+should display details.
+
+## Modify the Console Output
+
+The rails console can print the intro-screen as /bin/active-orient-console of the plain active-orient gem.
+Just copy the output-part of  /bin/active-orient-console  into /config/application, like:
+```ruby
+
+module {yourRails}
+  class Application < Rails::Application
+    console do
+      ns= case ActiveOrient::Model.namespace
+	when Object
+	  "No Prefix, just ClassName#CamelCase"
+	else
+	  ActiveOrient::Model.namespace.to_s + "{ClassName.camelcase}"
+	end
+	puts '_'*45
+	puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
+	puts '-'* 45
+	puts "Namespace for model-classes : #{ns}"
+	puts "Present Classes (Hierarchy) "
+	puts ORD.class_hierarchy.to_yaml
+	puts ActiveOrient::show_classes
+      end
+    end
+  end
+
+```
 
 **Notice** The spring-facility is running in the background. Stop the server prior reloading
 the console ( ./bin/spring stop ). 
