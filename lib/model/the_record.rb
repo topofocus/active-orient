@@ -313,6 +313,7 @@ How to handle other calls
 	update set: {args[0][0..-2] => args[1 .. -1] } if rid.rid?
       end
     else
+      logger.error{" Unknown method-call: #{args.first.to_s} "}
       raise NameError
     end
   end
