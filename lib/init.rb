@@ -7,19 +7,17 @@ A custom Constant can be provided via Block
 
 i.e.
   configyml =  YAML.load_file (...)  # with an entry "namespace:" 
-  ActiveOrient.define_namespace yml: configyml 
+  ActiveOrient.Init.define_namespace yml: configyml 
   #or
-  ActiveOrient.define_namespace namespace: :self | :object | :active_orient
+  ActiveOrient.Init.define_namespace namespace: :self | :object | :active_orient
   #or
-  ActiveOrient.define_namespace { IB }  
+  ActiveOrient.Init.define_namespace { IB }  
 =end
     def self.define_namespace  yml: {}, namespace: nil
-      ActiveOrient::Model.namespace = if namespace.present? 
-					namespace
-				      elsif block_given?
+      n =  namespace.presence || yml[:namespace].presence || :object
+      ActiveOrient::Model.namespace = if block_given?
 					yield
 				      else
-					n= yml[:namespace].presence || :self
 					case n
 					when :self
 					  ActiveOrient::Model
@@ -30,9 +28,9 @@ i.e.
 					end
 				      end
       ## initialitze Edge and Vertex classes in the namespace
-#      ActiveOrient::Model.orientdb_class( name:"E", superclass: "").new
-#      ActiveOrient::Model.orientdb_class( name:"V", superclass: "").new
-  end # define namespace
+      #      ActiveOrient::Model.orientdb_class( name:"E", superclass: "").new
+      #      ActiveOrient::Model.orientdb_class( name:"V", superclass: "").new
+    end # define namespace
 
 
     def vertex_and_edge_class
