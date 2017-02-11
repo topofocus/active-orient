@@ -37,22 +37,26 @@ echo " gem 'active-orient' , :path => '/home/your_cloned_active_orient_path/acti
 # or
 
 echo " gem 'active-orient' , :git => 'https://github.com/topofocus/active-orient.git' " >> Gemfile
+
 ```
-
-After that, copy 
-
-* __active_orient/rails/activeorient.rb__   to   /config/initializers  in the rails-project dir
-* __active_orient/rails/connect.yml__ to /config
-* __active_orient/rails/config.yml__ to /config
-
-and modify the yml-files accordingly. 
-(Depending on your settings, you might have to adjust tab-levels)
 
 Run the  bundler
 
 ```
 bundle install & bundle update
 ```
+## Copy Initializer and Configuration Files
+change to the base-dir of the gem
+-->  bundle show active-orient
+then copy 
+
+* rails/activeorient.rb   to   config/initializers  in the rails-project dir
+* rails/connect.yml to config  in the rails project
+* rails/config.yml  to config   in the rails project
+
+and modify the yml-files accordingly. 
+(Depending on your settings, you might have to adjust tab-levels)
+
 
 The database is present in the rails console, and 
 ```ruby
