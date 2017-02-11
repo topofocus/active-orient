@@ -1,3 +1,5 @@
+## This is an init-script intented to be copied to 
+## rails-root/config/initializers
 project_root = File.expand_path('../../..', __FILE__)
 config_root = File.expand_path('../..', __FILE__)
 begin
@@ -20,10 +22,10 @@ ActiveOrient::Model.keep_models_without_file = true
 ActiveOrient::Init.define_namespace yml: configyml, namespace: @namespace
 
 
-
-Rails.logger.formatter = proc do |severity, datetime, progname, msg|
-  "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{progname}:..:#{msg}\n"
-end
+# this is deactivated, because it conflicts with rails
+#Rails.logger.formatter = proc do |severity, datetime, progname, msg|
+#  "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{progname}:..:#{msg}\n"
+#end
 ActiveOrient::Base.logger =  Rails.logger
 ActiveOrient::OrientDB.logger =  Rails.logger
 
@@ -38,15 +40,15 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
   else
     DB = ORD
   end
-#  ActiveOrient::Init.vertex_and_edge_class
 
-      ORD.create_classes 'E', 'V'
-      E.ref_name = 'E'
-      V.ref_name = 'V'
+  # require model-files for edge and vertex after initialisation of the db
+  basedir =  `bundle show active-orient`[0..-2]
+  require "#{basedir}/lib/model/edge.rb"
+  require "#{basedir}/lib/model/vertex.rb"
+
 else
-  logger = Logger.new('/dev/stdout')
-  logger.error{ "config/connectyml is  misconfigurated" }
-  logger.error{ "Database Server is NOT available"} 
+  puts "config/connectyml is  misconfigurated" 
+  puts "Database Server is NOT available" 
 end
 
 

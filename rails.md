@@ -126,8 +126,8 @@ As always, use «def self.{method}« for class methods and simply «def {method}
 9        
 10        def self.types
 11          oo =  OrientSupport::OrientQuery
-12          this_query = oo.new  distinct: [:type, :a ]
-13          query_database( this_query ).a
+12          this_query = oo.new  distinct: [:type, :a ]  # -->  "select distinct( type ) as a  " 
+13          query_database( this_query ).a  # returns an array of types, i.e. ["artist", "song"] 
 14        end
 15 private
 16        def  self.names  type, sort: :asc, limit: 20, skip: 0
@@ -148,7 +148,7 @@ Now
   V.types
   V.artists limit: 15, skip: 34, sort: :desc 
 ```
-queries the database, fetches 15 artists and can be used everywhere.
+queries the database, fetches 15 artists. 
 
 
 

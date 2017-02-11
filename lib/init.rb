@@ -27,17 +27,6 @@ i.e.
 					  ActiveOrient
 					end
 				      end
-      ## initialitze Edge and Vertex classes in the namespace
-      #      ActiveOrient::Model.orientdb_class( name:"E", superclass: "").new
-      #      ActiveOrient::Model.orientdb_class( name:"V", superclass: "").new
     end # define namespace
-
-
-    def vertex_and_edge_class
-      ORD.create_classes 'E', 'V'
-      E.ref_name = 'E'
-      V.ref_name = 'V'
-
-    end
   end # module Init
 end  # module ActiveOrient
