@@ -101,10 +101,14 @@ module {yourRails}
 **Notice** The spring-facility is running in the background. Stop the server prior reloading
 the console ( ./bin/spring stop ). 
 
-The final step is to generate Model-Files. In «/config/config.yml» the «:model_dir»-var points to
-the location of the model-files. The default is 'lib/orient'. 
+## Model-files
+The final step is to generate Model-Files. 
 
-Upon startup this directory is scanned for autoloading database-files. 
+In «/config/config.yml» the «:model_dir»-var points to
+the location of the model-files. The default is 'lib/orient'. Change to your needs.
+Don't use the app directory, as its autoloaded too early. 
+
+Upon startup, present model-classes are destroyed and overridden by present files in the autoload directory. 
 
 After envoking the rails console, the logfile displays sucessfully loaded and missing files, ie.
 
