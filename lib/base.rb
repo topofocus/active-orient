@@ -10,6 +10,7 @@ module  ActiveOrient
     include ActiveModel::Serialization
 #    include ActiveModel::Serializers::Xml
     include ActiveModel::Serializers::JSON
+    include ActiveModel::Conversion
     include OrientDB
 
     define_model_callbacks :initialize
