@@ -65,6 +65,12 @@ module  ActiveOrient
       @d
     end
 
+    # rails compatibility
+    # remap rid to id unless id is present
+    def id
+      attributes[:id].present? ?  attributes[:id] : rrid
+    end
+
 =begin
 If a opts hash is given, keys are taken as attribute names, values as data.
 The model instance fields are then set automatically from the opts Hash.
