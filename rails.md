@@ -158,5 +158,24 @@ Now
 ```
 queries the database, fetches 15 artists. 
 
+## Routing
+
+for now, restful routing has some restrictions.
+
+Rails-routing is depending on the "id"-attribute. Even if this is remapped to rid, the ressources-entries in "config/routes.rb" hab to be modified by
+
+```ruiby
+resources  :{controller}, id: /[^\/]+/
+```
+this enables the usage of id: "xx:yy" 
+
+In the controller the record is fetched as usual:
+```ruby
+def show
+    @{your coice} = {ActiveOrient-Model-Class}.autoload_object params[:id]
+end
+```
+
+
 
 
