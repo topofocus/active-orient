@@ -162,7 +162,7 @@ queries the database, fetches 15 artists.
 
 for now, restful routing has some restrictions.
 
-Rails-routing is depending on the "id"-attribute. Even if this is remapped to rid, the ressources-entries in "config/routes.rb" hab to be modified by
+Rails-routing is depending on the "id"-attribute. Even if this is remapped to rid, the ressources-entries in "config/routes.rb" have to be modified by
 
 ```ruiby
 resources  :{controller}, id: /[^\/]+/
