@@ -7,7 +7,7 @@ The where statement can be empty ( "" or {}"), then all vertices are removed
 
 The rid-cache is reseted, too
 =end
-  def self.delete where: 
+  def self.delete where: ""
     db.execute { "delete vertex #{ref_name} #{db.compose_where(where)}" }
     reset_rid_store
   end

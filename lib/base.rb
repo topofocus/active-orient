@@ -67,9 +67,9 @@ module  ActiveOrient
 
     # rails compatibility
     # remap rid to id unless id is present
-    def id
-      attributes[:id].present? ?  attributes[:id] : rrid
-    end
+#    def id
+#      attributes[:id].present? ?  attributes[:id] : rrid
+#    end
 
 =begin
 If a opts hash is given, keys are taken as attribute names, values as data.
