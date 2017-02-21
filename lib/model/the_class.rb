@@ -1,5 +1,5 @@
 module ModelClass
-
+require 'stringio'
   ########### CLASS FUNCTIONS ######### SELF ####
 
 
@@ -44,19 +44,20 @@ To overwrite use
 
   def orientdb_class name:, superclass: nil   # :nodoc:    # public method: autoload_class
     logger.progname = "ModelClass#OrientDBClass"
-    # @s-class is a cash for actual String -> Class relations
     self.allocated_classes = HashWithIndifferentAccess.new( V: V, E: E) unless allocated_classes.present?
 
-    #update_my_array = ->(s) { self.allocated_classes[s.ref_name] = s unless allocated_classes[s.ref_name].present? }
+    # populate cache
     update_my_array = ->(s) do
       if  allocated_classes[s.ref_name].present? 
 #	puts "found ref_name: #{allocated_classes[s.ref_name]}"
       else
       self.allocated_classes[s.ref_name] = s 
       end
-
     end
+    # use cache
     get_class =  ->(n) { allocated_classes[n] }
+
+    # get the correct namespace for the class, use the actual one (ActiveOrient:::Model.namespace) as default
     extract_namespace = -> (n) do
       if get_class[n].present?
 	separated_class_parts = get_class[n].to_s.split(':') 
@@ -66,43 +67,52 @@ To overwrite use
       end
     end
 
-
-    ref_name =  name.to_s
-    klass = if superclass.present?   # superclass is parameter, use if class, otherwise transfer to class
-	      s= if superclass.is_a? Class
-		   extract_namespace[name].send( :const_get, superclass.to_s )
-		 else
-		   superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
-		   if superclass.present?
-		     extract_namespace[name].send( :const_get, get_class[superclass].to_s )
-		   else
-		     self
-		   end
-		 end
-	      Class.new(s)
-	    else
-	      Class.new(self)
-	    end
-    # namespace is defined in config/boot
-    this_namespace =   extract_namespace[ref_name]
-    name = klass.naming_convention ref_name #
-    if this_namespace.send :const_defined?, name
-      retrieved_class = this_namespace.send :const_get, name
-    else
-
-      new_class = this_namespace.send :const_set, name, klass
-      new_class.ref_name =  ref_name
-      update_my_array[new_class]
-#      logger.debug{"created:: Class #{new_class} < #{new_class.superclass} "}
-#      logger.debug{"database-table:: #{ref_name} "}
-      new_class # return_value
+    ### lets start
+    ## is the name stored in the classes-array, then we are finished
+    the_class = get_class[ name ]
+    ## otherwise allocate a new class 
+    if the_class.nil?
+      ref_name = name.to_s
+      # namespace is defined in config/boot
+      this_namespace = extract_namespace[ ref_name ]
+      # get the correct superclass 
+      this_superklass = if superclass.present?  
+	      # if a class is provided as parameter, just look for the namespace and reveal the class
+			  s= if superclass.is_a? Class
+			       extract_namespace[ name ].send( :const_get, superclass.to_s )
+			       #otherwise get the superclassname from the database and translate to ruby
+			     else
+			       superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
+			       if superclass.present?
+				 extract_namespace[ name ].send( :const_get, get_class[ superclass ].to_s ) rescue self
+			       else
+				 self
+			       end
+			     end
+			  # Now create an anonymous class which inherints the superclass (or self)
+			  # This will be used to  create the class
+			  Class.new(s)
+			else
+			  Class.new(self)
+			end
+      #  get the classname from superclass.naming_convention 
+      name = this_superklass.naming_convention ref_name	
+      unless this_namespace.send :const_defined?, name, false
+	the_class = this_namespace.send :const_set, name, this_superklass
+      else
+	  the_class =  ActiveOrient::Model.send :const_set, name, this_superklass
+	  logger.warn{ "Unable to allocate class #{name} in Namespace #{this_namespace}"}
+	  logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
+	end
+	the_class.ref_name =  ref_name
+	update_my_array[the_class]
     end
+      the_class # return_value
   rescue NameError => e
       logger.error "ModelClass #{name.inspect} cannot be initialized."
       logger.error e.message
-      logger.error e.backtrace.map {|l| "  #{l}\n"}.join  
+      #logger.error e.backtrace.map {|l| "  #{l}\n"}.join  uncomment to observe error-stack
       nil  # return_value
-    #end
   end
 =begin
 Retrieves the preallocated class derived from ActiveOrient::Model

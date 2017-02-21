@@ -29,6 +29,7 @@ end  # module OrientDB
 require 'active_model'
 #require 'active_model/serializers'
 require_relative "support.rb"
+require_relative "conversions.rb"
 require_relative "base.rb"
 require_relative "base_properties.rb"
 require_relative "orient.rb"

@@ -12,6 +12,13 @@ module ModelRecord
   def self.classname  # :nodoc:
     self.class.to_s.split(':')[-1]
   end
+=begin
+flag whether a property exists on the Record-level
+=end
+  def has_property property
+    attributes.keys.include? property.to_s
+  end
+
 
   #
   # Obtain the RID of the Record  (format: "00:00")
@@ -271,6 +278,7 @@ end
 
   def reload! updated_dataset = nil
     updated_dataset = db.get_record(rid) if updated_dataset.nil?
+    raise "No Object reoaded (#{rid}))"
     @metadata[:version] = updated_dataset.version
     self.attributes = updated_dataset.attributes
     self  # return_value  (otherwise only the attributes would be returned)

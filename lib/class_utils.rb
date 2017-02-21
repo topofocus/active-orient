@@ -63,9 +63,11 @@ def allocate_classes_in_ruby classes  # :nodoc:
 	# if the class is predefined, use specs from get_classes
 	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name.to_s }
 	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
-	raise( ArgumentError, "#{name} is a reserved name, cannot create such class") if reserved_name?(name.to_s)
-	  #	print "GENERATE_RUBY_CLASS: #{name} / #{superclass} \n"
+	  begin
 	  m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
+	  rescue
+	  m =  ActiveOrient::Model.namespace.send( :const_get,  name.to_s.classify)
+	  end
 	  m.abstract = abstract
 	  m.ref_name = name.to_s
 	  #puts "-->  #{m.object_id}"
@@ -302,77 +304,4 @@ Deletes the specified edges and unloads referenced vertices from the cache
 	  ActiveOrient::Base.remove_rid( obj ) unless obj.nil?
 	end
 
-public
-
-	def reserved_name? name
-# http://www.rubymagic.org/posts/ruby-and-rails-reserved-words
-	  reserved = %w(ADDITIONAL_LOAD_PATHS  ARGF  
-	  ARGV  ActionController  
-	  ActionView  ActiveRecord  
-	  ArgumentError  Array  BasicSocket  
-	  Benchmark  Bignum  Binding  
-	  CGI  CGIMethods  CROSS_COMPILING  
-	  Class  ClassInheritableAttributes  
-	  Comparable  ConditionVariable  
-	  Config  Continuation  DRb  
-	  DRbIdConv  DRbObject  
-	  DRbUndumped  Data  Date  DateTime  
-	  Delegater  Delegator  Digest  Dir 
-	  ENV  EOFError  ERB  Enumerable  
-	  Errno  Exception  FALSE  
-	  FalseClass  Fcntl  File  
-	  FileList  FileTask  FileTest  
-	  FileUtils  Fixnum  Float  
-	  FloatDomainError  GC  Gem  
-	  GetoptLong  Hash 
-	  IO  IOError  IPSocket  IPsocket  
-	  IndexError  Inflector  Integer  
-	  Interrupt  Kernel 
-	  LN_SUPPORTED  LoadError  
-	  LocalJumpError  Logger 
-	  Marshal  MatchData  MatchingData  
-	  Math  Method  Module  Mutex  
-	  Mysql  MysqlError  MysqlField  
-	  MysqlRes 
-	  NIL  NameError  NilClass  
-	  NoMemoryError  
-	  NoMethodError  NoWrite 
-	  NotImplementedError  Numeric 
-	  OPT_TABLE  Object  ObjectSpace  
-	  Observable  Observer 
-	  PGError  PGconn  PGlarge  PGresult  
-	  PLATFORM  PStore  ParseDate 
-	  Precision  Proc  Process 
-	  Queue 
-	  RAKEVERSION  RELEASE_DATE  RUBY  
-	  RUBY_PLATFORM  RUBY_RELEASE_DATE  
-	  RUBY_VERSION  Rack  Rake  RakeApp  
-	  RakeFileUtils  Range  RangeError  
-	  Rational  
-	  Regexp  RegexpError  Request  
-	  RuntimeError 
-	  STDERR  STDIN  STDOUT  ScanError  
-	  ScriptError  SecurityError  Signal  
-	  SignalException  SimpleDelegater  
-	  SimpleDelegator  Singleton  SizedQueue  
-	  Socket  SocketError  StandardError  
-	  String  StringScanner  Struct  Symbol  
-	  SyntaxError  SystemCallError  
-	  SystemExit  SystemStackError 
-	  TCPServer  TCPSocket  TCPserver  
-	  TCPsocket  TOPLEVEL_BINDING  
-	  TRUE  Task  Text  Thread  
-	  ThreadError  
-	  ThreadGroup  Time  
-	  Transaction  TrueClass  
-	  TypeError  UDPSocket  UDPsocket  
-	  UNIXServer  UNIXSocket  UNIXserver  
-	  UNIXsocket  UnboundMethod  Url
-	  VERSION 
-	  Verbose 
-	  YAML 
-	  ZeroDivisionError).map &:downcase
-
-	  reserved.include? name.downcase
-	end
 end # module

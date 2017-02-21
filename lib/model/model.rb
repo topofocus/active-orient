@@ -35,6 +35,19 @@ Note: This function is not in ModelClass since it needs to use @@rid_store
       end
     end
 
+    ## used for active-model-compatibility
+    def persisted?
+      true
+    end
+
+
+   def self._to_partial_path #:nodoc:
+     @_to_partial_path ||= begin
+	element = ActiveSupport::Inflector.underscore(ActiveSupport::Inflector.demodulize(name))
+	collection = ActiveSupport::Inflector.tableize(name)
+	"#{collection}/#{element}".freeze
+      end
+   end
     ## to prevent errors when calling to_a 
     def to_ary   # :nodoc:
       attributes.to_a

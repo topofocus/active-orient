@@ -10,8 +10,8 @@ module  ActiveOrient
     include ActiveModel::Serialization
 #    include ActiveModel::Serializers::Xml
     include ActiveModel::Serializers::JSON
-    include ActiveModel::Conversion
     include OrientDB
+    include Conversions   # mocking ActiveModell::Conversions
 
     define_model_callbacks :initialize
 
@@ -70,6 +70,7 @@ module  ActiveOrient
 #    def id
 #      attributes[:id].present? ?  attributes[:id] : rrid
 #    end
+
 
 =begin
 If a opts hash is given, keys are taken as attribute names, values as data.
