@@ -81,7 +81,7 @@ The code above shows how to integrate the classes within the structure of the pr
 of the model-files. With the gem, they are located in the root-directory of the gem. The other approach looks in the model-directory of the project (model/tg).
 
 Before we start, we  switch to the object-layer, where we want to define the working-classes. Their 
-logic is defined in model-files in 'model'. And we want to make shure, that all database-classes are allocated
+logic is defined in model-files in 'model'. And we want to make sure, that all database-classes are allocated
 to ruby classes. 
 
 ```ruby
