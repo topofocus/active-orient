@@ -28,7 +28,7 @@ In our case, the "ib-ruby" gem gets data through an api
 The gem provides the logic to convert the raw-data from the server to ActiveOrient::Model-Objects.
 Its located in the model-directory of the gem.
 
-Just by including the gem in the Gemfile and requiring the gem, anything is available in our project.
+Just by including the gem in the Gemfile and requiring it, anything is available in our project.
 
 The gem defines the ActiveOrient-Environment as follows:
 ```ruby
