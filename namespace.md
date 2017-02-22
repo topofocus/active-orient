@@ -6,7 +6,7 @@ A common case is, to concentrate any gathering of raw data in a separate module,
 
 ActiveOrient enables this by switching the "ActiveOrient::Model.namespace" directive.
 
-### Activate Namspace
+### Activate Namespace
 
 simply run
 ```
