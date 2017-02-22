@@ -72,7 +72,7 @@ The CRUD-Process (create, read = query, update and remove) is performed as
     M.delete_class	# removes the class from OrientDB and deletes the ruby-object-definition
  ```
  
-#### Inherence
+#### Inheritance
 
 Create a Tree of Objects with create_classes
 ```ruby
@@ -115,6 +115,7 @@ As for ActiveRecord-Tables, the Model-class itself provides methods to inspect a
   M.first
   M.last
   M.where town: 'Berlin'
+  M.like "name =  G*"
 
   M.count where: { town: 'Berlin' }
 ```
