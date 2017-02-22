@@ -6,7 +6,25 @@ A common case is, to concentrate any gathering of raw data in a separate module,
 
 ActiveOrient enables this by switching the "ActiveOrient::Model.namespace" directive.
 
-In out case, the "ib-ruby" gem gets data through an api 
+### Activate Namspace
+
+simply run
+```
+module HC
+end
+ActiveOrient::Init.define_namespace { HC }
+```
+to activate the namspace "HC" 
+
+and 
+```
+ActiveOrient::Init.define_namespace { Object }```
+```
+to deactivate it.
+
+### Extend ActiveOrient with a gem and introduce a namespace
+
+In our case, the "ib-ruby" gem gets data through an api 
 The gem provides the logic to convert the raw-data from the server to ActiveOrient::Model-Objects.
 Its located in the model-directory of the gem.
 
