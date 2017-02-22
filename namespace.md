@@ -94,7 +94,7 @@ to ruby classes.
 is set to false, classes are allocated only, if a model-file is present. As a consequence, any appropopiate
 model-file is loaded. 
 
-Any  previously allocated class can thus be extended, providing a proper model-file. For example: If we 
+Thus any previously allocated class can be extended, providing a proper model-file. For example: If we 
 allocated a class «Contract« in the namspace »IB«, methods for this class are included from the model-dir specified in the gem *and* in the actual-model-directory ( in this case: model/ib/contract.rb ). 
 
 
