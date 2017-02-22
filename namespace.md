@@ -14,7 +14,7 @@ module HC
 end
 ActiveOrient::Init.define_namespace { HC }
 ```
-to activate the namspace "HC" 
+to activate the namespace "HC" 
 
 and 
 ```
