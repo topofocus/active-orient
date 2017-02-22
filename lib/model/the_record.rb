@@ -199,7 +199,7 @@ If only single Items are to insert, use
   ############# DELETE ###########
 
 #  Removes the Model-Instance from the database
-#  todo:  overloaded in vertex and edge
+#  todo:  overload in vertex and edge
 
 def remove 
   orientdb.delete_record self

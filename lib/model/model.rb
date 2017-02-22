@@ -1,11 +1,13 @@
 require_relative "the_class.rb"
 require_relative "the_record.rb"
+require_relative "custom.rb"
 
 module ActiveOrient
   class Model < ActiveOrient::Base
 
     include BaseProperties
     include ModelRecord # For objects (file: lib/record.rb)
+    extend CustomClass # for customized class-methods aka like
     extend ModelClass # For classes
 
 =begin
