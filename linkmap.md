@@ -7,6 +7,28 @@ For this reason, the classic JOIN syntax is not supported. OrientDB uses the "do
 
 This is supported by ActiveOrient in a very convient way.
 
+Suppose, you want to store general Informations about a Company in a Class/Table called »the_base«. Then you want to keep records of available trading-instruments in a »asset« Class/Table, which should have children called »stock«, »optiton« or »bond«. Thus
+```ruby
+DB.create_vertex_class :the_base
+DB_create_vertex_class :asset
+DB.create_classes [ :stock, :option, :bond ]{ :asset }
+```
+The Asset-Class needs a property »base« which should carry an index. 
+```ruby
+Asset.create:property :base, type: link, index: :uniq
+```
+Both classes are initialized/assigned in a single statement
+```ruby
+Stock.create symbol: 'AAPL', base: TheBase.upsert( where: {name: 'Apple'} )
+Bond.create maturity: Date.new(2025,5,31), cupon: 2.5 , base:  TheBase.upsert( where: {name: 'IBM'} )
+```
+Associated records are fetched the usual way
+```ruby
+google_assets =  Asset.where "base.name='Google'"
+=> [#<Stock:0x000000035b8698 @metadata={"type"=>"d", "class"=>"stock", "version"=>3, "fieldTypes"=>"price=c,currency=x,base=x", "cluster"=>59, "record"=>336}, @attributes={"name"=>"GOOGLE INC-CL A", "ib_con_id"=>30351181, "price"=>555.19, "base"=>"#45:22"}>, 
+#<Option:0x000000035a5598 @metadata={"type"=>"d", "class"=>"option", "version"=>3, "fieldTypes"=>"price=c,expire=t,currency=x,base=x", "cluster"=>65, "record"=>756}, @attributes={"name"=>"GOOGLE INC-CL A", "ib_con_id"=>nil, "price"=>5.2, "expire"=>"2014-08-29 00:00:00", "symbol"=>"GOOGL", "exchange"=>"SMART", "currency"=>"#42:0", "basiswert"=>"#45:22"} ] 
+```
+
 ## Playing with Arrays and Linkmaps
 
 Linkmaps are the OrientDB equivalent to joined tables 
