@@ -30,7 +30,7 @@ google_assets =  Asset.where "base.name='Google'"
 google_assets.asset.name 
 => ["Google", "Google"]
 google_assets.name
-=> ["GOOGLE INC-CL A"," "GOOGLE INC-CL A']
+=> ["GOOGLE INC-CL A", "GOOGLE INC-CL A"]
 ```
 
 ## Playing with Arrays and Linkmaps
