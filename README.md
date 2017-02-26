@@ -215,20 +215,19 @@ Edges provide bidirectional Links. They are easily handled
 			       to: the_end
 ```
 Edges are connected to vertices by »in« and »out«-Methods.
-Inherence is supported.
+Inheritance is maintained on the class-level. **Attention: in_ and out_-Attributes just
+reflect the morphology, to reveal their oo-behavior, the database has to be queried.**
 
 i.e.
 ```ruby
   ORD.create_class( top_edge ) { THE_EDGE }
   ORD.create_class( on_top_edge ) { TOP_EDGE }
 
-  ON_TOP_Edge.create  from: start, to: the_end
-  start.reload!
-  start.out :the_edge 
+  ON_TOP_Edge.create  from: start, to: the_end 
   => [#<TOP_EDGE:0x00000001d92f28 @metadata= ... ]
 ```
 
-Edge-links are displayed and retrieved by
+Bidirectional links are displayed and retrieved by
 ```ruby
   start.edges	  # :in | :out | :all 
    => ["#73:0"] 
