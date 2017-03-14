@@ -21,7 +21,7 @@ The jruby-part is experimental.
  - clone the project, 
  - run bundle install & bundle update, 
  - update config/connect.yml, 
- - create the documentation by calling »rdoc«
+ - create the documentation (preferred: sdoc  (use  `sdoc .-x spec` as directive)
  - start an irb-session by calling  
 ```
 cd bin
