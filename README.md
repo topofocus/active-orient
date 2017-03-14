@@ -19,16 +19,20 @@ The jruby-part is experimental.
 ### Quick Start
 
  - clone the project, 
- - run bundle install & bundle update, 
- - update config/connect.yml, 
- - create the documentation (preferred: sdoc  (use  `sdoc .-x spec` as directive)
+ - run bundle install ; bundle update, 
+ - update config/connect.yml,
+ - create the documentation:
+ ```
+   sdoc . -x spec -x example
+   ```
+   and point the browser to ~/active-orient/doc/index.htm
  - start an irb-session by calling  
 ```
 cd bin
 ./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
 ```
 
-«ORD» or «DB» is the Database-Instance itself. If the Database noticed is not present, it is created on startup.
+«ORD» or «DB» is the Database-Instance itself. If the Database noticed in the config-file is not present, it is created on startup.
 A simple SQL-Query is submitted by providing a Block to »execute«
  ```ruby
  result =  ORD.execute { "select * from Stock" } 
@@ -98,7 +102,8 @@ The database-class  «V» is present in any case. Any model-class can be used, e
 The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
 
  ```ruby
- ORD.create_class  :M, :item
+ ORD.create_class  :M, :item 	# = ORD.create_class :M ; M.create_property item: :string
+ 
  M.create_property :symbol 			# the default-case: type: :string, no index
  M.create_property :con_id,   type: :integer
  M.create_property :details,  type: :link, other_class: 'Contracts'
