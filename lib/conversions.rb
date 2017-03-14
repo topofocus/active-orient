@@ -1,9 +1,9 @@
-module  Conversions
 =begin
 Rails-specific stuff
 
 Mimics ActiveModell::conversions
 =end
+module  Conversions
 
 
 =begin

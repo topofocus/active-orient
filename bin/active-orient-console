@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 ## loads the active-orient environment 
 ## and starts an interactive shell
-## Parameter:  production (p)
+##
+## Parameter:  
+##	       production (p)
 ##	       development (d)  [default]
 ##	       test (t)
 require 'logger'

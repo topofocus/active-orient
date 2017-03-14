@@ -3,7 +3,7 @@ module ModelRecord
 
   ############# GET #############
 
-  def from_orient
+  def from_orient # :nodoc:
     self
   end
 
@@ -15,13 +15,13 @@ module ModelRecord
 =begin
 flag whether a property exists on the Record-level
 =end
-  def has_property property
+  def has_property? property
     attributes.keys.include? property.to_s
   end
 
 
   #
-  # Obtain the RID of the Record  (format: "00:00")
+  # Obtain the RID of the Record  (format: *00:00*)
   #
 
   def rid
@@ -32,20 +32,23 @@ flag whether a property exists on the Record-level
     end
   end
 =begin
-The extended representation of rid (format "#00:00" )
+The extended representation of RID (format: *#00:00* )
 =end
   def rrid
     "#" + rid
   end
   alias to_orient rrid
 
-  def to_or
+  def to_or #:nodoc:
     rrid
   end
 =begin
-Query uses the current model-record  as origin of the query
-It sends the OrientSupport::OrientQuery directly to the database and returns a 
+Query uses the current model-record  as origin of the query.
+
+It sends the OrientSupport::OrientQuery directly to the database and returns an 
 ActiveOrient::Model-Object or an Array of Model-Objects as result. 
+
+*Usage:* Query the Database by traversing through edges and vertices starting at a known location
 
 =end
 
@@ -63,7 +66,12 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
    end
 
 =begin
-queries the database starting with the current model-record.
+Fires a »where-Query» to the database starting with the current model-record.
+
+Attributes:
+* a string ( obj.find "in().out().some_attribute >3" )
+* a hash   ( obj.find 'some_embedded_obj.name' => 'test' )
+* an array 
 
 Returns the result-set, ie. a Query-Object which contains links to the addressed records.
 
@@ -120,23 +128,23 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
     end
 =begin
 Add Items to a linked or embedded class
-Parameter
 
-  array : the name of the property to work on
-  item :  what to add (optional)
-  block:  has to provide an array of elements to add to the property
+Parameter:
 
-example:
+[array] the name of the property to work on
+[item ]  what to add (optional)
+[block]  has to provide an array of elements to add to the property
+
+Example: add 10 elements to the property
 
    add_item_to_property :second_list do
        (0 .. 9).map do | s |
                SecondList.create label: s
        end  
    end
-   adds 10 Elements to the property.
 
 
-   The method returns the model record itself. Thus nested initialisations are possible:
+The method returns the model record itself. Thus nested initialisations are possible:
    
        ORD.create_classes([:base, :first_list, :second_list ]){ "V" }
        ORD.create_property :base, :first_list,  type: :linklist, linkedClass: :first_list
@@ -158,7 +166,8 @@ example:
 
 
 Record#AddItemToProperty shines with its feature to specify records to insert in a block.
-If only single Items are to insert, use
+
+If only single Items are to  be inserted, use
   model_record.linklist << item 
 
 =end
@@ -177,11 +186,11 @@ If only single Items are to insert, use
   end
 
 
-  def set_item_to_property array, *item
+  def set_item_to_property array, *item  # :nodoc:
       update  array.to_s => item
   end
 
-  def remove_position_from_property array, *pos
+  def remove_position_from_property array, *pos  # :nodoc:
       if attributes[array].is_a? Array
         pos.each{|x| self.attributes[array].delete_at( x )}
 	update
@@ -198,8 +207,9 @@ If only single Items are to insert, use
 
   ############# DELETE ###########
 
-#  Removes the Model-Instance from the database
-#  todo:  overload in vertex and edge
+# Removes the Model-Instance from the database.
+#
+# It is overloaded in Vertex and Edge.
 
 def remove 
   orientdb.delete_record self
@@ -211,15 +221,20 @@ alias delete remove
 ########### UPDATE ############
 
 =begin
-  Convient update of the dataset by calling sql-patch
+Convient update of the dataset by calling sql-patch
 
-  Previously changed attributes are saved to the database.
-  With the optional :set argument ad-hoc attributes can be defined
+Previously changed attributes are saved to the database.
+
+Using the optional :set argument ad-hoc attributes can be defined
+
     obj = ActiveOrient::Model::Contracts.first
     obj.name =  'new_name'
     obj.update set: { yesterdays_event: 35 }
+updates both, the »name« and the »yesterdays_event«-properties
 
- ** note: The keyword »set« is optional
+_note:_ The keyword »set« is optional, thus
+    obj.update  yesterdays_event: 35 
+is identical
 =end
 
   def update set: {}, **args
@@ -243,23 +258,29 @@ alias delete remove
 
   end
 
-# mocking active record, overrides the base-class-method
-  def update_attribute the_attribute, the_value
+# mocking active record  
+  def update_attribute the_attribute, the_value # :nodoc:
     update set: {the_attribute => the_value }
     super the_attribute, the_value
   end
 
-  def update_attributes **args
+  def update_attributes **args    # :nodoc:
     update set: args
   end
 
   ########## SAVE   ############
  
 =begin
-Saves the record either
+Saves the record  by calling update  or  creating the record
 
-* by calling update  or
-* by creating the record
+  ORD.create_class :a
+  a =  A.new
+  a.test = 'test'
+  a.save
+
+  a =  A.first
+  a.test = 'test'
+  a.save
 
 =end
 def save
@@ -294,7 +315,7 @@ end
   Actually we just check the second term as we trust the constuctor to work properly
 =end
 
-  def is_edge?
+  def is_edge? # :nodoc:
     attributes.keys.include?('in') && attributes.keys.include?('out')
   end
 
@@ -302,7 +323,13 @@ end
 How to handle other calls
 
 * if  attribute is specified, display it
-* if  attribute= is specify, assign to the known property or create a new one
+* if  attribute= is provided, assign to the known property or create a new one
+
+Example:
+  ORD.create_class :a
+  a = A.new
+  a.test= 'test'  # <--- attribute: 'test=', argument: 'test'
+  a.test	  # <--- attribute: 'test' --> fetch attributes[:test]
 
 =end
   def method_missing *args

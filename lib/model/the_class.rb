@@ -119,7 +119,7 @@ Retrieves the preallocated class derived from ActiveOrient::Model
 
 Only classes noted in the @classes-Array of orientdb are fetched.
 =end
-  def get_model_class name
+  def get_model_class name  # :nodoc:
     if orientdb.database_classes.include?(name)
       orientdb_class name: name, superclass: :find_ME
     else
@@ -190,8 +190,8 @@ Example:
 =begin 
 Creates or updates a record.
 Parameter: 
- set: A hash of attributes to insert or update unconditionally
- where: A string or hash as condition which should return just one record.
+- set: A hash of attributes to insert or update unconditionally
+- where: A string or hash as condition which should return just one record.
 
 The where-part should be covered with an unique-index.
 If :where is omitted, #Upsert becomes #Create, attributes are taken from :set.
@@ -235,16 +235,19 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
   end
 
 =begin
-  Create a Property in the Schema of the Class
-    :call-seq:  Model.create_property(field (required), type:'string', linked_class: nil, index: nil) do
-    	index
-    end
+Create a Property in the Schema of the Class
 
-    Examples:
+Examples:
 
       create_property  :customer_id, type: integer, index: :unique
       create_property  :name, type: :string, index: :not_unique
       create_property  :in,  type: :link, linked_class: :V    (used by edges)
+
+:call-seq:  create_property(field (required), 
+			    type: 'a_string',
+			    linked_class: nil, index: nil) do
+    	index
+    end
 =end
 
   def create_property field, **keyword_arguments, &b
@@ -313,43 +316,63 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
   end
 
 =begin
-  Parameter projection:
-  »select« is a method of enumeration, we use  »projection:« to specify anything between »select« and »from« in the query-string.
-    projection: a_string --> inserts the sting as it appearsb
-    an OrientSupport::OrientQuery-Object --> performs a sub-query and uses the result for further querying though the given parameters.
-    [a, b, c] --> "a, b, c" (inserts a comma-separated list)
-    {a: b, "sum(x)" => f} --> "a as b, sum(x) as f" (renames properties and uses functions)
+»GetRecords« uses the REST-Interface to query the database. The alternative »QueryDatabase« submits 
+the query via Batch. 
 
-  Parameter distinct:
-  Performs a Query like » select distinct(property) [as property] from ...«
-    distinct: :property -->  the result is mapped to the property »distinct«.
-    [:property] --> the result replaces the property
-	  {property: :some_name} -->  the result is mapped to ModelInstance.some_name
+Both methods rely on OrientSupport::OrientQuery and its capacity to support complex query-builds.
+The method requires a hash of arguments. The following keys are supported:
 
-  Parameter Order
-  Sorts the result-set. If new properties are introduced via select:, distinct: etc. Sorting takes place on these properties
-    order: :property {property: asc, property: desc}[property, property, ..  ](orderdirection is 'asc')
+*projection:*
 
-  Further supported Parameter:
-    group_by
-    skip
-    limit
-    unwind
+SQL-Queries use »select« to specify a projection (ie. `select sum(a), b+5 as z from class where ...`)
+
+In ruby »select« is a method of enumeration. To specify anything etween »select« and »from« in the query-string
+we use  »projection«, which acceps different arguments
+
+    projection: a_string --> inserts the sting as it appears
+    projection: an OrientSupport::OrientQuery-Object --> performs a sub-query and uses the result for further querying though the given parameters.
+    projection: [a, b, c] --> "a, b, c" (inserts a comma-separated list)
+    projection: {a: b, "sum(x)" => f} --> "a as b, sum(x) as f" (renames properties and uses functions)
+
+*distinct:*
+
+Constructs a query like »select distinct(property) [as property] from ...«
+
+  distinct: :property -->  the result is mapped to the property »distinct«.
+  distinct: [:property] --> the result replaces the property
+  distinct: {property: :some_name} -->  the result is mapped to ModelInstance.some_name
+
+*order:*
+ 
+ Sorts the result-set. If new properties were introduced via select:, distinct: etc. Sorting takes place on these properties
+
+  order: :property {property: asc, property: desc}[property, property, ..  ](orderdirection is 'asc')
+
+
+Further supported Parameter:
+
+  group_by
+  skip
+  limit
+  unwind
 
   see orientdb- documentation (https://orientdb.com/docs/last/SQL-Query.html)
 
-  Parameter query:
-    Instead of providing the parameter, the OrientSupport::OrientQuery can build and tested before the method-call. The OrientQuery-Object can be provided with the query-parameter. I.e.
-      q = OrientSupport::OrientQuery.new
-      ORD.create_class :test_model
-      q.from TestModel
-      q.where {name: 'Thomas'}
-      count = TestModel.count query: q
-      q.limit 10
-      0.step(count,10) do |x|
+*query:*
+
+Instead of providing the parameter to »get_records«, a OrientSupport::OrientQuery can build and 
+tested prior to the method-call. The OrientQuery-Object is then provided with the query-parameter. I.e.
+
+  q = OrientSupport::OrientQuery.new
+  ORD.create_class :test_model
+     q.from TestModel
+     q.where {name: 'Thomas'}
+     count = TestModel.count query: q
+     q.limit 10
+     0.step(count,10) do |x|
         q.skip = x
         puts TestModel.get_documents(query: q).map{|x| x.adress }.join('\t')
-      end
+     end
     prints a Table with 10 columns.
 =end
 
@@ -359,12 +382,18 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
   alias get_documents get_records
 
 =begin
-  Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
+Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
 
-  Example:
+Example:
     Log.where priority: 'high'
     --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
     => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
+  
+
+If a plain where-condition has to be build, custom_where should be used.
+
+    Property.custom_where( "'Hamburg' in exchanges.label")
+
 =end
 
   def custom_where search_string
@@ -372,6 +401,21 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
     #puts q.compose
     query_database q
   end
+=begin
+Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
+
+Example:
+    Log.where priority: 'high'
+    --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
+    => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
+  
+
+If a plain where-condition has to be build, custom_where should be used.
+
+    Property.custom_where( "'Hamburg' in exchanges.label")
+
+=end
+
   def where *attributes 
    ## puts "ATTRIBUTES: "+attributes.inspect
     q = OrientSupport::OrientQuery.new from: self, where: attributes
@@ -381,7 +425,7 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
 Performs a Match-Query
 
 The Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
-records. In the simplest version this can be returnd:
+records. In the simplest version this can be returned:
   
   Industry.match where:{ name: "Communications" }
   => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
@@ -424,9 +468,18 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 
 
 =begin
-  QueryDatabase sends the Query, direct to the database.
-  The result is not nessessary an Object of self.
-  However, if the query does not return an array of Active::Model-Objects, then the entries become self
+QueryDatabase sends the Query directly to the database.
+
+The result is not nessessary an Object of self.
+
+However, if the query does not return an array of Active::Model-Objects, then the entries become self
+
+»query_database« is used on model-level and submits
+  select (...) from class
+
+»query« performs queries on the instance-level and submits
+  select (...) from #{a}:{b}
+  
 =end
 
   def query_database query, set_from: true
@@ -445,14 +498,14 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
     orientdb.delete_property self, field
   end
 
-# Delete a record
+# Delete  record(s) specified by their rid's
 
   def delete_record *rid
     db.delete_record rid
   end
   alias delete_document delete_record
 
-# Delete a record from the class
+# Query the database and delete the records of the resultset
 
   def delete_records where: {}
     orientdb.delete_records self, where: where
@@ -464,20 +517,20 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   ##################### EXPERIMENT #################
 
 =begin
-  Suppose that you created a graph where vertexes month is connected with
-  the vertexes day by the edge TIMEOF.
-  Suppose we want to find all the days in the first month and in the third month..
+Suppose that you created a graph where vertexes month is connected with
+the vertexes day by the edge TIMEOF.
+Suppose we want to find all the days in the first month and in the third month..
 
-  Usually we can do in the following way.
+Usually we can do in the following way.
 
-  ORD.create_class "Month"
+  ORD.create_class :month
   (.. put some records into Month ... )
   firstmonth = Month.first
-  thirdmonth = month.all[2]
+  thirdmonth = Month.all[2]
   days_firstmonth = firstmonth.out_TIMEOF.map{|x| x.in}
   days_thirdmonth = thirdmonth.out_TIMEOF.map{|x| x.in}
 
-  However we can obtain the same result with the following command
+However we can obtain the same result with the following command
 
   Month.add_edge_link name: "days", direction: "out", edge: TIME_OF
   firstmonth = month.first
@@ -485,7 +538,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
   days_firstmonth = firstmonth.days
   days_thirdmonth = thirdmonth.days
 
-  To get their value you can do:
+To get their value you can do:
   thirdmonth.days.value
 =end
 
@@ -501,7 +554,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
  See http://orientdb.com/docs/2.1/SQL-Alter-Property.html
 =end
 
-  def alter_property property:, attribute: "DEFAULT", alteration:
+  def alter_property property:, attribute: "DEFAULT", alteration:  # :nodoc:
     orientdb.alter_property self, property: property, attribute: attribute, alteration: alteration
   end
 

@@ -54,8 +54,12 @@ mattr_accessor :database
 mattr_accessor :database_classes
 mattr_accessor :default_server
 
-# displays all allocated classes
-# usage:  puts ActiveOrient::show_classes
+## displays all allocated classes
+##
+## usage: 
+##  puts ActiveOrient::show_classes
+#
+#
 def self.show_classes
 
  '-'* 45+"\n"+

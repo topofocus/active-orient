@@ -169,6 +169,7 @@ The model instance fields are then set automatically from the opts Hash.
 
 =begin
   ActiveModel-style read/write_attribute accessors
+
   Autoload mechanism and data conversion are defined in the method "from_orient" of each class
 =end
 
@@ -221,7 +222,7 @@ The model instance fields are then set automatically from the opts Hash.
       @attributes[key] = value
     end
 
-    def to_model
+    def to_model   # :nodoc:
       self
     end
 
@@ -235,15 +236,15 @@ The model instance fields are then set automatically from the opts Hash.
 
 # ActiveRecord::Base association API mocks
 #
-    def self.belongs_to model, *args
+    def self.belongs_to model, *args # :nodoc:
       attr_accessor model
     end
 #
-    def self.has_one model, *args
+    def self.has_one model, *args   # :nodoc:
       attr_accessor model
     end
 #
-    def self.has_many models, *args
+    def self.has_many models, *args  # :nodoc:
       attr_accessor models
       define_method(models) do
         self.instance_variable_get("@#{models}") || self.instance_variable_set("@#{models}", [])
@@ -256,7 +257,7 @@ The model instance fields are then set automatically from the opts Hash.
 #
 # ActiveRecord::Base misc
 
-    def self.serialize *properties
+    def self.serialize *properties # :nodoc:
     end
 
   end # Model

@@ -23,7 +23,8 @@ module RestOperations
     result = get_records raw: true, query: query
     result.first['COUNT'] rescue  0  # return_value
   end
-
+=begin
+--
 ## historic method 
 #  def manipulate_relation record,  method, array, items  # :nodoc: #
 #    execute_array = Array.new
@@ -56,6 +57,10 @@ module RestOperations
 #      record.increment_version
 #    end
 #  end
+++
+=end
+
+
 =begin
 Executes a list of commands and returns the result-array (if present)
 

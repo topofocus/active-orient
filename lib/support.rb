@@ -3,15 +3,18 @@ module OrientSupport
   module Support
 
 =begin
-  supports
+supports
   where: 'string'
   where: { property: 'value', property: value, ... }
   where: ['string, { property: value, ... }, ... ]
-  Used by update and select
+
+Used by update and select
+
+_Usecase:_
+ ORD.compose_where 'z=34', {u:6}
+  => "where z=34 and u = 6" 
 =end
 
-## ORD.compose_where 'z=34', {u:6}
-    # => "where z=34 and u = 6" 
     #
     def compose_where *arg
       arg = arg.flatten
@@ -27,7 +30,7 @@ module OrientSupport
     end
 
 =begin
-designs a list of "Key =  Value" pairs combined by "and" or the fillword provided by the block
+designs a list of "Key =  Value" pairs combined by "and" or the binding  provided by the block
    ORD.generate_sql_list  where: 25 , upper: '65' 
     => "where = 25 and upper = '65'"
    ORD.generate_sql_list(  con_id: 25 , symbol: :G) { ',' } 

@@ -4,7 +4,7 @@ this method.
 This is disabled for now, because it does not seem nessesary
 =end
 
-def preallocate_class_properties o_class
+def preallocate_class_properties o_class  # :nodoc:
   p= get_class_properties( o_class )['properties']
   unless p.nil? || p.blank?
     predefined_attributes = p.map do | property |

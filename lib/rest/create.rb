@@ -28,40 +28,17 @@ module RestCreate
     ActiveOrient.database  # return_value
   end
 
-  ######### CLASS ##########
 =begin
-  Creates classes and class-hierarchies in OrientDB and in Ruby.
-  Takes a String,  Array or Hash as argument and returns a (nested) Array of
-  successfull allocated Ruby-Classes.
-  If a block is provided, this is used to allocate the class to this superclass.
 
-  Examples
-
-    create_class  "a_single_class"
-    create_class  :a_single_class
-    create_class(  :a_single_class ){ :a_super_class }
-    create_class(  :a_single_class ){ superclass: :a_super_class, abstract: true }
-    create_class( ["c",:l,:A,:SS] ){ :V } --> vertices
-    create_class( ["c",:l,:A,:SS] ){ superclass: :V, abstract: true } --> abstract vertices
-    create_class( { V: [ :A, :B, C: [:c1,:c3,:c2]  ],  E: [:has_content, :becomes_hot ]} )
-=end
-
-
-=begin 
 General method to create database classes
 
-Accepts 
-* a string or symbol  
+Creates classes and class-hierarchies in OrientDB and in Ruby.
 
-  creates a single class and returns the ActiveOrient::Model-Class
-* an arrray of strings or symbols
+Takes a String,  Array or Hash as argument and returns a (nested) Array of
+successfull allocated Ruby-Classes.
 
-  creates alltogether and returns an array of created ActiveOrient::Model-Classes
-* a (nested) Hash 
-
-  then creates a hierarchy of database-classes and returns them as hash
-
-takes an optional block to specify a superclass. This class MUST exist.
+If a block is provided, this is used to allocate the class to this superclass.
+This class MUST exist.
 
 
 eg. 
@@ -75,17 +52,27 @@ creates three vertex-classes and assigns them to var's a,b, and c
   
   create_classes( test: [:test1, :test2, test3] ) { :V }
 
-creates a vertex-class Test and three clild-classes  
+creates a vertex-class Test and three child-classes  
   
   create_classes( :V => :test)
 
 creates a vertex-class, too, returns the Hash
 
+
+*see also*
+
+::create_class
+
+::create_vertex_class
+
+::create_edeg_class
+
+
+=end
+  def create_classes *classes, &b
 #todo
 #check if a similar classname already exists --> Contract == contract == conTract 
 #and assign to this existing one.
-=end
-  def create_classes *classes, &b
     return if classes.empty?
 
     classes =  classes.pop if classes.size == 1
@@ -372,17 +359,19 @@ The method returns the included or the updated dataset
   ############### PROPERTIES #############
 
 =begin
-  Creates properties and optional an associated index as defined  in the provided block
+Creates properties  
+
+and (if defined in the provided block)  associates an index
     create_properties(classname or class, properties as hash){index}
 
-  The default-case
+The default-case
     create_properties(:my_high_sophisticated_database_class,
   		con_id: {type: :integer},
   		details: {type: :link, linked_class: 'Contracts'}) do
   		  contract_idx: :notunique
   		end
 
-  A composite index
+A composite index
     create_properties(:my_high_sophisticated_database_class,
   		con_id: {type: :integer},
   		symbol: {type: :string}) do
@@ -430,11 +419,17 @@ The method returns the included or the updated dataset
   end
 
 =begin
-  Create a single property on class-level.
-  Supported types: https://orientdb.com/docs/last/SQL-Create-Property.html
-  If index is to be specified, it's defined in the optional block
-      create_property(class, field){:unique | :notunique}	                    --> creates an automatic-Index on the given field
-      create_property(class, field){{»name« => :unique | :notunique | :full_text}} --> creates a manual index
+Create a single property.
+
+Supported types: https://orientdb.com/docs/last/SQL-Create-Property.html
+ 
+If index is to be specified, it's defined in the optional block
+
+  create_property(class, field){:unique | :notunique}	                    
+  --> creates an automatic-Index on the given field
+  
+  create_property(class, field){{»name« => :unique | :notunique | :full_text}} 
+  --> creates a manual index
 =end
 
   def create_property o_class, field, index: nil, **args, &b

@@ -2,7 +2,7 @@ class V   < ActiveOrient::Model
   ## link to the library-class
  
 =begin
-Vertex#delete fires a "delete edge" command to the database.
+Vertex#delete fires a "delete vertex" command to the database.
 The where statement can be empty ( "" or {}"), then all vertices are removed 
 
 The rid-cache is reseted, too
@@ -46,9 +46,9 @@ edges are retrieved.
     detect_inherent_edge :out, edge_name
   end
 =begin
-retrieves  connected edges
+Retrieves  connected edges
 
-The basic ussage is to fetch all/ incomming/ outgoing edges
+The basic usage is to fetch all/ incomming/ outgoing edges
 
   Model-Instance.edges :in # :out | :all
 
@@ -57,9 +57,9 @@ One can filter specific edges by providing parts of the edge-name
   Model-Instance.edges 'in_sector'
   Model-Instance.edges /sector/
 
-returns an array of rid's 
+The method returns an array of rid's.
 
-example:
+Example:
 
   Industry.first.attributes.keys
    => ["in_sector_classification", "k", "name", "created_at", "updated_at"]  # edge--> in ...

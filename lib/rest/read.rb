@@ -2,22 +2,23 @@ module RestRead
 
   ############# DATABASE #############
 
-# Returns an Array with available Database-Names as Elements
-
+eturns an Array with available Database-Names as Elements
+#
+#    ORD.get_databases
+#     => ["temp", "GratefulDeadConcerts", (...)] 
   def get_databases
     JSON.parse(@res["/listDatabases"].get.body)['databases']
   end
 
 =begin
-  Returns an Array with (unmodified) Class-attribute-hash-Elements
+Returns an Array with (unmodified) Class-attribute-hash-Elements
 
-  get_classes 'name', 'superClass' returns
+»get_classes 'name', 'superClass'« returns
       [ {"name"=>"E", "superClass"=>""},
       {"name"=>"OFunction", "superClass"=>""},
       {"name"=>"ORole", "superClass"=>"OIdentity"}
       (...)    ]
 =end
-
   def get_classes *attributes
     begin
     	response = @res["/database/#{ActiveOrient.database}"].get
@@ -40,8 +41,12 @@ module RestRead
 
   ############### CLASS ################
 
-# Return a JSON of the property of a class
-
+# Returns a JSON of the property of a class
+#
+#   ORD.create_vertex_class a:
+#   ORD.get_class_properties A
+#    => {"name"=>"a", "superClass"=>"V", "superClasses"=>["V"], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[65, 66, 67, 68], "defaultCluster"=>65, "clusterSelection"=>"round-robin", "records"=>3} 
+#
   def get_class_properties o_class
     JSON.parse(@res["/class/#{ActiveOrient.database}/#{classname(o_class)}"].get)
   rescue => e
@@ -66,18 +71,21 @@ module RestRead
   ############## OBJECT #################
 
 =begin
-  Retrieves a Record from the Database as ActiveOrient::Model::{class}
-  The argument can either be a rid (#[x}:{y}) or a link({x}:{y})
-  If no Record is found, nil is returned
+Retrieves a Record from the Database 
+
+The argument can either be a rid "#{x}:{y}" or a link "{x}:{y}".
+
+(to be specific: it must provide the methods rid? and to_orient, the latter must return the rid-link.)
+
+If no Record is found, nil is returned
 =end
 
   def get_record rid
     begin
       logger.progname = 'RestRead#GetRecord'
       if rid.rid?
-	rid = rid[1..rid.length] if rid[0]=='#'
-	response = @res["/document/#{ActiveOrient.database}/#{rid}"].get
-	raw_data = JSON.parse(response.body) #.merge( "#no_links" => "#no_links" )
+	response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient}"].get
+	raw_data = JSON.parse(response.body) 
 	ActiveOrient::Model.orientdb_class(name: raw_data['@class'], superclass: :find_ME).new raw_data
       else
 	logger.error { "Wrong parameter #{rid.inspect}. " }
@@ -102,10 +110,12 @@ module RestRead
   alias get_document get_record
 
 =begin
-  Retrieves Records from a query
-  If raw is specified, the JSON-Array is returned, e.g.
+Retrieves Records from a query
+
+If raw is specified, the JSON-Array is returned, e.g.
     {"@type"=>"d", "@rid"=>"#15:1", "@version"=>1,    "@class"=>"DocumebntKlasse10", "con_id"=>343, "symbol"=>"EWTZ"}
-  Otherwise a ActiveModel-Instance of o_class is created and returned
+
+Otherwise a ActiveModel-Instance is created and returned
 =end
 
   def get_records raw: false, query: nil, **args

@@ -2,7 +2,10 @@ module ActiveOrient
   module Init
 
 =begin
-Parameters: yml: hash from config.yml , namespace: Class to use as Namespace
+Parameters: 
+ yml: hash from config.yml , 
+ namespace: Class to use as Namespace
+
 A custom Constant can be provided via Block
 
 i.e.
@@ -11,9 +14,11 @@ i.e.
   #or
   ActiveOrient.Init.define_namespace namespace: :self | :object | :active_orient
   #or
+  module IB # first declare the Module-Const
+  end	    # then assign to the namespace
   ActiveOrient.Init.define_namespace { IB }  
 =end
-    def self.define_namespace  yml: {}, namespace: nil
+    def self.define_namespace(  yml: {}, namespace: nil )
       n =  namespace.presence || yml[:namespace].presence || :object
       ActiveOrient::Model.namespace = if block_given?
 					yield

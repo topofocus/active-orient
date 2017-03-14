@@ -9,9 +9,11 @@ require 'rest-client'
 module ActiveOrient
 
 =begin
-OrientDB performs queries to a OrientDB-Database
-The communication is based on the ActiveOrient-API.
-The OrientDB-Server is specified in config/connect.yml
+OrientDB points to an OrientDB-Database.
+The communication is based on the OrientDB-REST-API.
+
+The OrientDB-Server is specified in *config/connect.yml*
+
 A Sample:
  :orientdb:
    :server: localhost
@@ -20,6 +22,13 @@ A Sample:
    :admin:
      :user: admin-user
      :pass: admin-password
+
+The connection is then established through
+  ActiveOrient::OrientDB.new
+
+
+By default, _config/boot.rb_  handles the connection. There this is mapped to the constant ORD. 
+
 =end
 
   class OrientDB
@@ -39,18 +48,23 @@ A Sample:
     #### INITIALIZATION ####
 
 =begin
-  Contructor: OrientDB is conventionally initialized.
-  Thus several instances pointing to the same or different databases can coexist
+OrientDB is conventionally initialized.
 
-  A simple
+Thus several instances pointing to the same or different databases can coexist
+
+A simple
    xyz =  ActiveOrient::OrientDB.new
-  uses the database specified in the yaml-file »config/connect.yml« and connects
-   xyz = ActiveOrient::OrientDB.new database: my_fency_database
-  accesses the database »my_fency_database«. The database is created if its not existing.
 
-  *USECASE*
+uses the database specified in the yaml-file »config/connect.yml« and connects
+
+   zxy = ActiveOrient::OrientDB.new database: my_fency_database
+
+accesses the database »my_fency_database«. The database is created if its not existing.
+
+*USECASE*
    xyz =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new
-  initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
+
+initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
 =end
 
     def initialize database: nil, connect: true, preallocate: true, model_dir: nil

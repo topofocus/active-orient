@@ -35,7 +35,7 @@ describe ActiveOrient::OrientDB do
      expect(Depends.superclass.superclass.superclass ).to be ActiveOrient::Base
    end
    it 'ensure that methods defined later are passed through the object-tree' do
-     class Abstract
+     class Abstract # :nodoc:
        def test
 	  "test"
        end
@@ -238,7 +238,7 @@ describe ActiveOrient::OrientDB do
 
     it "change the naming convention"  do
       ## We want to represent all Edges with Uppercase-Letters
-      class E < ActiveOrient::Model
+      class E < ActiveOrient::Model  # :nodoc:
 	def self.naming_convention name=nil
 	  name.present? ? name.upcase : ref_name.upcase
 	end
