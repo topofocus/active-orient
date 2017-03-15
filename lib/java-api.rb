@@ -2,6 +2,11 @@ require 'orientdb'
 require_relative "database_utils.rb" #common methods without rest.specific content
 require_relative "class_utils.rb" #common methods without rest.specific content
 require_relative "orientdb_private.rb" 
+=begin
+EXPERIMENTAL CODE
+
+accessing  the java-api through jruby
+=end
 
 module OrientDB
 

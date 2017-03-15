@@ -1,7 +1,10 @@
 module DatabaseUtils
 =begin
 returns the classes set by OrientDB
-Parameter: abstract: true|false
+
+Parameter: 
+  abstract: true|false
+
 if abstract: true is given, only basic classes (Abstact-Classes) are returend
 =end
     def system_classes abstract: false
@@ -16,14 +19,15 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 	end
     end
 =begin
-  Returns the class_hierachy
+Returns the class_hierachy
 
-  To fetch all Vertices use:
+To fetch all Vertices:
    class_hiearchie(base_class: 'V').flatten
-  To fetch all Edges uses:
+To fetch all Edges:
    class_hierachy(base_class: 'E').flatten
-
-  To retrieve the class hierarchy from Objects avoid calling classname,  because it depends on class_hierarchy.
+--
+notice: 
+To retrieve the class hierarchy from Objects avoid calling `ORD.classname (obj)`,  because it depends on class_hierarchy.
 =end
 
   def class_hierarchy base_class: '',  system_classes: nil
@@ -35,15 +39,18 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
     def fx v # :nodoc:
   	  fv(v.strip).map{|x| ar = fx(x); ar.empty? ? x : [x, ar]}
     end
-    complete_hierarchy = fx base_class.to_s
-    complete_hierarchy - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]] unless system_classes
+    if system_classes.present?
+	 fx base_class.to_s
+    else
+    	 fx( base_class.to_s ) - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]]
+    end
   end
 
 
 =begin
-  Returns an array with all names of the classes of the database
-  caches the result.
-  Parameters: include_system_classes: false|true, requery: false|true
+Returns an array with all names of the classes of the database. Uses a cached version if possible.
+  
+Parameters: system_classes: false|true, requery: false|true
 =end
 
   def database_classes system_classes: nil, requery: false
@@ -55,17 +62,25 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
     end
     ActiveOrient.database_classes
   end
+=begin
+Creates one or more vertex-classes and allocates the provided properties to each class.
+
+  ORD.create_vertex_class :a
+  => A
+  ORD.create_vertex_class :a, :b, :c
+  => [A, B, C]
+=end
 
   def create_vertex_class *name, properties: nil 
-#    create_class( :V ) unless database_classes.include? "V"
     r= name.map{|n| create_class( n, properties: properties){ :V } }
     @actual_class_hash = get_classes( 'name', 'superClass')
  r.size == 1 ? r.pop : r
   end
+=begin
+Creates one or more edge-classes and allocates the provided properties to each class.
+=end
 
   def create_edge_class *name,  properties: nil
-    # not nessesary. In V 2.2m E+V are present after creation of a database
-    #create_class( :E ) unless database_classes.include? "E"  
     r = name.map{|n| create_class( n, properties: properties){ :E  } }
     @actual_class_hash = get_classes( 'name', 'superClass')
     r.size == 1 ? r.pop : r  # returns the created classes as array if multible classes are provided
@@ -75,7 +90,7 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 Service-Method for Model#OrientdbClass
 =end
 
-  def get_db_superclass name
+  def get_db_superclass name   #:nodoc:
     @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
    z= @actual_class_hash.find{|x,y|  x['name'] == name.to_s }
    z['superClass'] unless z.nil?
@@ -85,7 +100,7 @@ Service-Method for Model#OrientdbClass
 =begin
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
- def preallocate_classes from_model_dir= nil
+ def preallocate_classes from_model_dir= nil  # :nodoc:
    #  first fetch all non-system-classes
 #    io = class_hierarchy 
   # allocate them and call require_model_file on each model

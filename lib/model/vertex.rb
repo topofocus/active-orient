@@ -31,7 +31,7 @@ The rid-cache is reseted, too
 =begin
 »in« and »out« provide the main access to edges.
 
-If called without a parameter, all edges connected are displayed.
+If called without a parameter, all connected edges  are retrieved.
 
 If called with a string, symbol or class, the edge-class is resolved and even inherented 
 edges are retrieved.

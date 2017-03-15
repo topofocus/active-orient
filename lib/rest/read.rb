@@ -2,7 +2,7 @@ module RestRead
 
   ############# DATABASE #############
 
-eturns an Array with available Database-Names as Elements
+# Returns an Array with available Database-Names as Elements
 #
 #    ORD.get_databases
 #     => ["temp", "GratefulDeadConcerts", (...)] 

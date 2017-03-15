@@ -1,6 +1,6 @@
-# Class create to manage to_orient and from_orient
 
 class Array
+# Class  extentions to manage to_orient and from_orient
   def to_orient
     map( &:to_orient) # .join(',')
   end
@@ -9,6 +9,8 @@ class Array
     map &:from_orient
   end
 
+# Method missing enables fancy stuff like
+# Jahr[2000 .. 2005].monat(5..7).value  (https://github.com/topofocus/orientdb_time_graph)
   def method_missing(method, *key)
     #if method == :to_int
     #  return self.first 
@@ -23,7 +25,7 @@ class Array
   # def abc *key
   # where key is a Range, an comma separated List or an item
   # aimed to support #compose_where
-  def analyse
+  def analysea # :nodoc:
     if first.is_a?(Range) 
      first
     elsif size ==1
@@ -34,6 +36,188 @@ class Array
 
   end
 end
+class Hash #WithIndifferentAccess
+  def from_orient
+    substitute_hash = HashWithIndifferentAccess.new
+    #keys.each{|k| puts self[k].inspect}
+    keys.each{|k| substitute_hash[k] = self[k].from_orient}
+    substitute_hash
+  end
+
+  def to_orient
+    #puts "here hash"
+    substitute_hash = Hash.new
+    keys.each{|k| substitute_hash[k] = self[k].to_orient}
+    substitute_hash
+  end
+
+  def nested_under_indifferent_access
+    HashWithIndifferentAccess.new self
+  end
+end
+class Symbol
+  def from_orient
+    self
+  end
+  def to_a
+    [ self ]
+  end
+  # symbols are masked with ":{symbol}:"
+  def to_orient
+    ":"+self.to_s+":"
+  end
+end
+
+class Time
+  def from_orient
+    self
+  end
+
+  def to_orient
+    self
+  end
+end
+
+class TrueClass
+  def from_orient
+    self
+  end
+
+  def to_orient
+    self
+  end
+end
+class FalseClass
+  def from_orient
+    self
+  end
+
+  def to_orient
+    self
+  end
+end
+
+class NilClass
+  def to_orient
+    self
+  end
+  def from_orient
+    nil
+  end
+
+
+class Date
+  def to_orient
+    if RUBY_PLATFORM == 'java'
+      java.util.Date.new( year-1900, month-1, day , 0, 0 , 0 )  ## Jahr 0 => 1900
+    else
+      self
+    end
+  end
+  def from_orient
+    self
+  end
+end
+
+end
+
+class Numeric
+  def from_orient
+    self
+  end
+
+  def to_orient
+    self
+  end
+
+  def to_or
+   "#{self.to_s}"
+  end
+
+  def to_a
+    [ self ]
+  end
+end
+
+class String
+  def capitalize_first_letter
+    self.sub(/^(.)/) { $1.capitalize }
+  end
+
+  def where **args
+    if rid?
+      from_orient.where **args
+    end
+  end
+
+  def from_orient
+	  if rid?
+	    ActiveOrient::Model.autoload_object self
+	  elsif
+	    self =~ /^:.*:$/
+	    self[1..-2].to_sym
+	  else
+	    self
+	  end
+  end
+# if the string contains "#xx:yy" omit quotes
+  def to_orient
+    if rid? 
+      if self[0] == "#"
+	self
+      else
+	"#"+self
+      end
+    else
+       self   # return the sting (not the quoted string. this is to_or)
+    end
+    #self.gsub /%/, '(percent)'
+   # quote 
+  end
+
+  # a rid is either #nn:nn or nn:nn
+  def rid?
+    self =~ /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/
+  end
+
+#  return a valid rid or nil
+  def rid
+    rid? ? self : nil
+  end
+
+  def to_classname
+    if self[0] == '$'
+      self[1..-1]
+    else
+      self
+    end
+  end
+
+  def to_or
+   quote
+  end
+  
+  def to_a
+    [ self ]
+  end
+
+    def quote
+      str = self.dup
+      if str[0, 1] == "'" && str[-1, 1] == "'"
+	self
+      else
+	last_pos = 0
+	while (pos = str.index("'", last_pos))
+	  str.insert(pos, "\\") if pos > 0 && str[pos - 1, 1] != "\\"
+	  last_pos = pos + 1
+	end
+	"'#{str}'"
+      end
+    end
+
+
+end
+
 
 #class RecordList
 #  def from_orient
@@ -137,194 +321,3 @@ end
 
 end
 
-class Symbol
-  def from_orient
-    self
-  end
-  def to_a
-    [ self ]
-  end
-end
-class FalseClass
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
-end
-
-class Hash #WithIndifferentAccess
-  def from_orient
-    substitute_hash = HashWithIndifferentAccess.new
-    #keys.each{|k| puts self[k].inspect}
-    keys.each{|k| substitute_hash[k] = self[k].from_orient}
-    substitute_hash
-  end
-
-  def to_orient
-    #puts "here hash"
-    substitute_hash = Hash.new
-    keys.each{|k| substitute_hash[k] = self[k].to_orient}
-    substitute_hash
-  end
-
-  def nested_under_indifferent_access
-    HashWithIndifferentAccess.new self
-  end
-end
-
-class Date
-  def to_orient
-    if RUBY_PLATFORM == 'java'
-      java.util.Date.new( year-1900, month-1, day , 0, 0 , 0 )  ## Jahr 0 => 1900
-    else
-      self
-    end
-  end
-  def from_orient
-    self
-  end
-end
-##module OrientDB
-#class Document
-#  def from_orient
-#    ActiveOrient::Model.autoload_object rid
-#  end
-#end
-#end
-class NilClass
-  def to_orient
-    self
-  end
-  def from_orient
-    nil
-  end
-
-end
-
-class Numeric
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
-
-  def to_or
-   "#{self.to_s}"
-  end
-
-  def to_a
-    [ self ]
-  end
-end
-
-class String
-  def capitalize_first_letter
-    self.sub(/^(.)/) { $1.capitalize }
-  end
-
-  def where **args
-    if rid?
-      from_orient.where **args
-    end
-  end
-
-  def from_orient
-	  if rid?
-	    ActiveOrient::Model.autoload_object self
-	  elsif
-	    self =~ /^:.*:$/
-	    self[1..-2].to_sym
-	  else
-	    self
-	  end
-  end
-#  alias :reload! from_orient
-# String#ToOrient: if the string contains "#xx:yy" omit quotes
-  def to_orient
-    if rid? 
-      if self[0] == "#"
-	self
-      else
-	"#"+self
-      end
-    else
-       self   # return the sting (not the quoted string. this is to_or)
-    end
-    #self.gsub /%/, '(percent)'
-   # quote 
-  end
-
-  # a rid is either #nn:nn and nn:nn
-  def rid?
-    self =~ /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/
-  end
-
-#  return a valid rid or nil
-  def rid
-    rid? ? self : nil
-  end
-
-  def to_classname
-    if self[0] == '$'
-      self[1..-1]
-    else
-      self
-    end
-  end
-
-  def to_or
-   quote
-  end
-  
-  def to_a
-    [ self ]
-  end
-
-    def quote
-      str = self.dup
-      if str[0, 1] == "'" && str[-1, 1] == "'"
-	self
-      else
-	last_pos = 0
-	while (pos = str.index("'", last_pos))
-	  str.insert(pos, "\\") if pos > 0 && str[pos - 1, 1] != "\\"
-	  last_pos = pos + 1
-	end
-	"'#{str}'"
-      end
-    end
-
-
-end
-
-class Symbol
-  def to_orient
-    ":"+self.to_s+":"
-  end
- ## there is no "from_orient" as symbols are stored as strings
-end
-
-class Time
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
-end
-
-class TrueClass
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
-end

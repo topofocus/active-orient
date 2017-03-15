@@ -31,13 +31,15 @@ module ClassUtils
 =begin
 create a single class and provide properties as well
 
-  ORB.create_class( the_class_name as String or Symbol (nessesary) ,
-		    properties: a Hash with property- and Index-descriptions (optional)){
-		    {superclass: The name of the superclass as String or Symbol , 
-		     abstract: true|false } (optional Block provides a Hash ) }
+   ORD.create_class( the_class_name as String or Symbol (nessesary) ,
+		    properties: a Hash with property- and Index-descriptions (optional)) do
+		    { superclass: The name of the superclass as String or Symbol , 
+		      abstract: true|false 
+		      } ( the optional Block provides a Hash ) 
+		     end
 
 =end
-  def create_class class_name, properties: nil, &b
+  def create_class( class_name, properties: nil, &b )
       the_class= create_classes( class_name, &b )
       # if multible classes are specified, don't process properties
       # ( if multible classes need the same properties, consider a nested class-design )
@@ -119,16 +121,16 @@ def allocate_classes_in_ruby classes  # :nodoc:
     consts
 end
 =begin
-  Creating a new Database-Entry (where is omitted)
-  Or updating the Database-Entry (if present)
+ - Creating a new Database-Entry (where is omitted)
+ - Updating the Database-Entry (if present)
 
   The optional Block should provide a hash with attributes (properties). These are used if a new dataset is created.
-  Based on the query specified in :where records are updated according to :set
+  Based on the query specified in »:where« records are updated according to »:set«.
 
   Returns an Array of updated documents
 =end
 
-  def update_or_create_records o_class, set: {}, where: {}, **args, &b
+  def update_or_create_records( o_class, set: {}, where: {}, **args, &b )
     logger.progname = 'ClassUtils#UpdateOrCreateRecords'
     if where.blank?
       [create_record(o_class, attributes: set)]
@@ -152,14 +154,15 @@ end
 =begin
   create_edge connects two vertexes
 
-  The parameter o_class can be either a class or a string
+  The parameter _o_class_ can be either a class or a string.
 
-  if batch is specified, the edge-statement is prepared and returned 
-  else the statement is transmitted to the database
+  If batch is specified, the edge-statement is prepared and returned.
+  Otherwise the statement is transmitted to the database.
 
   The method takes a block as well. 
-  It must provide a Hash with :from and :to- Key's, e.g.
-  Vertex1, Vertex2 are two vertex-classes and TheEdge is an edge-class
+  It must provide a Hash with :from and :to- Key's.
+
+  Suppose »Vertex1«, »Vertex2« are two vertex-classes and »TheEdge« is an edge-class
 
       record1 = ( 1 .. 100 ).map{ |y| Vertex1.create( testentry: y } }
       record2 = ( :a .. :z ).map{ |y| Vertex2.create( testentry: y } }
@@ -184,7 +187,7 @@ end
   The pure-ruby-solution minimizes traffic to the database-server and is prefered.
 
 =end
-  def create_edge o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil  
+  def create_edge( o_class, attributes: {}, from:nil, to:nil, unique: false, batch: nil )
     logger.progname = "ClassUtils#CreateEdge"
 
 # -------------------------------

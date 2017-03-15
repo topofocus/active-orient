@@ -2,29 +2,39 @@ module OrientSupport
 
 # This Module fences specialized Ruby objects
 
+# The Array _knows_ its database-class. This enables database-transactions outside the scope
+# of ActiveOrient
+#
+# The Database-Class is available through Array#record
+
+
   class Array < Array
     include OrientSupport::Support
     mattr_accessor :logger
 
 =begin
-  Initialisation method stores the model-instance to work on  in @orient.
-  The keyword_parameter "work_on" holds the record to work_ion.
-  Ihe second argument is the array to work with
+  During initialisation  the model-instance to work on is stored  in @orient.
+  
+  The keyword_parameter »work_on« holds the record to work on.
+  The second argument holds the array to work with
 
   If instead of a model-instance the model-class is provided, a new model-instance is created and returned
   Its up to the caller to save the new instance in the database 
 
   Further a list of array-elements is expected, which are forwarded (as Array) to Array
+
+  Its used to initialize Objects comming from the database (i.e. /lib/base.rb)
+
+     elsif iv.is_a? Array
+           OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
+
 =end
 
-    def initialize work_on:, work_with: 
+    def initialize( work_on:, work_with: )
       @orient = work_on.class == Class ? work_on.new : work_on
       super work_with
       @name = @orient.attributes.key(self)
-    #  puts "ORIENT: #{@orient.inspect} "
       @name =  yield if @name.nil? && block_given?
-    #  puts "NAME: #{@name.inspect}"
-    #  puts "SELF: #{self.inspect}"
     end
 
     def record
@@ -51,11 +61,6 @@ The change is transmitted to the database immediately
       @orient.update set: {@name => self} if @name.present?
     end
 
-#    def [] *arg
-#      #puts "ARG #{arg}"
-#      super
-#    end
-#
 =begin
 Remove_at performs Array#delete_at
 =end
@@ -63,8 +68,6 @@ Remove_at performs Array#delete_at
       @orient.remove_position_from_property(@name,*pos) if @name.present?
     end
 
-#
-#    alias :del_org :delete 
 =begin
 Remove performs Array#delete 
 
@@ -79,12 +82,6 @@ If the Array-element is a link, this is removed, the linked table is untouched
       where_string = item.map{|m| where_string = compose_where( m ) }.join(' and ')
        subquery= OrientSupport::OrientQuery.new from: @orient, projection: "expand( #{@name})"
        q= OrientSupport::OrientQuery.new from: subquery, where: item
-#      query = "SELECT FROM ( SELECT EXPAND( #{@name} ) FROM #{@orient.classname})  #{where_string} "
-     # puts q.compose
-     #  sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    #  @orient.orientdb.execute do
-#	  sql_cmd[query.to_s]
-#      end
        @orient.query q 
     end
 
@@ -111,12 +108,8 @@ If the Array-element is a link, this is removed, the linked table is untouched
     def initialize modelinstance, args
       @orient = modelinstance
       super args.from_orient
-      # @name is the property of @orient to work on
       @name = modelinstance.attributes.key(self)
-#      puts "ORIENT: #{@orient.inspect} "
       @name =  yield if @name.nil? && block_given?
-#      puts "NAME: #{@name.inspect}"
-#      puts "SELF: #{self.inspect}"
     end
 
 
@@ -144,9 +137,5 @@ If the Array-element is a link, this is removed, the linked table is untouched
       @orient.update set:{ @name => self}
 
     end
-
-#     self
-#    end
-
   end
 end #Module
