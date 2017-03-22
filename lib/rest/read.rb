@@ -75,7 +75,7 @@ Retrieves a Record from the Database
 
 The argument can either be a rid "#{x}:{y}" or a link "{x}:{y}".
 
-(to be specific: it must provide the methods rid? and to_orient, the latter must return the rid-link.)
+(to be specific: it must provide the methods rid? and to_orient, the latter must return the rid: "#[a}:{b}".)
 
 If no Record is found, nil is returned
 =end
@@ -84,7 +84,7 @@ If no Record is found, nil is returned
     begin
       logger.progname = 'RestRead#GetRecord'
       if rid.rid?
-	response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient}"].get
+	response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
 	raw_data = JSON.parse(response.body) 
 	ActiveOrient::Model.orientdb_class(name: raw_data['@class'], superclass: :find_ME).new raw_data
       else
@@ -100,8 +100,9 @@ If no Record is found, nil is returned
 	raise
       end
     rescue RestClient::ResourceNotFound => e
-      logger.error { "Not data found" }
-      logger.error { e.message }
+      logger.error { "No data found" }
+      logger.error { "The command: \"/document/#{ActiveOrient.database}/#{rid.to_orient}\" "}
+      logger.error { "The response: #{e.message }"}
     rescue Exception => e
       logger.error { "Something went wrong" }
       logger.error { "RID: #{rid} - #{e.message}" }
@@ -123,8 +124,9 @@ Otherwise a ActiveModel-Instance is created and returned
     begin
       logger.progname = 'RestRead#GetRecords'
   	  url = "/query/#{ActiveOrient.database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
-	 # puts "REST_READ#GET_RECORDS.URL"
-	 # puts query.compose( destination: :rest).to_s
+#	  puts "REST_READ#GET_RECORDS.URL"
+#	  puts "ARGS: #{args.inspect}"
+#	  puts query.compose( destination: :rest).to_s
 #	  puts url.to_s
   	  response = @res[URI.encode(url)].get
 	  JSON.parse(response.body)['result'].map do |record|

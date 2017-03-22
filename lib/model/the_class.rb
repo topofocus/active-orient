@@ -9,10 +9,8 @@ require 'stringio'
 =begin
 NamingConvention provides a translation from database-names to class-names.
 
-Should provide 
-   to_s.capitalize_first_letter
-as minimum.
-Can be overwritten to provide different conventions for different classes, eg. Vertexes or edges.
+It can be overwritten to provide different conventions for different classes, eg. Vertexes or edges
+and to introduce distinct naming-conventions in differrent namespaces
 
 To overwrite use 
   class Model < ActiveOrient::Model[:: ...]
@@ -21,10 +19,32 @@ To overwrite use
     end
  end
 =end
-  def naming_convention name=nil  # :nodoc:
-    name.present? ? name.to_s.camelize : ref_name.camelize
+  def naming_convention name=nil  
+    nc =  name.present?? name.to_s : ref_name
+     if namespace_prefix.present?
+    	 nc.split(namespace_prefix).last.camelize
+     else
+       nc.camelize
+     end
   end
 
+=begin
+Set the namespace_prefix for database-classes.
+
+If a namespace is set by
+  ActiveOrient::Init.define_namespace { ModuleName }
+ActiveOrient translates this to 
+  ModuleName::CamelizedClassName
+The database-class becomes
+  modulename_class_name
+
+If the namespace is set to a class (Object, ActiveOrient::Model ) namespace_prefix returns an empty string.
+
+Override to change its behavior
+=end
+  def namespace_prefix 
+    namespace.is_a?(Class )? '' : namespace.to_s.downcase+'_' 
+  end
 =begin
   orientdb_class is used to create or refer a ActiveOrient:Model:{class} by providing its name
 
@@ -46,6 +66,7 @@ To overwrite use
     logger.progname = "ModelClass#OrientDBClass"
     self.allocated_classes = HashWithIndifferentAccess.new( V: V, E: E) unless allocated_classes.present?
 
+    puts "Allocated_classes #{allocated_classes.inspect}"
     # populate cache
     update_my_array = ->(s) do
       if  allocated_classes[s.ref_name].present? 
@@ -55,7 +76,7 @@ To overwrite use
       end
     end
     # use cache
-    get_class =  ->(n) { allocated_classes[n] }
+    get_class =  ->(n) { allocated_classes[n].presence || allocated_classes[namespace_prefix + n.to_s] }
 
     # get the correct namespace for the class, use the actual one (ActiveOrient:::Model.namespace) as default
     extract_namespace = -> (n) do
@@ -77,21 +98,26 @@ To overwrite use
       this_namespace = extract_namespace[ ref_name ]
       # get the correct superclass 
       this_superklass = if superclass.present?  
-	      # if a class is provided as parameter, just look for the namespace and reveal the class
-			  s= if superclass.is_a? Class
-			       extract_namespace[ name ].send( :const_get, superclass.to_s )
-			       #otherwise get the superclassname from the database and translate to ruby
-			     else
-			       superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
-			       if superclass.present?
+			  # if a class is provided as parameter, just look for the namespace and reveal the class
+			  if superclass.is_a? Class
+			    Class.new(superclass)
+			  else
+			    #     extract_namespace[ name ].send( :const_get, superclass.to_s )
+			    #otherwise get the superclassname from the database and translate to ruby
+			    #   else
+			    superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
+			    s= if superclass.present?
+				 puts "SC: #{orientdb.get_db_superclass( ref_name ).inspect }"
+				 puts "superclass: #{superclass.inspect} --> #{get_class[ superclass ].inspect}  "
+#				 superclass =  namespace_prefix + superclass
 				 extract_namespace[ name ].send( :const_get, get_class[ superclass ].to_s ) rescue self
 			       else
 				 self
 			       end
-			     end
-			  # Now create an anonymous class which inherints the superclass (or self)
-			  # This will be used to  create the class
-			  Class.new(s)
+			    # Now create an anonymous class which inherits the superclass (or self)
+			    # This will be used to  create the class
+			    Class.new(s)
+			  end
 			else
 			  Class.new(self)
 			end
@@ -100,18 +126,19 @@ To overwrite use
       unless this_namespace.send :const_defined?, name, false
 	the_class = this_namespace.send :const_set, name, this_superklass
       else
-	  the_class =  ActiveOrient::Model.send :const_set, name, this_superklass
-	  logger.warn{ "Unable to allocate class #{name} in Namespace #{this_namespace}"}
-	  logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
-	end
-	the_class.ref_name =  ref_name
-	update_my_array[the_class]
+	the_class =  ActiveOrient::Model.send :const_set, name, this_superklass
+	logger.warn{ "Unable to allocate class #{name} in Namespace #{this_namespace}"}
+	logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
+      end
+      the_class.ref_name =  namespace_prefix+ref_name
+      update_my_array[the_class]
     end
       the_class # return_value
   rescue NameError => e
       logger.error "ModelClass #{name.inspect} cannot be initialized."
       logger.error e.message
-      #logger.error e.backtrace.map {|l| "  #{l}\n"}.join  uncomment to observe error-stack
+    #  logger.error e.backtrace.map {|l| "  #{l}\n"}.join # uncomment to observe error-stack
+    #  raise
       nil  # return_value
   end
 =begin
@@ -183,7 +210,7 @@ Example:
 
 =end
   def create **attributes
-    attributes.merge :created_at => Time.new
+    attributes.merge :created_at => DateTime.new
     db.create_record self, attributes: attributes 
   end
 

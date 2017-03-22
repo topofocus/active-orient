@@ -36,29 +36,8 @@ class Array
 
   end
 end
-class Hash #WithIndifferentAccess
-  def from_orient
-    substitute_hash = HashWithIndifferentAccess.new
-    #keys.each{|k| puts self[k].inspect}
-    keys.each{|k| substitute_hash[k] = self[k].from_orient}
-    substitute_hash
-  end
 
-  def to_orient
-    #puts "here hash"
-    substitute_hash = Hash.new
-    keys.each{|k| substitute_hash[k] = self[k].to_orient}
-    substitute_hash
-  end
-
-  def nested_under_indifferent_access
-    HashWithIndifferentAccess.new self
-  end
-end
 class Symbol
-  def from_orient
-    self
-  end
   def to_a
     [ self ]
   end
@@ -68,7 +47,7 @@ class Symbol
   end
 end
 
-class Time
+class Object
   def from_orient
     self
   end
@@ -77,33 +56,6 @@ class Time
     self
   end
 end
-
-class TrueClass
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
-end
-class FalseClass
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
-end
-
-class NilClass
-  def to_orient
-    self
-  end
-  def from_orient
-    nil
-  end
 
 
 class Date
@@ -114,21 +66,10 @@ class Date
       self
     end
   end
-  def from_orient
-    self
-  end
 end
 
-end
 
 class Numeric
-  def from_orient
-    self
-  end
-
-  def to_orient
-    self
-  end
 
   def to_or
    "#{self.to_s}"
@@ -218,6 +159,25 @@ class String
 
 end
 
+class Hash #WithIndifferentAccess
+  def from_orient
+    substitute_hash = HashWithIndifferentAccess.new
+    #keys.each{|k| puts self[k].inspect}
+    keys.each{|k| substitute_hash[k] = self[k].from_orient}
+    substitute_hash
+  end
+
+  def to_orient
+    #puts "here hash"
+    substitute_hash = Hash.new
+    keys.each{|k| substitute_hash[k] = self[k].to_orient}
+    substitute_hash
+  end
+
+  def nested_under_indifferent_access
+    HashWithIndifferentAccess.new self
+  end
+end
 
 #class RecordList
 #  def from_orient

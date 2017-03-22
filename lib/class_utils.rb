@@ -10,8 +10,7 @@ module ClassUtils
 	when ActiveOrient::Model
               name_or_class.class.ref_name
 	when Class
-              name_or_class.ref_name
-#	      name_or_class.to_s.split('::').last
+              name_or_class.ref_name.presence || name_or_class.to_s.split('::').last
 	else
 	  name_or_class.to_s.split(':').last #.to_s.camelcase # capitalize_first_letter
     end
@@ -65,13 +64,23 @@ def allocate_classes_in_ruby classes  # :nodoc:
 	# if the class is predefined, use specs from get_classes
 	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name.to_s }
 	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
+	    puts "name: #{name} \t superclass: #{superclass} "
+	    proposed_class_name =  if ActiveOrient::Model.namespace_prefix.present?
+				     name.split(ActiveOrient::Model.namespace_prefix).last #.camelize
+				   else
+				     name
+				   end
 	  begin
-	  m= ActiveOrient::Model.orientdb_class name: name,  superclass: superclass
-	  rescue
-	  m =  ActiveOrient::Model.namespace.send( :const_get,  name.to_s.classify)
+	    puts "proposed_class_name: #{proposed_class_name} \t superclass: #{superclass} "
+	  m= ActiveOrient::Model.orientdb_class name: proposed_class_name,  superclass: superclass
+
+#	  rescue  StandardError => e
+#	  puts "RESCUE in place"
+#	  m =  ActiveOrient::Model.namespace.send( :const_get,  proposed_class_name.to_s.classify)
+#	  m.ref_name = name.to_s
 	  end
+	  puts "M: #{m.inspect} --> #{m.superclass.inspect}"
 	  m.abstract = abstract
-	  m.ref_name = name.to_s
 	  #puts "-->  #{m.object_id}"
 	  m
 	rescue NoMethodError => w

@@ -288,21 +288,24 @@ def save
     update
   else
      db_object=  db.create_record  self, attributes: attributes 
-     @metadata[:cluster], @metadata[:record] = db_object.rid[0,db_object.rid.size].split(':').map( &:to_i)
      reload! db_object
   end
 end
 
 =begin
-  Overwrite the attributes with Database-Contents (or attributes provided by the updated_dataset.model-instance)
+  Overwrite the attributes with Database-Contents 
+
+  If a record is provided as argument, those attributes and metadata are copied to the object
 =end
 
   def reload! updated_dataset = nil
     updated_dataset = db.get_record(rid) if updated_dataset.nil?
-    raise "No Object reoaded (#{rid}))"
-    @metadata[:version] = updated_dataset.version
-    self.attributes = updated_dataset.attributes
-    self  # return_value  (otherwise only the attributes would be returned)
+#    raise "No Object reoaded (#{rid}))"
+    if version.nil? ||  version =! updated_dataset.version
+       @metadata = updated_dataset.metadata
+      self.attributes = updated_dataset.attributes
+    end
+    updated_dataset  # return_value  (return the updated_dataset)
   end
 
   ########## CHECK PROPERTY ########

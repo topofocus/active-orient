@@ -1,7 +1,19 @@
 # deletes the working database and recreates it 
 # reassignes ORD and DB
+def initialize_database 
+  ##  ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true
+  ##  if OrientDB::UsingJava
+  ##     DB =  ActiveOrient::API.new   preallocate: false
+  ##  else
+  ##     DB = ORD
+  ##  end
+
+end
 def reset_database
   db =  ActiveOrient.database
+   unless defined?(ORD) == 'constant' 
+   Object.send :const_set, :ORD,     ActiveOrient::OrientDB.new(  preallocate:  false)
+   end  
 
 #  ORD.database_classes.reverse.each do | klass_name |
 #    klass =  ActiveOrient::Model.orientdb_class name: klass_name
@@ -9,7 +21,7 @@ def reset_database
 #  end
   ORD.delete_database database: db
   Object.send :remove_const, :ORD 
-  Object.send :remove_const, :DB
+  Object.send( :remove_const, :DB ) if defined?(DB) == 'constant'
   ActiveOrient.database =  db
   Object.send :const_set, :ORD, ActiveOrient::OrientDB.new( preallocate: true )
   if OrientDB::UsingJava

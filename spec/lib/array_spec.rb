@@ -4,6 +4,7 @@ require 'rest_helper'
 describe OrientSupport::Array do
   before( :all ) do
     reset_database
+
     ORD.create_class "test_model"
     ORD.create_class 'link_class'
     ORD.create_class 'base_class'

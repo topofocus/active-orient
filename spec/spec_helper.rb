@@ -1,6 +1,6 @@
-ARGV << 'test'
-@do_not_preallocate =  true
-require './config/boot'
+#ARGV << 'test'
+#@do_not_preallocate =  true
+require './config/boot_spec'
 #bundler/setup'
 require 'rspec'
 require 'rspec/its'

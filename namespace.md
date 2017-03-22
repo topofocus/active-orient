@@ -4,25 +4,57 @@ Consider a project, where different tasks are clearly separated.
 
 A common case is, to concentrate any gathering of raw data in a separate module, maybe even in a gem.
 
-ActiveOrient enables this by switching the "ActiveOrient::Model.namespace" directive.
+ActiveOrient enables this by switching the »ActiveOrient::Model.namespace« directive.
 
 ### Activate Namespace
 
-simply run
-```
+to activate the namespace "HC" simply run
+
+```ruby
 module HC
 end
 ActiveOrient::Init.define_namespace { HC }
 ```
-to activate the namespace "HC" 
-
 and 
-```
-ActiveOrient::Init.define_namespace { Object }```
+
+```ruby
+ActiveOrient::Init.define_namespace namespace: :object   # or  ActiveOrient::Init.define_namespace { Object }
 ```
 to deactivate it.
 
-### Extend ActiveOrient with a gem and introduce a namespace
+#### Prefixed Classnames to Avoid Ambiguous Identifiers
+
+OrientDB-Classnames follow a class-hierarrchy, namespacing is not implementated. Thus we are mocking a 
+rudimentary Namespace-Support through prefixing.
+
+ActiveOrient::Model.namespace_prefix translates a single namespace into a database-prefix:
+
+```ruby
+2.4.0 :002 > ActiveOrient::Init.define_namespace{  HH }
+ => HH 
+2.4.0 :003 > result = ORD.allocate_classes_in_ruby [ 'hurry', 'hipp_hurry' ]
+ => [HH::Hurry, HH::HippHurry] 
+2.4.0 :004 > HH::Hurry.ref_name
+ => "hh_hurry" 
+2.4.0 :005 > HH::HippHurry.ref_name
+ => "hh_hipp_hurry" 
+```
+
+ORD.create_class "hurry" creates a Ruby-Class »HH::Hurry« and a DatabaseClass »hh_hurry«.
+This can be changed through redefinition of »ActiveOrient::Model.namespace_prefix«
+
+```ruby
+   ## Deactivate Namespace-Prefix
+   class ActiveOrient::Model
+     def self.namespace_prefix
+     ""
+     end
+   end
+```
+
+
+
+## Extend ActiveOrient with a gem and introduce a namespace
 
 In our case, the "ib-ruby" gem gets data through an api 
 The gem provides the logic to convert the raw-data from the server to ActiveOrient::Model-Objects.
@@ -31,6 +63,7 @@ Its located in the model-directory of the gem.
 Just by including the gem in the Gemfile and requiring it, anything is available in our project.
 
 The gem defines the ActiveOrient-Environment as follows:
+
 ```ruby
 module IB                                
 module ORD                             
@@ -85,7 +118,7 @@ logic is defined in model-files in 'model'. And we want to make sure, that all d
 to ruby classes. 
 
 ```ruby
-97   ActiveOrient::Init.define_namespace :object
+97   ActiveOrient::Init.define_namespace namespace: :object
 98   ActiveOrient::Model.keep_models_without_file = true
 99   ORD = ActiveOrient::OrientDB.new  preallocate: true
 ```

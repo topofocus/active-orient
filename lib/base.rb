@@ -11,7 +11,7 @@ module  ActiveOrient
 #    include ActiveModel::Serializers::Xml
     include ActiveModel::Serializers::JSON
     include OrientDB
-    include Conversions   # mocking ActiveModell::Conversions
+    include Conversions   # mocking ActiveModel::Conversions
 
     define_model_callbacks :initialize
 

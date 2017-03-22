@@ -62,6 +62,14 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
 				 server: 'localhost', port: 2480  }
   ActiveOrient.database = @configDatabase.presence || databaseyml[env.to_sym]
 
+# because V and E are present in any case,  edge+vertex initialisation is required in model/model.rb
+# however, the Objects have to be initialized separately. This is performed prior to the connection
+# to the database
+  ActiveOrient::Model.orientdb_class name: 'V', superclass: ActiveOrient::Model
+  ActiveOrient::Model.orientdb_class name: 'E', superclass: ActiveOrient::Model
+  V.ref_name = 'V'
+  E.ref_name = 'E'
+
   ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true
   if RUBY_PLATFORM == 'java'
     DB =  ActiveOrient::API.new   preallocate: false
@@ -69,10 +77,10 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
     DB = ORD
   end
 
-  # require model files after initializing the database
-  gem_root = `bundle show active-orient`[0..-2]
-  require "#{gem_root}/lib/model/edge.rb"
-  require "#{gem_root}/lib/model/vertex.rb"
+  # require model files after initializing the database  # the historic solution works, too
+#  gem_root = `bundle show active-orient`[0..-2]
+#  require "#{gem_root}/lib/model/edge.rb"
+#  require "#{gem_root}/lib/model/vertex.rb"
 ## attention: if the Egde- or Vertex-Base-Class is deleted (V.delte_class) the model-methods are gone.
 ## After recreating the BaseClass by ORD.create_class('V'), the model-classes have to be loaded manually (require does not work))
 else
