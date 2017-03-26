@@ -80,13 +80,14 @@ The CRUD-Process (create, read = query, update and remove) is performed as
 
 Create a Tree of Objects with create_classes
 ```ruby
-  ORD.create_classes  sector: [ :industry, :category, :subcategory ] 
-  => {Sector=>[Industry, Category, Subcategory]}
+  ORD.create_class  :sector
+  ORD.create_class(  :industry, :category, :subcategory ){ Sector }
+  
   Industry.create name: 'Communications'   #--->   Create an Industry-Record with the attribute "name"
   Sector.where  name: 'Communications'	   #--->   an Array with the Industry-Object
   => [#<Industry:0x0000000225e098 @metadata= (...) ] 
  ```
- ***notice*** to create inherent Vertices use ORD.create_classes( sector: [ :industry, :category, :subcategory ]){ :V  } 
+  
 
 #### Preallocation of Model-Classes
 All database-classes are preallocated after connecting to the database. Thus you can use Model-Classes from the start.
@@ -102,8 +103,7 @@ The database-class  «V» is present in any case. Any model-class can be used, e
 The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
 
  ```ruby
- ORD.create_class  :M, :item 	# = ORD.create_class :M ; M.create_property item: :string
- 
+ ORD.create_class  :M  
  M.create_property :symbol 			# the default-case: type: :string, no index
  M.create_property :con_id,   type: :integer
  M.create_property :details,  type: :link, other_class: 'Contracts'
@@ -173,8 +173,7 @@ If an Object is stored in Cluster 30 and id 2, then "#30:2" fully qualifies the 
 link if stored somewhere.
 
 ```ruby
-  ORD.create_class 'test_link'
-  ORD.create_class 'test_base'
+  ORD.create_class 'test_link', 'test_base'
 
   link_document =  TestLink.create  att: 'one attribute'
   base_document =  TestBase.create  base: 'my_base', single_link: link_document
