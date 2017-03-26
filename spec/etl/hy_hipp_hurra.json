@@ -1,0 +1,21 @@
+{
+    "source": { "file": { "path": "/home/topo/activeorient/spec/etl/hy_hipp_hurra.csv" } },
+    "extractor": { "csv": {} },
+    "transformers": [
+       { 
+	 "vertex": { "class": "hy_hipp_hurra" }
+      } 
+    ],
+    "loader": {
+       "orientdb": {
+         "serverUser": "hctw",
+         "serverPassword": "hc",
+         "dbUser": "hctw",
+         "dbPassword": "hc",
+         "dbURL": "remote:localhost/temp",
+         "classes": [ 
+	  {"name": "hy_hipp_hurra", "extends": "V"}
+	 ]
+       }
+    }
+}

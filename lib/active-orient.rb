@@ -66,7 +66,7 @@ def self.show_classes
  '-'* 45+"\n"+
  "Database Class  ->  ActiveOrient ClassName\n"+
  '-'* 45+"\n"+
-  ActiveOrient::Model.allocated_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n") + "\n"+
+  ActiveOrient.database_classes.map{|x,y| "#{"%15s"% x} ->  #{y.to_s}" }.join("\n") + "\n"+
  '-'* 45 + "\n"
 end
 

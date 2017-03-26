@@ -78,6 +78,8 @@ The argument can either be a rid "#{x}:{y}" or a link "{x}:{y}".
 (to be specific: it must provide the methods rid? and to_orient, the latter must return the rid: "#[a}:{b}".)
 
 If no Record is found, nil is returned
+
+The rid-cache is not used or updated
 =end
 
   def get_record rid
@@ -86,7 +88,7 @@ If no Record is found, nil is returned
       if rid.rid?
 	response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
 	raw_data = JSON.parse(response.body) 
-	ActiveOrient::Model.orientdb_class(name: raw_data['@class'], superclass: :find_ME).new raw_data
+	ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
       else
 	logger.error { "Wrong parameter #{rid.inspect}. " }
 	nil
@@ -137,7 +139,7 @@ Otherwise a ActiveModel-Instance is created and returned
 #	      puts "RECORD:\n"+record.inspect
 	      block_given? ? yield.new(record) : ActiveOrient::Model.orientdb_class(name: 'query' ).new( record )
 	    else
-	      ActiveOrient::Model.orientdb_class(name: record['@class'], superclass: :find_ME).new record
+	      ActiveOrient::Model.orientdb_class(name: record['@class']).new record
 	    end
 	  end
 	  # returns the JSON-Object

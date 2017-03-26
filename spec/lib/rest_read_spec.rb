@@ -33,33 +33,33 @@ describe ActiveOrient::OrientDB do
       end
   end
 
-  context "manage a class hierachy"  do
-    before(:all) do
-      # create a simple class hierachie:
-      # GT -> Z , UZ
-      #  Z -> test1..3
-      #  UZ -> reisser
-      @cl_hash= { Z:[ 'test1', 'test2', 'test3'], UZ:  'reisser' }
-      ORD.create_class( @cl_hash ){ "GT" } 
+  # not supported anymore
+#  context "manage a class hierachy"  do
+#    before(:all) do
+#      # create a simple class hierachie:
+#      # GT -> Z , UZ
+#      #  Z -> test1..3
+#      #  UZ -> reisser
+#      @cl_hash= { Z:[ 'test1', 'test2', 'test3'], UZ:  'reisser' }
+#      ORD.create_class( @cl_hash ){ "GT" } 
+#
+#    end
+#
 
-    end
-
-
-  end
+#  end
     context "Manage Properties" do
 
       #describe "handle Properties at Class-Level"  do
         before(:all) do
-	       ORD.create_classes ['exchange','Contract','property' ]
+	       ORD.create_class 'exchange','Contract','property' 
 	end
         # after(:all){ ORD.delete_class 'property' }
 	let( :predefined_property ) do
-          rp = ORD.create_properties( ActiveOrient::Model::Property,
-          symbol: { propertyType: 'STRING' },
-          con_id: { propertyType: 'INTEGER' } ,
-          exchanges: { propertyType: 'LINKLIST', linkedClass: 'exchange' } ,
-          details: { propertyType: 'LINK', linkedClass: 'Contract' },
-          date: { propertyType: 'DATE' }
+          rp = Property.create_properties(  symbol: { type: :string },
+          con_id: { type: :integer } ,
+          exchanges: { type: :linklist, linkedClass: 'exchange' } ,
+          details: { type: :link, linkedClass: 'Contract' },
+          date: { type: :date }
           )
 	end
 

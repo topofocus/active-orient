@@ -79,6 +79,7 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
     #  }.merge default_server.presence || {}
     #  @res = get_resource
       ActiveOrient.database = database if database.present?
+      ActiveOrient.database_classes = {}
       @res = get_resource
       connect() if connect
       database_classes # initialize @classes-array

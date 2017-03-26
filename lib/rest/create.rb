@@ -11,7 +11,7 @@ module RestCreate
   def create_database type: 'plocal', database: 
     logger.progname = 'RestCreate#CreateDatabase'
     old_d = ActiveOrient.database
-    ActiveOrient.database_classes = []
+    ActiveOrient.database_classes = {} 
     ActiveOrient.database = database 
     begin
       response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
@@ -32,7 +32,10 @@ module RestCreate
 
 General method to create database classes
 
-Creates classes and class-hierarchies in OrientDB and in Ruby.
+Its just performing the database-stuff 
+
+After performing the queries, ActiveOrient.database_classes is updated
+
 
 Takes a String,  Array or Hash as argument and returns a (nested) Array of
 successfull allocated Ruby-Classes.
@@ -40,135 +43,46 @@ successfull allocated Ruby-Classes.
 If a block is provided, this is used to allocate the class to this superclass.
 This class MUST exist.
 
+Its usually called in the block of allocate_class_in_ruby
 
 eg. 
   create_classes( :test ){ :V } 
 
-creates a vertex-class, returns just Test ( < ActiveOrient::Model)
+creates a vertex-class, returns just Test ( < V )
 
-  a,b,c = create_classes( :test1, :test2, test3 ) { :V }
+   create_classes( :test1, :test2, test3 ) { :V }
 
-creates three vertex-classes and assigns them to var's a,b, and c
+creates three vertex-classes 
   
-  create_classes( test: [:test1, :test2, test3] ) { :V }
-
-creates a vertex-class Test and three child-classes  
-  
-  create_classes( :V => :test)
-
-creates a vertex-class, too, returns the Hash
-
-
-*see also*
-
-::create_class
-
-::create_vertex_class
-
-::create_edeg_class
-
-
 =end
-  def create_classes *classes, &b
-#todo
-#check if a similar classname already exists --> Contract == contract == conTract 
-#and assign to this existing one.
-    return if classes.empty?
-
-    classes =  classes.pop if classes.size == 1
-    consts = allocate_classes_in_ruby( classes , &b )
-    all_classes = consts.is_a?( Array) ? consts.flatten : [consts]
-    dc = database_classes(requery: true)
-    selected_classes =  all_classes.map do | this_class |
-      this_class unless dc.include?( this_class.ref_name ) rescue nil
-    end.compact.uniq
-
-    command= selected_classes.map do | database_class |
-      ## improper initialized ActiveOrient::Model-classes lack a ref_name class-variable
-      if database_class.ref_name.blank?  
-	logger.error{ "Improper initialized ActiveOrient::Model #{database_class}" }
-	raise ArgumentError
-      end	
-      database_class.require_model_file
-      c = if database_class.superclass == ActiveOrient::Model || database_class.superclass.ref_name.blank?
-	    "CREATE CLASS #{database_class.ref_name}" 
+  def create_classes *db_classnames, &b
+    return if db_classnames.empty?
+    superclass =  if block_given?
+		    yield
+		  else
+		    nil
+		  end
+    #
+    command= db_classnames.map do | database_class |
+      c = if superclass.nil?
+	    "CREATE CLASS #{database_class}" 
 	  else
-	    "CREATE CLASS #{database_class.ref_name} EXTENDS #{database_class.superclass.ref_name}"
+	    "CREATE CLASS #{database_class} EXTENDS #{superclass}"
 	  end
-      c << " ABSTRACT" if database_class.abstract
+      #      c << " ABSTRACT" if database_class.abstract  --> abstract classes are not supported anymore
       { type: "cmd", language: 'sql', command: c }  # return value 4 command
     end
     # execute anything as batch, don't roll back in case of an error
 
-    execute transaction: false, tolerated_error_code: /already exists in current database/ do
+   execute transaction: false, tolerated_error_code: /already exists in current database/ do
       command
     end
-    # update the internal class hierarchy 
-    database_classes requery: true
-    # return all allocated classes, no matter whether they had to be created in the DB or not.
-    #  keep the format of the input-parameter
-    #consts.shift if block_given? && consts.is_a?( Array) # remove the first element
-    # remove traces of superclass-allocations
-    if classes.is_a? Hash
-      consts =  Hash[ consts ] 
-      consts.each_key{ |x| consts[x].delete_if{|y| y == x} if consts[x].is_a? Array  }
-    end
-    consts
-
+   
   rescue ArgumentError => e
     logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
   end
 
 
-#        create_general_class singleclass, behaviour: behaviour, extended_class: extended_class, properties: properties
-
-#    when Hash 
-#      classes.keys.each do |superclass|
-#        create_general_class superclass, behaviour: "SUPERCLASS", extended_class: nil, properties: nil
-#        create_general_class classes[superclass], behaviour: "EXTENDEDCLASS", extended_class: superclass, properties: properties
-#      end
-#
-#    else
-#      name_class = classes.to_s.capitalize_first_letter
-#      unless @classes.downcase.include?(name_class.downcase)
-#
-#        if behaviour == "NORMALCLASS"
-#          command = "CREATE CLASS #{name_class}"
-#        elsif behaviour == "SUPERCLASS"
-#          command = "CREATE CLASS #{name_class} ABSTRACT"
-#        elsif behaviour == "EXTENDEDCLASS"
-#          name_superclass = extended_class.to_s
-#          command = "CREATE CLASS #{name_class} EXTENDS #{name_superclass}"
-#        end
-#
-#        #print "\n #{command} \n"
-#
-#        execute transaction: false do
-#          [{ type:    "cmd",
-#            language: "sql",
-#            command:  command}]
-#        end
-#
-#        @classes << name_class
-#
-#        # Add properties
-#        unless properties.nil?
-#          create_properties name_class, properties
-#        end
-#      end
-#
-#      consts << ActiveOrient::Model.orientdb_class(name: name_class)
-#    end
-
-#  return consts
-#
-#  rescue RestClient::InternalServerError => e
-#    logger.progname = 'RestCreate#CreateGeneralClass'
-#    response = JSON.parse(e.response)['errors'].pop
-#    logger.error{"#{response['content'].split(':').last }"}
-#    nil
-#  end
-#end
 
 
   ############## OBJECT #############
@@ -205,15 +119,10 @@ creates a vertex-class, too, returns the Hash
     attributes = yield if attributes.empty? && block_given?
     # @class must not quoted! Quote only attributes(strings)
     post_argument = {'@class' => classname(o_class)}.merge(attributes.to_orient)
-   # puts post_argument.inspect
     begin
       response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
-      if o_class.is_a?(Class) && o_class.new.is_a?(ActiveOrient::Model)
-      o_class.new data
-      else
-      ActiveOrient::Model.orientdb_class(name: data['@class'], superclass: :find_ME).new data
-      end
+      ActiveOrient::Model.orientdb_class(name: data['@class']).new data ## return_value
     rescue RestClient::InternalServerError => e
       sentence=  JSON.parse( e.response)['errors'].last['content']
       puts sentence.to_s

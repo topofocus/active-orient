@@ -6,9 +6,9 @@ require 'pp'
 describe ActiveOrient::OrientDB do
     before(:all) do 
       reset_database
-      ORD.create_vertex_class 'dataset'
+      ORD.create_class "V","E"
+      ORD.create_vertex_class 'dataset', :the_dataset
       ORD.create_class 'linked_data'
-      ORD.create_vertex_class 'the_dataset'
     end
 
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
@@ -19,9 +19,9 @@ describe ActiveOrient::OrientDB do
     before(:all) do
 
       # create classes Abstract, Depends and DependsOn
-     ActiveOrient::Model.orientdb_class name: 'abstract' 
-     ActiveOrient::Model.orientdb_class name: 'depends', superclass: Abstract 
-     ActiveOrient::Model.orientdb_class name: 'depends_on', superclass: Depends
+     ORD.create_class 'abstract' 
+     ORD.create_class( 'depends') { Abstract }
+     ORD.create_class( 'depends_on' ){ Depends }
     end
 
    it 'create a abstract class' do
@@ -75,46 +75,30 @@ describe ActiveOrient::OrientDB do
       expect(m.ref_name).to eq "erste_SYMBOL_klasse"
     end
 
-    it "create a bunch of simple classes" do
-	m =  ORD.create_classes  :one, :two, :three 
-	expect(m).to have(3).items
-	[:one, :two, :three].each_with_index do |c,i|
-	  expect(m[i].ref_name).to eq c.to_s
-	  expect(m[i].superclass ).to be ActiveOrient::Model
-	end
-
-	    m.each{|x| x.delete_class } # remove const to enable reusing 
-    end
-    it "create a class hierachy "  do
-      cl_hash= { Z: [ :test1, :test2, 'test3'], :UZ => 'reisser' }
-      
-      m =  Hash[ ORD.create_class( cl_hash ){ ORD.create_class( 'GT') } ]
-      expect(m).to eq  Z  => [Test1, Test2, Test3], UZ => Reisser  
-    end
-
-    it "complex hierarchy"  do
-
-      m= Hash[ ORD.create_class( { TZV: [ :A, :B, C: [:c1,:c3,:c2]  ],  EIZR: [:has_content, :becomes_hot ]} ) ]
-      expect(  m.keys ).to eq [TZV, EIZR ]
-      expect( m[TZV] ).to eq [A, B, [[C, [C1, C3, C2]]]]
-      expect( m[EIZR] ).to eq [HasContent, BecomesHot]
-
-    end
+    #    ## deactivated for now
+#    it "create a class hierachy "  do
+#      cl_hash= { Z: [ :test1, :test2, 'test3'], :UZ => 'reisser' }
+#      
+#      m =  Hash[ ORD.create_class( cl_hash ){ ORD.create_class( 'GT') } ]
+#      expect(m).to eq  Z  => [Test1, Test2, Test3], UZ => Reisser  
+#    end
+#
+#    it "complex hierarchy"  do
+#
+#      m= Hash[ ORD.create_class( { TZV: [ :A, :B, C: [:c1,:c3,:c2]  ],  EIZR: [:has_content, :becomes_hot ]} ) ]
+#      expect(  m.keys ).to eq [TZV, EIZR ]
+#      expect( m[TZV] ).to eq [A, B, [[C, [C1, C3, C2]]]]
+#      expect( m[EIZR] ).to eq [HasContent, BecomesHot]
+#
+#    end
       it "create  vertex classes through block" do
 	classes_simple = [ :one_z, :two_z, :three_z]
-        klasses = ORD.create_classes( classes_simple ){ 'V' }
-        classes_simple.each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
+        klasses = ORD.create_class( *classes_simple ){ 'V' }
+	puts klasses
+	ORD.database_classes
+        classes_simple.each{|y| expect( ActiveOrient.database_classes.keys).to include y.to_s }
 	expect( klasses ).to have( 3 ).items
         klasses.each{|x| expect(x.superclass).to eq V }
-      end
-      ## When creating multible classes through a hash, the allocated
-      ## class-hierarchy is returned
-      it "create Vertex classes through hash"  do
-	classes_vertex = [:one_v, :two_v, :three_v]
-        klasses = ORD.create_classes( classes_vertex) { :V } 
-        classes_vertex.each{|y| expect( ORD.database_classes ).to include ORD.classname(y) }
-	# klasses : {ActiveOrient::Model =>	[ V, V, V]]
-	klasses.each{|x| expect( x.superclass).to be V }
       end
       it "create and delete an Edge " do
 	edge_name = 'the_edge'
@@ -133,8 +117,8 @@ describe ActiveOrient::OrientDB do
   context "create and delete records "  do
     before(:all) do
 
-      ORD.create_class( :the_edge ){ 'E' }
-      ORD.create_classes( :vertex1,:vertex2 ){ 'V' }
+      ORD.create_edge_class :the_edge 
+      ORD.create_vertex_class :vertex1,:vertex2 
     end
     
     it "populate database-table with data and subsequent delete them" do
@@ -220,15 +204,6 @@ describe ActiveOrient::OrientDB do
   end
  # this interferes with other test, thus placing it to the end
   context "play with naming conventions" do
-    it "database-free mode" do
-     m = ActiveOrient::Model.orientdb_class  name:"zweiter_test"
-     n = ActiveOrient::Model.orientdb_class  name:"drittertest"
-      expect(m).to be ZweiterTest
-      expect(m.ref_name).to eq "zweiter_test"
-      expect(n).to be Drittertest
-      expect(n.ref_name).to eq "drittertest"
-
-    end
 
     it "the standard case" do
       m = ORD.create_class "erster_test"

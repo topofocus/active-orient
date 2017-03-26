@@ -62,96 +62,13 @@ Override to change its behavior
 	     AvtiveOrient::Model.orientdb_class name: 'hip_hip' , superclass: Hurra
 =end
 
-  def orientdb_class name:, superclass: nil   # :nodoc:    # public method: autoload_class
-    logger.progname = "ModelClass#OrientDBClass"
-    self.allocated_classes = HashWithIndifferentAccess.new( V: V, E: E) unless allocated_classes.present?
+  def orientdb_class name:, superclass: nil, ref_name: nil   # :nodoc:    # public method: autoload_class
 
-    puts "Allocated_classes #{allocated_classes.inspect}"
-    # populate cache
-    update_my_array = ->(s) do
-      if  allocated_classes[s.ref_name].present? 
-#	puts "found ref_name: #{allocated_classes[s.ref_name]}"
-      else
-      self.allocated_classes[s.ref_name] = s 
-      end
-    end
-    # use cache
-    get_class =  ->(n) { allocated_classes[n].presence || allocated_classes[namespace_prefix + n.to_s] }
-
-    # get the correct namespace for the class, use the actual one (ActiveOrient:::Model.namespace) as default
-    extract_namespace = -> (n) do
-      if get_class[n].present?
-	separated_class_parts = get_class[n].to_s.split(':') 
-	separated_class_parts.size >1 ?  separated_class_parts.first.constantize :  namespace
-      else
-	namespace
-      end
-    end
-
-    ### lets start
-    ## is the name stored in the classes-array, then we are finished
-    the_class = get_class[ name ]
-    ## otherwise allocate a new class 
-    if the_class.nil?
-      ref_name = name.to_s
-      # namespace is defined in config/boot
-      this_namespace = extract_namespace[ ref_name ]
-      # get the correct superclass 
-      this_superklass = if superclass.present?  
-			  # if a class is provided as parameter, just look for the namespace and reveal the class
-			  if superclass.is_a? Class
-			    Class.new(superclass)
-			  else
-			    #     extract_namespace[ name ].send( :const_get, superclass.to_s )
-			    #otherwise get the superclassname from the database and translate to ruby
-			    #   else
-			    superclass = orientdb.get_db_superclass( ref_name ) if superclass == :find_ME
-			    s= if superclass.present?
-				 puts "SC: #{orientdb.get_db_superclass( ref_name ).inspect }"
-				 puts "superclass: #{superclass.inspect} --> #{get_class[ superclass ].inspect}  "
-#				 superclass =  namespace_prefix + superclass
-				 extract_namespace[ name ].send( :const_get, get_class[ superclass ].to_s ) rescue self
-			       else
-				 self
-			       end
-			    # Now create an anonymous class which inherits the superclass (or self)
-			    # This will be used to  create the class
-			    Class.new(s)
-			  end
-			else
-			  Class.new(self)
-			end
-      #  get the classname from superclass.naming_convention 
-      name = this_superklass.naming_convention ref_name	
-      unless this_namespace.send :const_defined?, name, false
-	the_class = this_namespace.send :const_set, name, this_superklass
-      else
-	the_class =  ActiveOrient::Model.send :const_set, name, this_superklass
-	logger.warn{ "Unable to allocate class #{name} in Namespace #{this_namespace}"}
-	logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
-      end
-      the_class.ref_name =  namespace_prefix+ref_name
-      update_my_array[the_class]
-    end
-      the_class # return_value
-  rescue NameError => e
-      logger.error "ModelClass #{name.inspect} cannot be initialized."
-      logger.error e.message
-    #  logger.error e.backtrace.map {|l| "  #{l}\n"}.join # uncomment to observe error-stack
-    #  raise
-      nil  # return_value
-  end
-=begin
-Retrieves the preallocated class derived from ActiveOrient::Model
-
-Only classes noted in the @classes-Array of orientdb are fetched.
-=end
-  def get_model_class name  # :nodoc:
-    if orientdb.database_classes.include?(name)
-      orientdb_class name: name, superclass: :find_ME
-    else
-      nil
-    end
+    ActiveOrient.database_classes[name].presence || ActiveOrient::Model
+  rescue NoMethodError => e
+    logger.error { "Error in orientdb_class: is ActiveOrient.database_classes initialized ? \n\n\n" }
+    logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+    Kernel.exit
   end
 
 

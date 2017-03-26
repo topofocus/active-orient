@@ -1,0 +1,21 @@
+{
+    "source": { "file": { "path": "/home/topo/activeorient/spec/etl/hurra.csv" } },
+    "extractor": { "csv": {} },
+    "transformers": [
+       { 
+	 "vertex": { "class": "hurra" }
+      } 
+    ],
+    "loader": {
+       "orientdb": {
+         "serverUser": "hctw",
+         "serverPassword": "hc",
+         "dbUser": "hctw",
+         "dbPassword": "hc",
+         "dbURL": "remote:localhost/temp",
+         "classes": [ 
+	  {"name": "hurra", "extends": "V"}
+	 ]
+       }
+    }
+}

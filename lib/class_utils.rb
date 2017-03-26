@@ -7,26 +7,66 @@ module ClassUtils
 
   def classname name_or_class  # :nodoc:
     name = case  name_or_class
-	when ActiveOrient::Model
-              name_or_class.class.ref_name
-	when Class
-              name_or_class.ref_name.presence || name_or_class.to_s.split('::').last
-	else
-	  name_or_class.to_s.split(':').last #.to_s.camelcase # capitalize_first_letter
-    end
-    ## 16/5/31  : reintegrating functionality to check wether the classname is 
-    #		  present in the database or not
-          if database_classes.include?(name)
-	             name
-	  elsif database_classes.include?(name.underscore)
-	           name.underscore
-	  else
-	     logger.progname =  'ClassUtils#Classname'
-	      logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in #{ActiveOrient.database}" }
-	  nil
-
-	  end
+	   when ActiveOrient::Model
+	     name_or_class.ref_name 
+	   when Class
+	     ActiveOrient.database_classes.key(name_or_class)
+	   else
+	     if ActiveOrient.database_classes.has_key?( name_or_class.to_s )
+	       name_or_class 
+	     else
+	       logger.progname =  'ClassUtils#Classname'
+	       logger.warn{ "Classname #{name_or_class.inspect} ://: #{name} not present in #{ActiveOrient.database}" }
+	       nil
+	     end
+	   end
   end
+  def allocate_class_in_ruby db_classname
+    # retrieve the superclass recursively
+
+    unless ActiveOrient.database_classes[ db_classname ].is_a? Class
+
+      s = get_db_superclass( db_classname )
+      superclass =  if s.present? 
+		      allocate_class_in_ruby( s )
+		    else
+		      ActiveOrient::Model
+		    end
+
+      reduced_classname =  superclass.namespace_prefix.present? ? db_classname.split( superclass.namespace_prefix ).last :  db_classname
+      classname =  superclass.naming_convention(  reduced_classname )
+
+      the_class = if !( ActiveOrient::Model.namespace.send :const_defined?, classname, false )
+		    ActiveOrient::Model.namespace.send( :const_set, classname, Class.new( superclass ) )
+		  elsif ActiveOrient::Model.namespace.send( :const_get, classname).ancestors.include?( ActiveOrient::Model )
+		    ActiveOrient::Model.namespace.send( :const_get, classname)
+		  else
+		    t= ActiveOrient::Model.send :const_set, classname, Class.new( superclass )
+		    logger.warn{ "Unable to allocate class #{classname} in Namespace #{ActiveOrient::Model.namespace}"}
+		    logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
+		    t
+		  end
+      keep_the_dataset = block_given? ? yield( the_class ) : true
+      if keep_the_dataset # == keep_the_dataset
+	ActiveOrient.database_classes[db_classname] = the_class 
+	the_class.ref_name =  db_classname
+	the_class #  return the gemerated class
+      else
+	unless [E,V].include? the_class   # never remove Base-Classes!
+	  if ActiveOrient::Model.namespace.send( :const_get, classname)
+	    ActiveOrient::Model.namespace.send( :remove_const, the_class.to_s.split("::").last.to_sym)
+	  else
+	    ActiveOrient::Model.send( :remove_const, the_class.to_s.split("::").last.to_sym)
+	  end
+	end
+	nil  # return-value
+      end
+    else
+      # return previosly allocated ruby-class
+      ActiveOrient.database_classes[db_classname] 
+    end
+  end
+
 =begin
 create a single class and provide properties as well
 
@@ -38,99 +78,58 @@ create a single class and provide properties as well
 		     end
 
 =end
-  def create_class( class_name, properties: nil, &b )
-      the_class= create_classes( class_name, &b )
-      # if multible classes are specified, don't process properties
-      # ( if multible classes need the same properties, consider a nested class-design )
-      if the_class.is_a?(Array)
-	if the_class.size == 1
-	  the_class = the_class.first
+  def create_class( *class_names, properties: nil, &b )
+    
+
+    superclass =    block_given? ? yield : ActiveOrient::Model
+    superclass = superclass[:superclass] if superclass.is_a?(Hash)
+    superclass = ActiveOrient.database_classes[superclass.to_s] if superclass.is_a?(String) || superclass.is_a?(Symbol)
+  
+    r= class_names.map do | the_class_name |
+      the_class_name =  superclass.namespace_prefix + the_class_name.to_s 
+
+      ## lookup the database_classes-Hash
+      if ActiveOrient.database_classes[the_class_name].is_a?(Class)
+	ActiveOrient.database_classes[the_class_name] 
+      else
+	if superclass =="" || superclass.ref_name == ""
+	  create_classes the_class_name 
 	else
-	  properties =  nil
+	  create_classes( the_class_name ){ superclass.ref_name }
+	end
+	database_classes  # update_class_array
+	create_properties( the_name , properties )  if properties.present?
+	allocate_class_in_ruby( the_class_name ) do |that_class| 
+	  keep_the_dataset =  true
 	end
       end
-      create_properties( the_class.ref_name , properties )  if properties.present?
-      the_class # return_value
- end
-
+    end
+    r.pop if r.size==1
+  end
 
 =begin
-AllocateClassesInRuby acts as a proxy to OrientdbClass,
-takes a classes-array as argument
+Creates one or more vertex-classes and allocates the provided properties to each class.
+
+  ORD.create_vertex_class :a
+  => A
+  ORD.create_vertex_class :a, :b, :c
+  => [A, B, C]
 =end
-def allocate_classes_in_ruby classes  # :nodoc:
-    generate_ruby_object = ->( name, superclass, abstract ) do
-      begin
-	# if the class is predefined, use specs from get_classes
-	or_def =  get_classes('name', 'superClass', 'abstract' ).detect{|x| x['name']== name.to_s }
-	superclass, abstract = or_def.reject{|k,v| k=='name'}.values unless or_def.nil?
-	    puts "name: #{name} \t superclass: #{superclass} "
-	    proposed_class_name =  if ActiveOrient::Model.namespace_prefix.present?
-				     name.split(ActiveOrient::Model.namespace_prefix).last #.camelize
-				   else
-				     name
-				   end
-	  begin
-	    puts "proposed_class_name: #{proposed_class_name} \t superclass: #{superclass} "
-	  m= ActiveOrient::Model.orientdb_class name: proposed_class_name,  superclass: superclass
 
-#	  rescue  StandardError => e
-#	  puts "RESCUE in place"
-#	  m =  ActiveOrient::Model.namespace.send( :const_get,  proposed_class_name.to_s.classify)
-#	  m.ref_name = name.to_s
-	  end
-	  puts "M: #{m.inspect} --> #{m.superclass.inspect}"
-	  m.abstract = abstract
-	  #puts "-->  #{m.object_id}"
-	  m
-	rescue NoMethodError => w
-	  logger.progname = "ClassUtils#AllocateClassesInRuby"
-	  logger.error{ w.message }
-	  logger.error{ w.backtrace.map {|l| "  #{l}\n"}.join  }
-	  nil
-	rescue ArgumentError => v
-	  logger.progname = "ClassUtils#AllocateClassesInRuby"
-	  logger.error{ v.message }
-	  nil
-	  #	raise
-	end 
-
-    end
-
-    superclass, abstract  = if block_given? 
-			      s =  yield
-			      if s.is_a? Hash
-				[s[:superclass],s[:abstract]]
-				else
-				  [s,false]
-			      end
-			    else
-			      [nil,false]
-			    end
-    #superclass_object = generate_ruby_object[superclass,nil,nil] if superclass.present?
-
-    consts = case classes 
-    when  Array
-      next_superclass=  superclass
-      classes.map do |singleclass|
-	if singleclass.is_a?( String) || singleclass.is_a?( Symbol)
-	next_superclass = generate_ruby_object[singleclass,superclass,abstract]
-	elsif singleclass.is_a?(Array) || singleclass.is_a?(Hash) 
-	  allocate_classes_in_ruby( singleclass){ {superclass: next_superclass, abstract: abstract}}
-	end
-      end
-    when Hash
-      classes.keys.map  do| h_superclass |
-[	generate_ruby_object[h_superclass,superclass,abstract], 
-        allocate_classes_in_ruby(classes[ h_superclass ]){{ superclass: h_superclass, abstract: abstract }} ]
-      end
-    when String, Symbol
-      generate_ruby_object[classes,superclass, abstract]
-    end
-    consts
-end
+  def create_vertex_class *name, properties: nil 
+    r= name.map{|n| create_class( n, properties: properties){ V } }
+    r.size == 1 ? r.pop : r
+  end
 =begin
- - Creating a new Database-Entry (where is omitted)
+Creates one or more edge-classes and allocates the provided properties to each class.
+=end
+
+  def create_edge_class *name,  properties: nil
+    r = name.map{|n| create_class( n.to_s, properties: properties){ E  } }
+    r.size == 1 ? r.pop : r  # returns the created classes as array if multible classes are provided
+  end
+=begin
+- Creating a new Database-Entry (where is omitted)
  - Updating the Database-Entry (if present)
 
   The optional Block should provide a hash with attributes (properties). These are used if a new dataset is created.

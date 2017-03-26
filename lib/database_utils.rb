@@ -54,36 +54,13 @@ Parameters: system_classes: false|true, requery: false|true
 =end
 
   def database_classes system_classes: nil, requery: false
-    requery = true if ActiveOrient.database_classes.blank?
-    if requery
-  	  class_hierarchy system_classes: system_classes #requery: true
-  	  all_classes = get_classes('name').map(&:values).sort.flatten
-  	  ActiveOrient.database_classes = system_classes.present? ? all_classes : all_classes - system_classes()
-    end
-    ActiveOrient.database_classes
-  end
-=begin
-Creates one or more vertex-classes and allocates the provided properties to each class.
+    class_hierarchy system_classes: system_classes #requery: true
+    all_classes = get_classes('name').map(&:values).sort.flatten
+    all_user_classes =  all_classes - system_classes()
 
-  ORD.create_vertex_class :a
-  => A
-  ORD.create_vertex_class :a, :b, :c
-  => [A, B, C]
-=end
-
-  def create_vertex_class *name, properties: nil 
-    r= name.map{|n| create_class( n, properties: properties){ :V } }
-    @actual_class_hash = get_classes( 'name', 'superClass')
- r.size == 1 ? r.pop : r
-  end
-=begin
-Creates one or more edge-classes and allocates the provided properties to each class.
-=end
-
-  def create_edge_class *name,  properties: nil
-    r = name.map{|n| create_class( n, properties: properties){ :E  } }
-    @actual_class_hash = get_classes( 'name', 'superClass')
-    r.size == 1 ? r.pop : r  # returns the created classes as array if multible classes are provided
+    all_user_classes.each{|x| ActiveOrient.database_classes[x] = "unset" unless ActiveOrient.database_classes.has_key?(x) }
+    
+    ActiveOrient.database_classes.keys  # return an array of database-classnames
   end
 
 =begin
@@ -106,16 +83,22 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
   # allocate them and call require_model_file on each model
     # if something goes wrong, allocate_classes_in_ruby returns nil, thus compact prevents
     # from calling NilClass.require_model_file
-    all_classes = allocate_classes_in_ruby(class_hierarchy).flatten.compact
-    classes_with_model_files = all_classes.map do |x| 
-      success = x.require_model_file(from_model_dir) 
-      if ActiveOrient::Model.keep_models_without_file.nil? && success.nil? && ![E,V].include?(x)
-	logger.info{ "Database-Class #{x.name} is not asseccible, model file is missing "}
-       x.delete_class :only_ruby_space
-      end
-      success # return_value
-    end
-
+    #all_classes = #allocate_classes_in_ruby(class_hierarchy).flatten.compact
+   ActiveOrient.database_classes.each do | db_name, the_class |
+     unless the_class.is_a? Class
+       allocate_class_in_ruby( db_name ) do |that_class|
+       keep_the_dataset =  true
+       if ! that_class.require_model_file(from_model_dir) 
+         unless ActiveOrient::Model.keep_models_without_file  || [E,V].include?(that_class)
+	   logger.info{ "Database-Class #{that_class.name} is not asseccible, model file is missing "}
+	   ActiveOrient.database_classes[ db_name ] = "no model file"
+	   keep_the_dataset = false 
+	 end
+	end
+       keep_the_dataset # return_value
+       end
+     end
+  end
  end
 
 end # module

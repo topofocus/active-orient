@@ -65,10 +65,10 @@ if connectyml.present? and connectyml[:user].present? and connectyml[:pass].pres
 # because V and E are present in any case,  edge+vertex initialisation is required in model/model.rb
 # however, the Objects have to be initialized separately. This is performed prior to the connection
 # to the database
-  ActiveOrient::Model.orientdb_class name: 'V', superclass: ActiveOrient::Model
-  ActiveOrient::Model.orientdb_class name: 'E', superclass: ActiveOrient::Model
-  V.ref_name = 'V'
-  E.ref_name = 'E'
+ # ActiveOrient::Model.orientdb_class name: 'V', superclass: ActiveOrient::Model
+ # ActiveOrient::Model.orientdb_class name: 'E', superclass: ActiveOrient::Model
+ # V.ref_name = 'V'
+ # E.ref_name = 'E'
 
   ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true
   if RUBY_PLATFORM == 'java'

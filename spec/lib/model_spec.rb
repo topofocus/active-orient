@@ -45,7 +45,7 @@ describe ActiveOrient::Model do
     it "a Model-Instance inherents logger and db-reference" do
       object =  subject.new
       expect( object.logger ).to be_a Logger
-      expect( object.orientdb ).to be_a ActiveOrient::OrientDB
+      expect( object.db ).to be_a ActiveOrient::OrientDB
     end
 
     it "repeatedly instantiated Model-Objects are allocated once" do
@@ -54,18 +54,22 @@ describe ActiveOrient::Model do
     end
   end  #context
 
-  context "The Models have proper superClasses" do
-    let (:base) { ORD.create_class( :my_class) }
-    let (:node) { ORD.create_vertex_class( :my_node) }
-    let (:edge) { ORD.create_edge_class( :my_edge) }
+  context "The Models have proper superClasses"  do
+    before(:all) do
+       ORD.create_class "E"
+       ORD.create_class "V"
+       ORD.create_class :my_class 
+       ORD.create_vertex_class :my_node 
+       ORD.create_edge_class :my_edge 
+    end
     it "A document class has an empty superClass" do
-      expect( base.superclass ).to eq  ActiveOrient::Model
+      expect( MyClass.superclass ).to eq  ActiveOrient::Model
     end
     it "An Vertex inherents from »V«" do
-      expect( node.superclass ).to eq  V 
+      expect( MyNode.superclass ).to eq  V 
     end
     it "An Edge inherents from »E«" do
-      expect( edge.superclass ).to eq E
+      expect( MyEdge.superclass ).to eq E
     end
   end  # context
 

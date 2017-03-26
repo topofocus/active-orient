@@ -53,9 +53,9 @@ describe ActiveOrient::OrientDB do
       it 'primitive property definition with linked_class' do
         ph= {:propertyType=>"STRING", linked_class: :Contract }
         field = 't'
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>"Contract"}
+        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>:Contract}
         ph= {:propertyType=> :string, linkedClass: :Contract }
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>"Contract" }
+        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>:Contract }
       end
     end
   end
@@ -69,36 +69,26 @@ describe ActiveOrient::OrientDB do
 
   describe "handle Properties at Class-Level"  do
     before(:all) do
-      ORD.create_classes [ :Contract, :exchange, 'property' ]
-    end
-#    before(:each){ ActiveOrient::Model::Property.delete_class; 	Property = DB.create_class 'property' }
-    before(:each){ Property.delete_class; ORD.create_class 'property' }
-    # after(:all){ DB.delete_class 'property' }
-    let( :predefined_property ) do
-      rp = ORD.create_properties( Property,
+      ORD.create_class  :Contract, :exchange, 'property', :industry
+      Property.create_properties( 
 				 symbol: { propertyType: 'STRING' },
 				 con_id: { propertyType: 'INTEGER' } ,
-				 exchanges: { propertyType: 'LINKLIST', linkedClass: :Exchange } ,
+				 exchanges: { propertyType: 'LINKLIST', linkedClass: :exchange } ,
 				 details: { propertyType: 'LINK', linkedClass: :Contract },
 				 date: { propertyType: 'DATE' }
 				)
-      ORD.database_classes
-      rp
+      
     end
+#    before(:each){ ActiveOrient::Model::Property.delete_class; 	Property = DB.create_class 'property' }
 
     it "define some Properties on class Property" do
 
       ## count the number of defined properties 
-      expect( predefined_property ).to eq 5
+#      expect( predefined_property ).to eq 5
       rp= ORD.get_class_properties(  Property )['properties']
-
-      [ :con_id, :symbol, :details, :exchanges, :date ].each do |f|
-	expect( rp.detect{|x| x['name']== f.to_s}  ).to be_truthy
-      end
-      expect( rp.detect{|x| x['name']== 'property'} ).to be_falsy
+      expect(rp.map{|y| y['name']}).to eq ["date", "symbol", "con_id", "exchanges", "details"]
     end
     it "define property with automatic index"   do
-      predefined_property
       c = ORD.create_class :contract_detail
       ORD.create_property( c, :con_id, type: :integer) { :unique }
       expect( ORD.get_class_properties(c)['indexes'] ).to have(1).item
@@ -107,8 +97,6 @@ describe ActiveOrient::OrientDB do
     end
 
     it "define a property with manual index" do
-      ORD.create_classes :Contract, :industry
-      predefined_property
       rp = ORD.create_properties( Contract,
 				 { symbol: { type: :string },
        con_id: { type: :integer } ,
@@ -124,9 +112,7 @@ describe ActiveOrient::OrientDB do
 
     it "add a dataset"   do
       ## without predefined property the test fails because the date is recognized as string.
-      predefined_property
-      industries = DB.create_class :industry
-      linked_record = DB.create_record industries, attributes:{ label: 'TestIndustry' }
+      linked_record = DB.create_record Industry, attributes:{ label: 'TestIndustry' }
       expect{ DB.upsert  Property,  where: { con_id: 12345 }, 
 					set: { industry: linked_record.rid, 
 					date: Date.parse( "2011-04-04") } 
@@ -144,26 +130,22 @@ describe ActiveOrient::OrientDB do
 
 
     it "manage  exchanges in a linklist " do
-      DB.create_class :Exchange
-      predefined_property
 
       f = Exchange.create :label => 'Frankfurt'
       b = Exchange.create :label => 'Berlin'
       s = Exchange.create :label => 'Stuttgart'
       ds =Property.create con_id: 12355
-      ds.add_item_to_property :exchanges , f,b,s      #	  ds.add_item_to_property :exchanges, b
+      ds.add_item_to_property :exchange , f,b,s      #	  ds.add_item_to_property :exchanges, b
       #	  ds.add_item_to_property :exchanges, s
-      expect( ds.exchanges ).to have(3).items
-      expect( Property.custom_where( "'Stuttgart' in exchanges.label").first ).to eq ds
-      expect( Property.custom_where( "'Hamburg' in exchanges.label") ).to  be_empty
-      ds.remove_item_from_property :exchanges, b,s 
-      expect( ds.exchanges ).to have(1).items
+      expect( ds.exchange ).to have(3).items
+      expect( Property.custom_where( "'Stuttgart' in exchange.label").first ).to eq ds
+      expect( Property.custom_where( "'Hamburg' in exchange.label") ).to  be_empty
+      ds.remove_item_from_property :exchange, b,s 
+      expect( ds.exchange ).to have(1).items
     end
 
    it "add  an embedded linkmap- entry " do # , :pending => true do
 #      pending( "Query Database for last entry does not work in 2.2" )
-      predefined_property
-      DB.create_class :industry
       property_record=  Property.create  con_id: 12346, property: []
       industries =  ['Construction','HealthCare','Bevarage']
       industries.each{| industry | property_record.property <<  Industry.create( label: industry ) }

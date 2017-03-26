@@ -5,11 +5,10 @@ describe ActiveOrient::OrientDB do
 
   before( :all ) do
     reset_database
-      ORD.create_classes([:base, :first_list, :second_list ]){ "V" }
-      ORD.create_property :base, :first_list,  type: :linklist, linkedClass: :first_list 
-      ORD.create_property :base, :label, index: :unique 
-      ORD.create_property :first_list,  :second_list , type: :linklist, linkedClass: :second_list 
-      ORD.create_vertex_class :log
+      ORD.create_vertex_class :base, :first_list, :second_list, :log
+      Base.create_property  :first_list,  type: :linklist, linkedClass: :first_list 
+      Base.create_property  :label, index: :unique 
+      FirstList.create_property  :second_list , type: :linklist, linkedClass: :second_list 
       if Base.count.zero?  # omit if structure is present
 	(0 .. 9).each do | b |
 	  base= Base.create label: b, first_list: []
