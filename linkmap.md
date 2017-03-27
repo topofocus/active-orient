@@ -11,7 +11,7 @@ Suppose, you want to store general Informations about a Company in a Class/Table
 ```ruby
 DB.create_vertex_class :the_base
 DB.create_vertex_class :asset
-DB.create_classes [ :stock, :option, :bond ]{ :asset }
+DB.create_class( :stock, :option, :bond ){ :asset }
 ```
 The Asset-Class needs a property »base« which should carry an index. 
 ```ruby
@@ -41,8 +41,7 @@ Formally, they are ordinary arrays.
 They can be created schemaless
 
 ```ruby
-DB.create_class :industry
-DB.create_class :property
+DB.create_class :industry, :property
 property_record=  Property.create  con_id: 12346, property: []
 industries =  ['Construction','HealthCare','Bevarage']
 industries.each{| industry | property_record.property <<  Industry.create( label: industry ) }
