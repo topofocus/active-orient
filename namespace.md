@@ -140,7 +140,7 @@ As a result something like this appears:
 
 ```
 ---------------------------------------------
-Database Class  ->  ActiveOrient ClassName
+Database Class  ->  ActiveOrient Class
 ---------------------------------------------
               E ->  E
               V ->  V
