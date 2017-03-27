@@ -18,7 +18,7 @@ describe ActiveOrient::OrientDB do
       expect( ORD.get_databases ).to include 'temp'
     end
     it "the freshly initialized  database contains E+V-Base-Classes" do
-      expect( ORD.database_classes requery: true).to eq ["E","V"]
+      expect( ActiveOrient.database_classes).to eq ["E","V"]
     end
 
     it "System classes are present" do

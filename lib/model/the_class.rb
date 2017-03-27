@@ -46,23 +46,12 @@ Override to change its behavior
     namespace.is_a?(Class )? '' : namespace.to_s.downcase+'_' 
   end
 =begin
-  orientdb_class is used to create or refer a ActiveOrient:Model:{class} by providing its name
+  orientdb_class is used to refer a ActiveOrient:Model-Object providing its name
 
   Parameter: name: string or symbol
-  Parameter: superclass: If class, then this is used unmodified
-			 If string or symbol, its used to reference an existing class
-			 if :find_ME, its derived from the classes-hash
-  Attention: If a class is created by orientdb_class, its only allocated in ruby-space.
-	     The class is thus not present in the classes-array, which reflects the database-classes.
-	     If a class depending on a superclass is to be created, the superclass is derived from
-	     the classes-array. In such a case, the allocation only works, if the class itself is
-	     used as parameter "superclass" 
-	     i.e.
-	     ActiveOrient::Model.orientdb_class name: 'hurra'
-	     AvtiveOrient::Model.orientdb_class name: 'hip_hip' , superclass: Hurra
 =end
 
-  def orientdb_class name:, superclass: nil, ref_name: nil   # :nodoc:    # public method: autoload_class
+  def orientdb_class name:, superclass: nil  # :nodoc:    # public method: autoload_class
 
     ActiveOrient.database_classes[name].presence || ActiveOrient::Model
   rescue NoMethodError => e

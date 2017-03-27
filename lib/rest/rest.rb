@@ -43,14 +43,13 @@ By default, _config/boot.rb_  handles the connection. There this is mapped to th
     include RestDelete
 
     mattr_accessor :logger # borrowed from active_support
-    attr_reader :database # Used to read the working database
 
     #### INITIALIZATION ####
 
 =begin
 OrientDB is conventionally initialized.
 
-Thus several instances pointing to the same or different databases can coexist
+Several instances share ActiveOrient.database and ActiveOrient.database_classes.
 
 A simple
    xyz =  ActiveOrient::OrientDB.new
@@ -78,11 +77,11 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
     #    :database => 'temp'
     #  }.merge default_server.presence || {}
     #  @res = get_resource
-      ActiveOrient.database = database if database.present?
-      ActiveOrient.database_classes = {}
+      ActiveOrient.database ||= database
+      ActiveOrient.database_classes ||= {}
       @res = get_resource
       connect() if connect
-      database_classes # initialize @classes-array
+      database_classes # initialize @classes-array and ActiveOrient.database_classes 
       ActiveOrient::Model.orientdb = self 
       ActiveOrient::Model.db = self 
       ActiveOrient::Model.keep_models_without_file ||= nil

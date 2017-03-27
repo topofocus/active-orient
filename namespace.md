@@ -118,42 +118,39 @@ logic is defined in model-files in 'model'. And we want to make sure, that all d
 to ruby classes. 
 
 ```ruby
-97   ActiveOrient::Init.define_namespace namespace: :object
-98   ActiveOrient::Model.keep_models_without_file = true
-99   ORD = ActiveOrient::OrientDB.new  preallocate: true
+ 97   ActiveOrient::Init.define_namespace namespace: :object
+ 98   ActiveOrient::Model.keep_models_without_file = true
+ 99   ORD = ActiveOrient::OrientDB.new  preallocate: true
+100   ActiveOrient::Init.define_namespace namespace:  TG
+101   ActiveOrient::OrientDB.new  preallocate: true
+100   ActiveOrient::Init.define_namespace namespace: IB 
+101   ActiveOrient::OrientDB.new  preallocate: true
 ```
 
-**note** The preallocation-algorithm trys to load any class. If »ActiveOrient::Model.keep_models_without_file«
-is set to false, classes are allocated only, if a model-file is present. As a consequence, any appropopiate
-model-file is loaded. 
+**note** The preallocation-algorithm tries to load any class.  If the classes "tg_hui, ib_hui, hui" are
+present, "TgHui,IbHui,Hui" are created in the i basic initialisation of ActiveOrientDB (Namespace: Object). 
+If »ActiveOrient::Model.keep_models_without_file«
+is set to false, classes are allocated only, if a model-file is present. 
 
-Thus any previously allocated class can be extended, providing a proper model-file. For example: If we 
+Any previously allocated class can be extended, providing a proper model-file. For example: If we 
 allocated a class «Contract« in the namspace »IB«, methods for this class are included from the model-dir specified in the gem *and* in the actual-model-directory ( in this case: model/ib/contract.rb ). 
 
 
 As a result something like this appears:
 
 ```
-DB-Class  -> Ruby-Object
-		V ->  V
-		E ->  E
-contract ->  		IB::Contract
-bag				->  IB::Bag
-forex			->  IB::Forex
-future			->  IB::Future
-option			->  IB::Option
-stock			->  IB::Stock
-account			->  IB::Account
-bar				->  IB::Bar
-contract_detail ->  IB::ContractDetail
-day_of	  ->  TG::DAY_OF
-time_of	  ->  TG::TIME_OF
-time_base ->  TG::TimeBase
-monat	  ->  TG::Monat
-stunde	  ->  TG::Stunde
-tag	  ->  TG::Tag
-
-new_test  ->  NewTest
+---------------------------------------------
+Database Class  ->  ActiveOrient ClassName
+---------------------------------------------
+              E ->  E
+              V ->  V
+  hh_hipp_hurra ->  HH::HippHurra
+       hh_hurra ->  HH::Hurra
+     hipp_hurra ->  HippHurra
+          hurra ->  Hurra
+  hy_hipp_hurra ->  HY::HippHurra
+       hy_hurra ->  HY::Hurra
+---------------------------------------------
 
 ```
 

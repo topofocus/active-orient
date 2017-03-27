@@ -28,48 +28,38 @@ module RestCreate
     ActiveOrient.database  # return_value
   end
 
+
+
 =begin
 
-General method to create database classes
+CreateClasses  just performing the database-stuff 
 
-Its just performing the database-stuff 
+its now private
 
-After performing the queries, ActiveOrient.database_classes is updated
+it takes superclass and abstract (a hash) as block
 
+usually, only one classname is provided, however the method takes a row of classnames as argument
 
-Takes a String,  Array or Hash as argument and returns a (nested) Array of
-successfull allocated Ruby-Classes.
-
-If a block is provided, this is used to allocate the class to this superclass.
-This class MUST exist.
-
-Its usually called in the block of allocate_class_in_ruby
-
-eg. 
-  create_classes( :test ){ :V } 
-
-creates a vertex-class, returns just Test ( < V )
-
-   create_classes( :test1, :test2, test3 ) { :V }
-
-creates three vertex-classes 
-  
+#todo reintegrate the ability to create abstract classes
 =end
-  def create_classes *db_classnames, &b
-    return if db_classnames.empty?
-    superclass =  if block_given?
-		    yield
-		  else
-		    nil
-		  end
+private
+  def create_this_class  *db_classname
+     if block_given?
+	      additional_args =     yield
+		  superclass = additional_args[ :superclass ]
+		  abstract = additional_args[ :abstract ].presence || nil
+      else 
+	superclass = nil
+	abstract =  nil
+      end
     #
-    command= db_classnames.map do | database_class |
-      c = if superclass.nil?
-	    "CREATE CLASS #{database_class}" 
+    command= db_classname.map do | database_class |
+      c = if superclass.present?
+	    "CREATE CLASS #{database_class} EXTENDS #{superclass}" 
 	  else
-	    "CREATE CLASS #{database_class} EXTENDS #{superclass}"
+	    "CREATE CLASS #{database_class} "
 	  end
-      #      c << " ABSTRACT" if database_class.abstract  --> abstract classes are not supported anymore
+      c << " ABSTRACT" if abstract.present?
       { type: "cmd", language: 'sql', command: c }  # return value 4 command
     end
     # execute anything as batch, don't roll back in case of an error
@@ -83,7 +73,7 @@ creates three vertex-classes
   end
 
 
-
+public
 
   ############## OBJECT #############
 
@@ -144,60 +134,6 @@ creates three vertex-classes
   end
   alias create_document create_record
 
-=begin
-  Used to create multiple records at once
-  For example:
-    $r.create_multiple_records "Month", ["date", "value"], [["June", 6], ["July", 7], ["August", 8]]
-  It is equivalent to this three functios:
-    $r.create_record "Month", attributes: {date: "June", value: 6}
-    $r.create_record "Month", attributes: {date: "July", value: 7}
-    $r.create_record "Month", attributes: {date: "August", value: 8}
-
-  The function $r.create_multiple_records "Month", ["date", "value"], [["June", 6], ["July", 7], ["August", 8]] will return an array with three element of class "Active::Model::Month".
-=end
-
-  def create_multiple_records o_class, values, new_records  # :nodoc:  # untested
-    command = "INSERT INTO #{o_class} ("
-    values.each do |val|
-      command += "#{val},"
-    end
-    command[-1] = ")"
-    command += " VALUES "
-    new_records.each do |new_record|
-      command += "("
-      new_record.each do |record_value|
-        case record_value
-        when String
-          command += "\'#{record_value}\',"
-        when Integer
-          command += "#{record_value},"
-        when ActiveOrient::Model
-          command += "##{record_value.rid},"
-        when Array
-          if record_value[0].is_a? ActiveOrient::Model
-            command += "["
-            record_value.rid.each do |rid|
-              command += "##{rid},"
-            end
-            command[-1] = "]"
-            command += ","
-          else
-            command += "null,"
-          end
-        else
-          command += "null,"
-        end
-      end
-      command[-1] = ")"
-      command += ","
-    end
-    command[-1] = ""
-    execute  transaction: false do # To execute commands
-      [{ type: "cmd",
-        language: 'sql',
-        command: command}]
-    end
-  end
 # UPDATE <class>|CLUSTER:<cluster>|<recordID>
   #   [SET|INCREMENT|ADD|REMOVE|PUT <field-name> = <field-value>[,]*]|[CONTENT|MERGE <JSON>]
   #     [UPSERT]

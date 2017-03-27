@@ -10,8 +10,9 @@ require 'pp'
 ## and that proper database-class-names are generated
 describe ActiveOrient::OrientDB do
     before(:all) do 
-      #read_etl_data
-      initialize_database
+ #     initialize_database
+      read_etl_data
+      ORD.create_class 'V','E'
     end
 
     context "analyse initialized database" do
@@ -22,7 +23,7 @@ describe ActiveOrient::OrientDB do
 	expect( ActiveOrient::Model.keep_models_without_file ).to be_nil
       end
       it "Only strict models are allocated" do
-	expect( ActiveOrient::Model.allocated_classes.keys ).to eq ["V", "E", "hipp_hurra", "hurra"]
+	expect( ActiveOrient.database_classes ).to eq ["V", "E", "hipp_hurra", "hurra"]
       end
     end
 
@@ -33,19 +34,22 @@ describe ActiveOrient::OrientDB do
       
       end
      it "change namespace to HH and allocate classes", focus: true do
-       puts "CH:: #{ORD.class_hierarchy.inspect} "
-puts "AC:: #{ActiveOrient::Model.allocated_classes.inspect}"
-	ActiveOrient::Init.define_namespace { HH }
-	expect( ActiveOrient::Model.namespace_prefix ).to eq ("hh_")
-	puts "preallocation Namespace HH"
-	module HH
-	 O=  ActiveOrient::OrientDB.new  preallocate: true 
+       # allocate Object-Spaced Classes
+       ActiveOrient::OrientDB.new  preallocate: true 
+       ActiveOrient::Init.define_namespace { HH }
+       expect( ActiveOrient::Model.namespace_prefix ).to eq ("hh_")
+       # allocate HH-Prefixed classes
+       ActiveOrient::OrientDB.new  preallocate: true 
 
-       puts "CH:: #{O.class_hierarchy.inspect} "
-puts "AC:: #{ActiveOrient::Model.allocated_classes.inspect}"
-	end
-	expect( HH::O.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
-	expect( ActiveOrient::Model.allocated_classes.keys ).to eq ["V", "E", "hipp_hurra", "hurra"]
-      end
+       # allocate HY-Prefixed classes
+       ActiveOrient::Init.define_namespace { HY }
+       ActiveOrient::OrientDB.new  preallocate: true 
+
+       expect( ORD.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
+       [ HH::HippHurra, HH::Hurra, HippHurra, Hurra, HY::Hurra, HY::HippHurra ].each do |m|
+	 expect( m.new ).to be_a V 
+       end	
+       puts ActiveOrient::show_classes
+     end
     end
 end
