@@ -8,7 +8,7 @@ module ClassUtils
   def classname name_or_class  # :nodoc:
     name = case  name_or_class
 	   when ActiveOrient::Model
-	     name_or_class.ref_name 
+	     name_or_class.class.ref_name 
 	   when Class
 	     ActiveOrient.database_classes.key(name_or_class)
 	   else
