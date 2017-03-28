@@ -21,18 +21,23 @@ module ClassUtils
 	     end
 	   end
   end
-  def allocate_class_in_ruby db_classname
+  def allocate_class_in_ruby db_classname, &b
     # retrieve the superclass recursively
 
     unless ActiveOrient.database_classes[ db_classname ].is_a? Class
 
       s = get_db_superclass( db_classname )
       superclass =  if s.present? 
-		      allocate_class_in_ruby( s )
+		      allocate_class_in_ruby( s, &b ) 
 		    else
 		      ActiveOrient::Model
 		    end
-
+      # superclass is nil, if allocate_class_in_ruby is recursivley
+      # called and the superclass was not established
+      if superclass.nil?
+	ActiveOrient.database_classes[ db_classname ] = "Superclass model file missing"
+	return
+      end
       reduced_classname =  superclass.namespace_prefix.present? ? db_classname.split( superclass.namespace_prefix ).last :  db_classname
       classname =  superclass.naming_convention(  reduced_classname )
 
@@ -46,17 +51,20 @@ module ClassUtils
 		    logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
 		    t
 		  end
+      the_class.ref_name = db_classname
       keep_the_dataset = block_given? ? yield( the_class ) : true
-      if keep_the_dataset # == keep_the_dataset
+      if keep_the_dataset 
 	ActiveOrient.database_classes[db_classname] = the_class 
 	the_class.ref_name =  db_classname
-	the_class #  return the gemerated class
+	the_class #  return the generated class
       else
-	unless [E,V].include? the_class   # never remove Base-Classes!
-	  if ActiveOrient::Model.namespace.send( :const_get, classname)
-	    ActiveOrient::Model.namespace.send( :remove_const, the_class.to_s.split("::").last.to_sym)
+	unless ["E","V"].include? classname  # never remove Base-Classes!
+	  base_classname =  the_class.to_s.split("::").last.to_sym
+
+	  if ActiveOrient::Model.namespace.send( :const_defined? , classname)
+	    ActiveOrient::Model.namespace.send( :remove_const, classname )
 	  else
-	    ActiveOrient::Model.send( :remove_const, the_class.to_s.split("::").last.to_sym)
+	    ActiveOrient::Model.send( :remove_const, classname)
 	  end
 	end
 	nil  # return-value

@@ -6,6 +6,15 @@ A common case is, to concentrate any gathering of raw data in a separate module,
 
 ActiveOrient enables this by switching the »ActiveOrient::Model.namespace« directive.
 
+### The Default Case
+
+Databsase-Classes are mapped to the Object-Layer
+
+```ruby
+ActiveOrient::Init.define_namespace namespace: :object  
+```
+
+
 ### Activate Namespace
 
 to activate the namespace "HC" simply run
@@ -17,123 +26,28 @@ ActiveOrient::Init.define_namespace { HC }
 ```
 and 
 
-```ruby
-ActiveOrient::Init.define_namespace namespace: :object   # or  ActiveOrient::Init.define_namespace { Object }
-```
 to deactivate it.
 
-#### Prefixed Classnames to Avoid Ambiguous Identifiers
+### Prefixed Classnames to Avoid Ambiguous Identifiers
 
-OrientDB-Classnames follow a class-hierarrchy, namespacing is not implementated. Thus we are mocking a 
+OrientDB-Classnames follow a class-hierarchy but namespacing is not implementated. Thus we are mocking a 
 rudimentary Namespace-Support through prefixing.
 
 ActiveOrient::Model.namespace_prefix translates a single namespace into a database-prefix:
 
 ```ruby
-2.4.0 :002 > ActiveOrient::Init.define_namespace{  HH }
- => HH 
-2.4.0 :003 > result = ORD.allocate_classes_in_ruby [ 'hurry', 'hipp_hurry' ]
- => [HH::Hurry, HH::HippHurry] 
-2.4.0 :004 > HH::Hurry.ref_name
- => "hh_hurry" 
-2.4.0 :005 > HH::HippHurry.ref_name
- => "hh_hipp_hurry" 
+ActiveOrient::Init.define_namespace namespace: :object
+ActiveOrient::Model.keep_models_without_file = true
+ORD = ActiveOrient::OrientDB.new  preallocate: true
+ActiveOrient::Init.define_namespace { HH  }
+ActiveOrient::OrientDB.new  preallocate: true
+ActiveOrient::Init.define_namespace { HY }
+ActiveOrient::OrientDB.new  preallocate: true
 ```
-
-ORD.create_class "hurry" creates a Ruby-Class »HH::Hurry« and a DatabaseClass »hh_hurry«.
-This can be changed through redefinition of »ActiveOrient::Model.namespace_prefix«
-
-```ruby
-   ## Deactivate Namespace-Prefix
-   class ActiveOrient::Model
-     def self.namespace_prefix
-     ""
-     end
-   end
-```
-
-
-
-## Extend ActiveOrient with a gem and introduce a namespace
-
-In our case, the "ib-ruby" gem gets data through an api 
-The gem provides the logic to convert the raw-data from the server to ActiveOrient::Model-Objects.
-Its located in the model-directory of the gem.
-
-Just by including the gem in the Gemfile and requiring it, anything is available in our project.
-
-The gem defines the ActiveOrient-Environment as follows:
-
-```ruby
-module IB                                
-module ORD                             
-include ActiveOrient::Init          # namespace support
-mattr_accessor :login 
-
-# establishes a connection to the Database and returns the Connection-Object (an ActiveOrient::OrientDB.         …instance)
-def self.connect                  
-
-  c = { :server => 'localhost', :port  => 2480,	:protocol => 'http',       
-	:user   => 'root',   :password => 'root', :database => 'temp'  }.merge login.presence || {}
-  ActiveOrient.default_server= { user: c[:user], password: c[:password] , server: c[:server], port: c[:port]  }
-  ActiveOrient.database = c[:database]
-  logger =  Logger.new '/dev/stdout'
-  ActiveOrient::Init.define_namespace { IB } 
-  project_root = File.expand_path('../..', __FILE__)
-
-  ActiveOrient::Model.model_dir =  "#{project_root}/models"
-  ActiveOrient::OrientDB.new  preallocate: true  # connect via http-rest
-
-(...)
-  ```
-The gem scans through all database classes present, and allocates only those, where a model-file
-is found in the model-directory. 
-
-This takes place by requiring 'ib-ruby' in 'config/boot.rb'
-
-```ruby
-  76 #read the configuration and model-files from the ib-ruby gem directotry
-  77 require 'ib/ord'
-  78 IB::ORD.login= ActiveOrient.default_server.merge database: ActiveOrient.database
-  79 require 'ib-ruby'  # automatically connects to the database
-  80 
-  81 # set the model-file for the time-graph
-  82 module TG
-  83 end
-  84 ActiveOrient::Model.model_dir =  "#{project_root}/model"
-  85 ActiveOrient::Init.define_namespace { TG }
-  86 puts "Namespace changed: #{ActiveOrient::Model.namespace}"
-  87 ActiveOrient::OrientDB.new  preallocate:  true
-
-```
-
-After row 80, the namspace is changed to "TG" (TimeGraph).  The example provides a gem as well. Just 
-»require 'orientdb_time_graph'« and call »TG.connect« to include it properly.
-
-The code above shows how to integrate the classes within the structure of the project. The difference is the placement
-of the model-files. With the gem, they are located in the root-directory of the gem. The other approach looks in the model-directory of the project (model/tg).
-
-Before we start, we  switch to the object-layer, where we want to define the working-classes. Their 
-logic is defined in model-files in 'model'. And we want to make sure, that all database-classes are allocated
-to ruby classes. 
-
-```ruby
- 97   ActiveOrient::Init.define_namespace namespace: :object
- 98   ActiveOrient::Model.keep_models_without_file = true
- 99   ORD = ActiveOrient::OrientDB.new  preallocate: true
-100   ActiveOrient::Init.define_namespace namespace:  TG
-101   ActiveOrient::OrientDB.new  preallocate: true
-100   ActiveOrient::Init.define_namespace namespace: IB 
-101   ActiveOrient::OrientDB.new  preallocate: true
-```
-
 **note** The preallocation-algorithm tries to load any class.  If the classes "tg_hui, ib_hui, hui" are
-present, "TgHui,IbHui,Hui" are created in the i basic initialisation of ActiveOrientDB (Namespace: Object). 
+present, "TgHui,IbHui,Hui" are created during the basic initialisation of ActiveOrientDB (Namespace: Object). 
 If »ActiveOrient::Model.keep_models_without_file«
 is set to false, classes are allocated only, if a model-file is present. 
-
-Any previously allocated class can be extended, providing a proper model-file. For example: If we 
-allocated a class «Contract« in the namspace »IB«, methods for this class are included from the model-dir specified in the gem *and* in the actual-model-directory ( in this case: model/ib/contract.rb ). 
 
 
 As a result something like this appears:
@@ -156,4 +70,62 @@ Database Class  ->  ActiveOrient Class
 
 By changing the namespace-scope with  'ActiveOrient::Init.define_namespace'  its always possible to 
 change properties, include links and edges or to add  and remove classes in the Sub-Modules.
+
+ORD.create_class "hurry" creates a Ruby-Class »HH::Hurry« and a DatabaseClass »hh_hurry«.
+This can be changed through redefinition of »ActiveOrient::Model.namespace_prefix«
+
+```ruby
+## Deactivate Namespace-Prefix
+class ActiveOrient::Model
+  def self.namespace_prefix
+  ""
+  end
+end
+```
+
+### Extend ActiveOrient with a gem  using namespacing
+
+A Gem usually defines its own logic how to deal with database-entries. This is backed by 
+customized model-classes, which are located somewhere in the dir-structure of the gem.
+The Gem should therefor read these files during initialisation. 
+
+A blueprint:
+
+```ruby
+module IB
+  module OrientDB
+  
+  
+    # establishes a connection to the Database and allocates database-classes according
+    # to moddelfiles present in the specified model-directory
+    def self.connect 
+    
+      IB::Gateway.logger = ActiveOrient::Base.logger
+       ActiveOrient::Init.define_namespace { IB } 
+       project_root = File.expand_path('../..', __FILE__)
+ 
+       ActiveOrient::OrientDB.new  preallocate: true , model_dir:  "#{project_root}/models"
+  
+     end
+  
+   end # module DB
+ end
+
+```
+
+In »config/boot.rb« we just call
+
+```ruby
+require 'ib-ruby'
+ActiveOrient::Init.define_namespace namespace: :object
+ActiveOrient::Model.keep_models_without_file = true
+ORD = ActiveOrient::OrientDB.new  preallocate: true
+IB::OrientDB.connect
+```
+
+To start, we switch to the object-layer and initialize E and V. 
+
+Then we let the gem do the job of assigning database-classes to ruby-model-classes
+
+
 

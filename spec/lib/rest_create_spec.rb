@@ -94,8 +94,6 @@ describe ActiveOrient::OrientDB do
       it "create  vertex classes through block" do
 	classes_simple = [ :one_z, :two_z, :three_z]
         klasses = ORD.create_class( *classes_simple ){ 'V' }
-	puts klasses
-	ORD.database_classes
         classes_simple.each{|y| expect( ActiveOrient.database_classes.keys).to include y.to_s }
 	expect( klasses ).to have( 3 ).items
         klasses.each{|x| expect(x.superclass).to eq V }

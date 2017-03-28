@@ -107,7 +107,7 @@ end
 
 =begin
 Universal method to create a new record. 
-It's obverloaded to create specific kinds, eg. edges 
+It's overloaded to create specific kinds, eg. edges 
 
 Example:
   ORD.create_class :test

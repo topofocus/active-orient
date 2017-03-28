@@ -71,28 +71,27 @@ Service-Method for Model#OrientdbClass
     @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
    z= @actual_class_hash.find{|x,y|  x['name'] == name.to_s }
    z['superClass'] unless z.nil?
-
   end
 
 =begin
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
- def preallocate_classes from_model_dir= nil  # :nodoc:
-   ActiveOrient.database_classes.each do | db_name, the_class |
-     unless the_class.is_a? Class
-       allocate_class_in_ruby( db_name ) do |that_class|
-       keep_the_dataset =  true
-	if ! that_class.require_model_file(from_model_dir) 
-         unless ActiveOrient::Model.keep_models_without_file  || [E,V].include?(that_class)
-	   logger.info{ "#{that_class.name} -->  Class NOT allocated"}
-	   ActiveOrient.database_classes[ db_name ] = "no model file"
-	   keep_the_dataset = false 
-	 end
+  def preallocate_classes   from_model_dir= nil  # :nodoc:
+    ActiveOrient.database_classes.each do | db_name, the_class |
+      allocate_class_in_ruby( db_name ) do |detected_class|
+	keep_the_dataset =  true
+	# keep the class if it is already noted in database_classes 
+	if !ActiveOrient::Model.keep_models_without_file && 
+	  !ActiveOrient.database_classes.key( detected_class) && 
+	  ![E,V].include?(detected_class) &&
+	  !detected_class.require_model_file(from_model_dir) 
+	  logger.info{ "#{detected_class.name} -->  Class NOT allocated"}
+	  ActiveOrient.database_classes[ detected_class.ref_name ] = "no model file"
+	  keep_the_dataset = false 
 	end
-       keep_the_dataset # return_value
-       end
-     end
-  end
- end
+	keep_the_dataset # return_value
+      end  # block
+    end  # each iteration
+  end	# def
 
 end # module
