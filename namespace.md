@@ -24,9 +24,7 @@ module HC
 end
 ActiveOrient::Init.define_namespace { HC }
 ```
-and 
 
-to deactivate it.
 
 ### Prefixed Classnames to Avoid Ambiguous Identifiers
 
