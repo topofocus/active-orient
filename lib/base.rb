@@ -33,8 +33,16 @@ module  ActiveOrient
       @@rid_store
     end
 
+=begin
+removes an Item from the cache
+
+obj has to provide a method #rid 
+
+thus a string or a Model-Object is accepted
+=end
+
     def self.remove_rid obj
-      @@rid_store.delete obj.rid
+      @@rid_store.delete obj.rid if obj.rid.present?
     end
 
     def self.get_rid rid
@@ -46,24 +54,26 @@ module  ActiveOrient
       @@rid_store = Hash.new
     end
 
+=begin
+Stores the obj in the cache.
+
+If the cache-value exists, it is updated by the data provided in obj
+and the cached obj is returned
+  
+=end
     def self.store_rid obj
       if obj.rid.present? && obj.rid.rid?
-	  # return the presence of a stored object as true by the block
-	  # the block is only executed if the presence is confirmed
-	  # Nothing is returned from the class-method
-	      if @@rid_store[obj.rid].present?
-	        yield if block_given?
-	      end
-	      @@rid_store[obj.rid] = obj
-	      @@rid_store[obj.rid]  # return_value
+	 if @@rid_store[obj.rid].present?
+		    @@rid_store[obj.rid].transfer_content from: obj
+	  else
+		 @@rid_store[obj.rid] =   obj
+	  end
+	 @@rid_store[obj.rid] 
       else
-	      obj # no rid-value: just return the obj
+	nil 
       end
     end
 
-    def document
-      @d
-    end
 
     # rails compatibility
     # remap rid to id unless id is present
@@ -88,9 +98,6 @@ The model instance fields are then set automatically from the opts Hash.
 	  @metadata[:class]      = @d.class_name
 	  @metadata[:version]    = @d.version
 	  @metadata[:cluster], @metadata[:record] = @d.rid[1,@d.rid.size].split(':')
-
-
-
 	end
 	attributes.keys.each do |att|
 	  unless att[0] == "@" # @ identifies Metadata-attributes
@@ -110,7 +117,7 @@ The model instance fields are then set automatically from the opts Hash.
 	  @metadata[:fieldTypes] = attributes.delete '@fieldTypes'
 	  if attributes.has_key?('@rid')
 	    rid = attributes.delete '@rid'
-	    cluster, record = rid[1,rid.size].split(':')
+	    cluster, record = rid[1 .. -1].split(':')
 	    @metadata[:cluster] = cluster.to_i
 	    @metadata[:record]  = record.to_i
 	  end
@@ -141,7 +148,9 @@ The model instance fields are then set automatically from the opts Hash.
 	self.attributes = attributes # set_attribute_defaults is now after_init callback
       end
       #      puts "Storing #{self.rid} to rid-store"
-      ActiveOrient::Base.store_rid self
+#      ActiveOrient::Base.store_rid( self ) do | cache_obj|
+#	 cache_obj.reload! self
+#      end
     end
 
 # ActiveModel API (for serialization)

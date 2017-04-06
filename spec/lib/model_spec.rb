@@ -27,6 +27,8 @@ end
 describe ActiveOrient::Model do
   before( :all ) do
     reset_database
+       ORD.create_class "E"
+       ORD.create_class "V"
     ORD.create_vertex_class "test_model"  # creates class TestModel
   end
 
@@ -56,8 +58,6 @@ describe ActiveOrient::Model do
 
   context "The Models have proper superClasses"  do
     before(:all) do
-       ORD.create_class "E"
-       ORD.create_class "V"
        ORD.create_class :my_class 
        ORD.create_vertex_class :my_node 
        ORD.create_edge_class :my_edge 
@@ -80,45 +80,44 @@ describe ActiveOrient::Model do
 #  end
   context "add properties and indexes"  do
 
-    let (:testIndex1) { ORD.create_class( :my_indexed_class_1) }
-    let (:testIndex2) { ORD.create_class( :my_indexed_class_2) }
-    let (:testIndex3) { ORD.create_class( :my_indexed_class_3) }
-    let (:testIndex4) { ORD.create_class( :my_indexed_class_4) }
+    before(:all) do
+     ORD.create_class( :test_index1,  :test_index2,  :test_index3 , :test_index4 ) 
+      ORD.create_class :industry
+    end
     it "create a single property"  do
 
-      testIndex1.create_property( :Test, type: 'string' ) 
+      TestIndex1.create_property( :Test, type: 'string' ) 
 
-      expect( testIndex1.get_properties[:properties].size ).to eq 1
-      expect( testIndex1.get_properties[:indexes]).to be_nil
+      expect( TestIndex1.get_properties[:properties].size ).to eq 1
+      expect( TestIndex1.get_properties[:indexes]).to be_nil
     end
     it "create manualy properties and indices" do
-      testIndex2.create_property( :Test, type: 'string' ) 
-      ORD.create_index testIndex2, name: :testindex, on: :Test
-      expect( testIndex2.get_properties[:indexes] ).to have(1).item
+      TestIndex2.create_property( :Test, type: 'string' ) 
+      ORD.create_index TestIndex2, name: :testindex, on: :Test
+      expect( TestIndex2.get_properties[:indexes] ).to have(1).item
       ## this test fails if no index is preset before the condition ist fired.
       #  (get_properties is nil and size is not defined for nilclass.)
-      expect { testIndex2.create_property( :Facility, type: 'integer' ) }.to change { testIndex2.get_properties[:properties].size }.by 1
+      expect { TestIndex2.create_property( :Facility, type: 'integer' ) }.to change { TestIndex2.get_properties[:properties].size }.by 1
 
-      expect{ ORD.create_index testIndex2, name: :facilindex, on: :Facility }.to  change { testIndex2.get_properties[:indexes].size }.by 1
+      expect{ ORD.create_index TestIndex2, name: :facilindex, on: :Facility }.to  change { TestIndex2.get_properties[:indexes].size }.by 1
     end
 # indices are definded on DB-Level and have to have unique names
     it "create a single property with a manual index" do
-      testIndex3.create_property( :Test, type: 'string', index: {test_indes: :unique} )
+      TestIndex3.create_property( :Test, type: 'string', index: {test_indes: :unique} )
 
-      expect( testIndex3.get_properties[:properties] ).to have(1).item
-      expect( testIndex3.get_properties[:indexes] ).to have(1).item
+      expect( TestIndex3.get_properties[:properties] ).to have(1).item
+      expect( TestIndex3.get_properties[:indexes] ).to have(1).item
     end
     it "create several  properties with a composite index"  do
-      ORD.create_class :industry
-      count= testIndex4.create_properties( test:  {type: :integer},
+      count= TestIndex4.create_properties( test:  {type: :integer},
 					   symbol: { type: :string },
-					   industries: { type: 'LINKMAP', linked_class: 'Industry' }   ) do
+					   industries: { type: 'LINKMAP', linked_class: 'industry' }   ) do
 					    { sumindex: :unique }
 					  end
-      expect( count ).to eq 3  # three properties
-      expect( testIndex4.get_properties[:properties] ).to have(3).items
-      expect( testIndex4.get_properties[:indexes] ).to have(1).item
-      expect{ ORD.create_index testIndex4, name: :facil4index, on: :symbol }.to  change { testIndex4.get_properties[:indexes].size }.by 1
+      #expect( count ).to eq 3  # three properties
+      expect( TestIndex4.get_properties[:properties] ).to have(3).items
+      expect( TestIndex4.get_properties[:indexes] ).to have(1).item
+      expect{ ORD.create_index TestIndex4, name: :facil4index, on: :symbol }.to  change { TestIndex4.get_properties[:indexes].size }.by 1
     end
   end   ## properties 
 
@@ -135,9 +134,10 @@ describe ActiveOrient::Model do
 
     end
 
-    it "save new document" do
+    it "save new document"  do
       n =  WorkingClass.new w_att: 'Attribute' 
       n.save
+      puts n.inspect
       expect( n.rid.rid? ).to be_truthy
       n.w_att = "New_Attribute"
       expect{ n.save }.to change{ n.version }.by 1
@@ -162,11 +162,11 @@ describe ActiveOrient::Model do
       expect( TestModel.count ).to be_zero
     end
 
-    let( :new_document ){TestModel.create test: 45 }
     it "create a document"  do
+      new_document = TestModel.create test: 45 
       expect( new_document.test ).to eq 45
       puts new_document.inspect
-      expect(new_document).to be_a V # ActiveOrient::Model
+      expect(new_document).to be_a  ActiveOrient::Model
       expect( ActiveOrient::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end
 
@@ -194,9 +194,12 @@ describe ActiveOrient::Model do
 
     it "various Properties can be added to the document" do
       obj =  TestModel.first
-      obj.update set: { a_array: aa= [ 1,4,'r', :r ]  , a_hash: { :a => 'b', b: 2 } }
+      aa = [ 1,4,'r', :r ]  
+      ah = { :a => 'b', b: 2, c: :d } 
+      eh = { "a" => "b" , "b" => 2, "c" => :d  }
+      obj.update set: { a_array: aa  , a_hash: ah }
       expect( obj.a_array ).to eq aa
-      expect{ obj.reload! }.not_to change{ obj.attributes }
+      expect( obj.a_hash ).to eq  eh
     end
 
     it "a value can be added to the array" do

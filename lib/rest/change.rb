@@ -19,24 +19,28 @@ module RestChange
   
   called from ModelRecord#update
 
-  if the update was successful, the updated ActiveOrient::Model-record is returned.
+  if the update was successful, the updated data are returned as Hash.
 =end
 
-  def update record, attributes , version=0   # :nodoc: 
-    r = if record.is_a?(String) && record.rid?
-	     ActiveOrient::Model.autoload record 
-	else
-	  record
-	end
+  def update record, attributes , version=0   
+    r = ActiveOrient::Model.autoload_object record.rid 
     return(false) unless r.is_a?(ActiveOrient::Model)
     version = r.version if version.zero?
     result = patch_record(r.rid) do
       attributes.merge({'@version' => version, '@class' => r.class.ref_name })
     end
     # returns a new instance of ActiveOrient::Model and updates any reference on rid
+    # It's assumed, that the version 
     # if the patch is not successfull no string is returned and thus no record is fetched
- #   puts JSON.parse(result) if result.is_a?(String)
-    ActiveOrient::Model.orientdb_class(name: r.class.ref_name, superclass: :find_ME ).new(JSON.parse(result))  if result.is_a?(String)
+    # JSON.parse(result) if result.is_a?(String)
+    if result.is_a?(String)
+       JSON.parse(result) # return value
+    else
+      logger.error{ "REST::Update was not successfull" }
+      logger.error{ "DB-Record #{rrid} is NOT updated "}
+       nil   # returnvalue
+    end
+    #   ActiveOrient::Model.orientdb_class(name: r.class.ref_name).new(JSON.parse(result))  if result.is_a?(String)
   end
 
 
@@ -49,6 +53,8 @@ Replaces the symbol to TWR in each record where the con_id is 340
 Both set and where take multiple attributes
 
 Returns the JSON-Response.
+
+# todo: clear the rid-cache 
 =end
 
   def update_records o_class, set:{}, where: {}, remove: nil
@@ -72,7 +78,7 @@ Returns the JSON-Response.
 
 # Lazy Updating of the given Record.
 
-  def patch_record rid	    # :nodoc:   (used by Model#update )
+  def patch_record rid	    # :nodoc:   (used by #update )
     logger.progname = 'RestChange#PatchRecord'
     content = yield
     if content.is_a? Hash

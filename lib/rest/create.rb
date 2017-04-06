@@ -80,31 +80,17 @@ public
 
 
 =begin
-  Creates a Record (NOT edge) in the Database and returns this as ActiveOrient::Model-Instance
-  Creates a Record with the attributes provided in the attributes-hash e.g.
+Creates a Record in the Database and returns this as ActiveOrient::Model-Instance
+
+Creates a Record with the attributes provided in the attributes-hash e.g.
    create_record @classname, attributes: {con_id: 343, symbol: 'EWTZ'}
 
-  untested: for hybrid and schema-less documents the following syntax is supported
-   create_document Account, attributes: {date: 1350426789, amount: 100.34,		       "@fieldTypes" => "date = t, amount = c"}
+Puts the database-response into the cache by default
 
-  The supported special types are:
-   'f' for float
-   'c' for decimal
-   'l' for long
-   'd' for double
-   'b' for byte and binary
-   'a' for date
-   't' for datetime
-   's' for short
-   'e' for Set, because arrays and List are serialized as arrays like [3,4,5]
-   'x' for links
-   'n' for linksets
-   'z' for linklist
-   'm' for linkmap
-   'g' for linkbag
+
 =end
 
-  def create_record o_class, attributes: {}  # :nodoc:  # use Model#create instead
+  def create_record o_class, attributes: {}, cache: true    # use Model#create instead
     logger.progname = 'RestCreate#CreateRecord'
     attributes = yield if attributes.empty? && block_given?
     # @class must not quoted! Quote only attributes(strings)
@@ -112,10 +98,15 @@ public
     begin
       response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
-      ActiveOrient::Model.orientdb_class(name: data['@class']).new data ## return_value
+      the_object = ActiveOrient::Model.orientdb_class(name: data['@class']).new data ## return_value
+      if cache 
+	  ActiveOrient::Base.store_rid( the_object ) 
+      else
+	the_object
+      end
     rescue RestClient::InternalServerError => e
       sentence=  JSON.parse( e.response)['errors'].last['content']
-      puts sentence.to_s
+#      puts sentence.to_s
       if sentence =~ /found duplicated key/
 	rid = sentence.split("#").last
 	logger.info{ "found duplicated Key --> loaded #{rid} instead of creating "}
@@ -159,7 +150,7 @@ The method returns the included or the updated dataset
 # end
 # returns nil if no insert and no update was made, ie. the dataset is identical to the given attributes
 =end
-  def upsert o_class, set: {}, where: {}   # :nodoc:   use Model#Upsert instead
+  def upsert o_class, set: {}, where: {}   #    use Model#Upsert instead
     logger.progname = 'RestCreate#Upsert'
     if where.blank?
       new_record = create_record(o_class, attributes: set)
@@ -176,11 +167,8 @@ The method returns the included or the updated dataset
       result =result.pop if result.is_a? Array
       if result.is_a? Hash 
 	if result.has_key?('@class')
-	  if o_class.is_a?(Class) && o_class.new.is_a?(ActiveOrient::Model)
-	    o_class.new result
-	  else
-	    AddctiveOrient::Model.orientdb_class(name: data['@class'], superclass: :find_ME).new data
-	  end
+	  the_object = ActiveOrient::Model.orientdb_class(name: result['@class']).new  result
+	   ActiveOrient::Base.store_rid( the_object )   # update cache
 	elsif result.has_key?('value')
 	  the_record=  get_records(from: o_class, where: where, limit: 1).pop
 	  ## process Code if a new dataset is inserted

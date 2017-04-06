@@ -145,7 +145,8 @@ Multible statements are transmitted at once if the Block provides an Array of st
           result.map do |x|
             if x.is_a? Hash
               if x.has_key?('@class')
-                ActiveOrient::Model.orientdb_class(name: x['@class'], superclass: :find_ME ).new x
+		the_object = ActiveOrient::Model.orientdb_class( name: x['@class'] ).new x
+		ActiveOrient::Base.store_rid( the_object )   # update cache
               elsif x.has_key?('value')
                 x['value']
               else   # create a dummy class and fill with attributes from result-set

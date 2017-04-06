@@ -112,13 +112,13 @@ describe ActiveOrient::OrientDB do
     end
 
 
-    it "create through create_or_update"  do
+    it "create through upsert"  do
       res=  ORD.upsert   DocKlasse10 , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a DocKlasse10
       expect(res.a_new_property).to eq 34
       res2= ORD.upsert  DocKlasse10 , set: { a_new_property: 35 } , where: {con_id: 345 }
       expect( res2.a_new_property).to eq 35
-      expect( res2.version).to eq res.version+1
+      expect( res2).to eq res
     end
 
     it   "uses create_or_update and a block on an exiting document" do  ##update funktioniert nicht!!

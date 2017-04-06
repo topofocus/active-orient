@@ -42,6 +42,26 @@ _Note:_ This function is not located in ModelClass since it needs to use @@rid_s
       true
     end
 
+=begin
+Based on the parameter rid (as "#{a}:{b}" or "{a}:{b}") the cached value is used if found.
+Otherwise the provided Block is executed, which is responsible for the allocation of a new dataset
+
+i.e.
+  ActiveOrient::Model.use_or_allocated my_rid do
+      ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+  end
+
+=end
+  
+    def self.use_or_allocate rid
+      cached_obj =  get_rid( rid ) 
+      if cached_obj.present? 
+	cached_obj
+      else
+	yield
+      end
+    end
+
 
    def self._to_partial_path #:nodoc:
      @_to_partial_path ||= begin

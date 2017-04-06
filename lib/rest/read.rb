@@ -88,7 +88,9 @@ The rid-cache is not used or updated
       if rid.rid?
 	response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
 	raw_data = JSON.parse(response.body) 
-	ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+#	ActiveOrient::Model.use_or_allocate( raw_data['@rid'] ) do 
+	the_object=   ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+	 ActiveOrient::Base.store_rid( the_object )   # update cache
       else
 	logger.error { "Wrong parameter #{rid.inspect}. " }
 	nil
@@ -102,12 +104,13 @@ The rid-cache is not used or updated
 	raise
       end
     rescue RestClient::ResourceNotFound => e
-      logger.error { "No data found" }
-      logger.error { "The command: \"/document/#{ActiveOrient.database}/#{rid.to_orient}\" "}
-      logger.error { "The response: #{e.message }"}
+      logger.error { "RID: #{rid} ---> No Record present " }
+      ActiveOrient::Model.remove_rid rid      #  remove rid from cache
+      nil
     rescue Exception => e
       logger.error { "Something went wrong" }
       logger.error { "RID: #{rid} - #{e.message}" }
+      raise
     end
   end
   alias get_document get_record
@@ -118,7 +121,8 @@ Retrieves Records from a query
 If raw is specified, the JSON-Array is returned, e.g.
     {"@type"=>"d", "@rid"=>"#15:1", "@version"=>1,    "@class"=>"DocumebntKlasse10", "con_id"=>343, "symbol"=>"EWTZ"}
 
-Otherwise a ActiveModel-Instance is created and returned
+Otherwise  ActiveModel-Instances are created and returned. 
+In this case cached data are used in favour and its not checked if the database contents have changed.
 =end
 
   def get_records raw: false, query: nil, **args
@@ -126,25 +130,28 @@ Otherwise a ActiveModel-Instance is created and returned
     begin
       logger.progname = 'RestRead#GetRecords'
   	  url = "/query/#{ActiveOrient.database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
-#	  puts "REST_READ#GET_RECORDS.URL"
-#	  puts "ARGS: #{args.inspect}"
-#	  puts query.compose( destination: :rest).to_s
-#	  puts url.to_s
   	  response = @res[URI.encode(url)].get
 	  JSON.parse(response.body)['result'].map do |record|
 	    if raw
 	      record
 	      # query returns an anonymus class: Use the provided Block or the Dummy-Model MyQuery
 	    elsif record['@class'].blank?
-#	      puts "RECORD:\n"+record.inspect
 	      block_given? ? yield.new(record) : ActiveOrient::Model.orientdb_class(name: 'query' ).new( record )
 	    else
-	      ActiveOrient::Model.orientdb_class(name: record['@class']).new record
+		the_object = ActiveOrient::Model.orientdb_class(name: record['@class']).new record
+		ActiveOrient::Base.store_rid( the_object )   # update cache
+#	      end
 	    end
 	  end
-	  # returns the JSON-Object
+	  # returns an array of updated objects
      
-
+    rescue RestClient::BadRequest  => e
+      puts e.inspect
+	  logger.error { "-"*30 }
+	  logger.error { "REST_READ#GET_RECORDS.URL ---> Wrong Query" }
+	  logger.error {  query.compose( destination: :rest).to_s }
+	  logger.error { "Fired Statement: #{url.to_s} " }
+	response=""
     rescue RestClient::InternalServerError => e
   	  response = JSON.parse(e.response)['errors'].pop
 	  logger.error{ "Interbak Server ERROR" }

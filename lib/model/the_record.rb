@@ -243,13 +243,17 @@ is identical
     self.attributes.merge!(args) if args.present?
     self.attributes['updated_at'] =  DateTime.now
     if rid.rid?
-      updated_dataset = db.update self, attributes, @metadata[:version]
+      updated_data= db.update self, attributes, @metadata[:version]
       # if the updated dataset changed, drop the changes made siently
-      if updated_dataset.is_a? ActiveOrient::Model
-	self.version =  updated_dataset.version
-	updated_dataset # return_value
+#      puts "updated dataset 
+      if updated_data.is_a? Hash
+	self.version =  updated_data["@version"]
+	self # return value
       else
-	logger.error("Version Conflict: reloading database values")
+	logger.error{ "UPDATE:  #{rrid} "}
+	logger.error{ "Version Conflict: reloading database values, local updates are lost!"}
+	logger.error{ "The Args: #{attributes.inspect} "}
+	logger.error{ "The Object: #{updated_data.inspect} "}
 	reload!
       end
     else
@@ -287,8 +291,9 @@ def save
   if rid.rid?
     update
   else
-     db_object=  db.create_record  self, attributes: attributes 
-     reload! db_object
+    the_record =   db.create_record  self, attributes: attributes, cache: false 
+    transfer_content from: the_record
+    ActiveOrient::Base.store_rid self
   end
 end
 
@@ -300,14 +305,15 @@ end
 
   def reload! updated_dataset = nil
     updated_dataset = db.get_record(rid) if updated_dataset.nil?
-#    raise "No Object reoaded (#{rid}))"
-    if version.nil? ||  version =! updated_dataset.version
-       @metadata = updated_dataset.metadata
-      self.attributes = updated_dataset.attributes
-    end
-    updated_dataset  # return_value  (return the updated_dataset)
+    transfer_content from: updated_dataset
+  self
   end
 
+
+  def transfer_content  from:
+       @metadata = from.metadata
+       @attributes =  from.attributes
+  end
   ########## CHECK PROPERTY ########
 
 =begin
@@ -334,21 +340,25 @@ Example:
   a.test= 'test'  # <--- attribute: 'test=', argument: 'test'
   a.test	  # <--- attribute: 'test' --> fetch attributes[:test]
 
+Assignments are performed only in ruby-space.
+Automatic database-updates are deactivated for now
 =end
   def method_missing *args
     # if the first entry of the parameter-array is a known attribute
     # proceed with the assignment
+    puts "MM: #{args.inspect}"
     if args.size == 1
-      attributes.keys.include?( args.first.to_s ) ? attributes[args.first] : nil
+       attributes[args.first.to_s]  # return the attribute-value
     elsif args[0][-1] == "=" 
       if args.size == 2
-	if rid.rid? 
-	  update set:{ args[0][0..-2] => args.last }
-	else
+#	if rid.rid? 
+#	  update set:{ args[0][0..-2] => args.last }
+#	else
 	  self.attributes[ args[0][0..-2]  ] = args.last
-	end
+#	end
       else
-	update set: {args[0][0..-2] => args[1 .. -1] } if rid.rid?
+	  self.attributes[ args[0][0..-2]  ] = args[1 .. -1]
+#	update set: {args[0][0..-2] => args[1 .. -1] } if rid.rid?
       end
     else
       logger.error{" Unknown method-call: #{args.first.to_s} "}

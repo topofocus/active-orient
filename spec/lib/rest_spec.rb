@@ -185,29 +185,34 @@ describe ActiveOrient::OrientDB do
 
     #      end
 
+  end
 
-end
-
-=begin ---> deprecated
-        context "Use the Query-Class", focus: false do
+  context "Update a record" do
           before(:all) do
-            classname = "Documebntklasse10"
-            #      ORD.delete_class @classname
-            ORDest_class = ORD.create_class classname
-            ORD.create_properties(  ORDest_class,
-            { symbol: { propertyType: 'STRING' },
-            con_id: { propertyType: 'INTEGER' }   } )
+	    ORD.create_class 'this_test'
+	    @the_record =  ThisTest.create a: 15
+	  end
 
-            @query_class =  ActiveOrient::Query.new
-            #      @query_class.orientdb =  ORD
-          end
-          after(:all){  ORD.delete_class ORDest_class }
+          it "create a simple record" do
+	    expect( @the_record.a).to eq 15
+	  end
 
-          it "the query class has the expected properties" do
-            expect(@query_class.records ).to be_a Array
-            expect(@query_class.records).to be_empty
-          end
+          it "modify the attribute direct" do
+	    @the_record.a = 20
+	    expect( @the_record.a).to eq 20
+	  end
+	  
+	  it "reread the unchanged data  from the database" do
+	    expect( ORD.get_record( @the_record.rid).a).to eq 15 
+	  end
 
+	  it "perform REST-Update" do
+	    json_hash = ORD.update @the_record.rid, {a: 25} 
+	    expect( json_hash['a'] ).to eq 25
+	  end
+  end
+end
+=begin
           it "get a document through the query-class" , focus: true do
             r=  ORD.create_document  ORDest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
             expect( @query_class.get_documents ORDest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
@@ -295,7 +300,6 @@ end
 
 =end
 
-    end
 
     # response ist zwar ein String, verfügt aber über folgende Methoden
     # :to_json
