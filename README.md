@@ -53,7 +53,8 @@ Classnames appear unchanged as Database-Classes. Strings and Symbols are accepte
 **Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
 In Ruby-Space its Camelized, ie:  ORD.create_class(:hut_ab) generates a Ruby-Class »HutAb«. 
 
-This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'. The naming_convention changes the ruby-view to the classes. The Database-Class-Name is derived from the argument to #CreateClass, ORD.create_class('HANDS_UP') creates a database-class "HANDS_UP' and a Ruby-Class "HandsUp".
+This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'. The naming_convention changes the ruby-view to the classes. The Database-Class-Name is derived from the argument to #CreateClass. 
+ORD.create_class('HANDS_UP') creates a database-class "HANDS_UP' and a Ruby-Class "HandsUp".
 
 ActiveOrient::Model's can be customized through methods defined in the model-directory. These methods are
 loaded automatically afert executing #CreateClass (and through the preallocation process). Further details in the Examples-Section.
