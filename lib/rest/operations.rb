@@ -98,7 +98,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
 =end
 
-  def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil # Set up for classes
+  def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil
     batch = {transaction: transaction, operations: yield}
     logger.progname= "Execute"
 #    puts "batch: #{batch[:operations]}"

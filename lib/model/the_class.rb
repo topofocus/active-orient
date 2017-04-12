@@ -314,20 +314,6 @@ tested prior to the method-call. The OrientQuery-Object is then provided with th
   end
   alias get_documents get_records
 
-=begin
-Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
-
-Example:
-    Log.where priority: 'high'
-    --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
-    => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
-  
-
-If a plain where-condition has to be build, custom_where should be used.
-
-    Property.custom_where( "'Hamburg' in exchanges.label")
-
-=end
 
   def custom_where search_string
     q = OrientSupport::OrientQuery.new from: self, where: search_string
@@ -342,17 +328,31 @@ Example:
     --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
     => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
   
+Multible arguments are joined via "and" eg
+    Aktie.where symbol: 'TSL, exchange: 'ASX'
+    ---> select  from aktie where symbol = 'TLS' and exchange = 'ASX'
 
-If a plain where-condition has to be build, custom_where should be used.
+
+Where performs a »match-Query« that returns only links to the queries records.
+These are autoloaded (and reused from the cache). If changed database-records should  be obtained,
+custom_query should be used. It performs a "select form class where ... " query which returns  records
+instead of links.
 
     Property.custom_where( "'Hamburg' in exchanges.label")
 
 =end
 
   def where *attributes 
-   ## puts "ATTRIBUTES: "+attributes.inspect
-    q = OrientSupport::OrientQuery.new from: self, where: attributes
-    query_database q
+    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
+    query.match_statements[0].where =  attributes unless attributes.empty?
+    result = query_database(query, set_from: false){| record | record[ self.classname.pluralize ] }
+#    result.self.classname.pluralize
+#    q= if block_given?
+#      "select from #{self.ref_name} #{ orientdb.compose_where attributes, &b} "
+#       else
+#      OrientSupport::OrientQuery.new( from: self, where: attributes) 
+#       end
+#    query_database q
   end
 =begin
 Performs a Match-Query
@@ -403,14 +403,20 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 =begin
 QueryDatabase sends the Query directly to the database.
 
-The result is not nessessary an Object of self.
+The result is not nessessary an Object of the Class.
 
-However, if the query does not return an array of Active::Model-Objects, then the entries become self
+The result can be modified further by passing a block.
+This is helpful, if a match-statement is used and the records should be autoloaded:
 
-»query_database« is used on model-level and submits
+  result = query_database(query, set_from: false){| record | record[ self.classname.pluralize ] }
+
+This autoloads (fetches from the cache/ or database) the attribute self.classname.pluralize  (taken from method: where )
+  
+
+query_database is used on model-level and submits
   select (...) from class
 
-»query« performs queries on the instance-level and submits
+#query performs queries on the instance-level and submits
   select (...) from #{a}:{b}
   
 =end
@@ -418,8 +424,13 @@ However, if the query does not return an array of Active::Model-Objects, then th
   def query_database query, set_from: true
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    db.execute do
+    result = db.execute do
       sql_cmd[query.to_s]
+    end
+    if block_given?
+      result.is_a?(Array)? result.map{|x| yield x } : yield(result)
+    else
+      result
     end
   end
 

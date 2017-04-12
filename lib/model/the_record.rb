@@ -245,7 +245,6 @@ is identical
     if rid.rid?
       updated_data= db.update self, attributes, @metadata[:version]
       # if the updated dataset changed, drop the changes made siently
-#      puts "updated dataset 
       if updated_data.is_a? Hash
 	self.version =  updated_data["@version"]
 	self # return value
@@ -346,7 +345,6 @@ Automatic database-updates are deactivated for now
   def method_missing *args
     # if the first entry of the parameter-array is a known attribute
     # proceed with the assignment
-    puts "MM: #{args.inspect}"
     if args.size == 1
        attributes[args.first.to_s]  # return the attribute-value
     elsif args[0][-1] == "=" 

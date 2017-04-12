@@ -16,7 +16,7 @@ _Usecase:_
 =end
 
     #
-    def compose_where *arg
+    def compose_where *arg , &b
       arg = arg.flatten
       return "" if arg.blank? || arg.size == 1 && arg.first.blank?
       "where " + arg.map do |issue|
@@ -24,7 +24,7 @@ _Usecase:_
         when String
 	        issue
          else
-	        generate_sql_list issue
+	        generate_sql_list issue , &b
         end
       end.join(' and ')
     end

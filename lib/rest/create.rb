@@ -238,8 +238,6 @@ A composite index
     if block_given?# && count == all_properties_in_a_hash.size
       index = yield
       if index.is_a?(Hash)
-	 # puts "index_class: #{o_class}"
-	 # puts "index: "+index.inspect
 	if index.size == 1
 	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
 	else
@@ -290,7 +288,6 @@ If index is to be specified, it's defined in the optional block
     logger.progname = 'RestCreate#CreateIndex'
     begin
       c = classname o_class
-    #  puts "CREATE INDEX: class: #{c.inspect}"
       execute transaction: false do
     	  command = if on == :automatic
     		  "CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"

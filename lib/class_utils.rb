@@ -249,7 +249,6 @@ Creates one or more edge-classes and allocates the provided properties to each c
       command = if a.is_a? Array
 		  batch =  nil
 		  command=  a.map do | record | 
-#		  puts record.inspect
 		    this_attributes =  record[:attributes].presence || attributes
 		    create_command[ this_attributes, record[:from],  record[:to]]
 		  end
@@ -267,7 +266,6 @@ Creates one or more edge-classes and allocates the provided properties to each c
       command = from.map{|f| create_command[ attributes, f, to] }
     elsif to.is_a? Array
       command = to.map{|f| create_command[ attributes, from, f] }
-#      puts "COMMAND: #{command.inspect}"
     elsif from.present? && to.present?
       #      if unique
       #	wwhere = {out: from.to_orient, in: to.to_orient }.merge(attributes.to_orient)
@@ -303,7 +301,7 @@ Creates one or more edge-classes and allocates the provided properties to each c
 	  response  # return value (the normal case)
 	end
       rescue ArgumentError => e
-	puts "ArgumentError "
+	puts "CreateEdge:ArgumentError "
 	puts e.inspect
       end  # begin
     end

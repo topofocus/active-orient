@@ -155,6 +155,11 @@ The model instance fields are then set automatically from the opts Hash.
 
 # ActiveModel API (for serialization)
 
+    def included_links
+      meta= Hash[ @metadata['fieldTypes'].split(',').map{|x| x.split '='} ]
+      meta.map{|x,y| x if y=='x'}.compact
+    end
+
     def attributes
       @attributes ||= HashWithIndifferentAccess.new
     end
@@ -184,9 +189,7 @@ The model instance fields are then set automatically from the opts Hash.
 
     def [] key
       iv = attributes[key.to_sym]
-#      puts my_metadata( key: key) 
        if my_metadata( key: key) == "t"
-#	puts "time detected"
 	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
       elsif my_metadata( key: key) == "x"
 	iv = ActiveOrient::Model.autoload_object iv
@@ -203,11 +206,9 @@ The model instance fields are then set automatically from the opts Hash.
     end
 
     def []= key, val
-#      puts "here I am: #{key}, #{val}"
       val = val.rid if val.is_a?( ActiveOrient::Model ) && val.rid.rid?
       attributes[key.to_sym] = case val
 			       when Array
-#				 puts "I am an Array"
 				 if val.first.is_a?(Hash)
 				   v = val.map do |x|
 				     if x.is_a?(Hash)

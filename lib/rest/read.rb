@@ -146,7 +146,7 @@ In this case cached data are used in favour and its not checked if the database 
 	  # returns an array of updated objects
      
     rescue RestClient::BadRequest  => e
-      puts e.inspect
+      #puts e.inspect
 	  logger.error { "-"*30 }
 	  logger.error { "REST_READ#GET_RECORDS.URL ---> Wrong Query" }
 	  logger.error {  query.compose( destination: :rest).to_s }
