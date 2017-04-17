@@ -95,7 +95,7 @@ All database-classes are preallocated after connecting to the database. Thus you
 
 If the "rid" is known, any Object can be retrieved and correctly allocated by
 ```ruby
-  the_object =  V.get"xx:yy" # or "#xx:yy"
+  the_object =  V.get "xx:yy" # or "#xx:yy"
   --->  {ActiveOrient::Model} Object 
 ```
 The database-class  «V» is present in any case. Any model-class can be used, even the parent »ActiveOrient::Model«
@@ -103,7 +103,7 @@ The database-class  «V» is present in any case. Any model-class can be used, e
 
 However, Model-Instances are cashed by ActiveOrient. There is always only one instance of a specific database-record. 
 ```ruby
- ORD.create:class :m
+ ORD.create_class :m
  m1= M.create test: 1
  m1.test = 2
  # access database-value
