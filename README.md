@@ -106,12 +106,13 @@ However, Model-Instances are cashed by ActiveOrient. There is always only one in
  ORD.create_class :m
  m1= M.create test: 1
  m1.test = 2
- # access database-value
- m2 =  V.get m1.rid   
- m1.test --> 1
  # access changed attributes
  m2 = V.autoload_object m1.rid
  m2.test --> 2
+ # access database-value
+ m2 =  V.get m1.rid   
+ m1.test --> 1
+
 ```
 
 
