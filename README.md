@@ -90,15 +90,31 @@ Create a Tree of Objects with create_classes
  ```
   
 
-#### Preallocation of Model-Classes
+#### Preallocation and Cashing
 All database-classes are preallocated after connecting to the database. Thus you can use Model-Classes from the start.
 
 If the "rid" is known, any Object can be retrieved and correctly allocated by
 ```ruby
-  the_object =  V.autoload_object "xx:yy" # or "#xx:yy"
+  the_object =  V.get"xx:yy" # or "#xx:yy"
   --->  {ActiveOrient::Model} Object 
 ```
 The database-class  «V» is present in any case. Any model-class can be used, even the parent »ActiveOrient::Model«
+»get« queries the database and gets the current database-content. Any preciously changed (and unsafed ) attributes are lost.
+
+However, Model-Instances are cashed by ActiveOrient. There is always only one instance of a specific database-record. 
+```ruby
+ ORD.create:class :m
+ m1= M.create test: 1
+ m1.test = 2
+ # access database-value
+ m2 =  V.get m1.rid   
+ m1.test --> 1
+ # access changed attributes
+ m2 = V.autoload_object m1.rid
+ m2.test --> 2
+```
+
+
 
 #### Properties
 The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
