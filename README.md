@@ -114,7 +114,7 @@ However, Model-Instances are cashed by ActiveOrient. There is always only one in
  m1.test --> 1
 
 ```
-
+m1 and m2 share the same Ruby-ObjectID.
 
 
 #### Properties
