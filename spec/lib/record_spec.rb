@@ -71,6 +71,37 @@ describe ActiveOrient::Model do
     
     end
 
+    context "update record ", focus: true do
+      before( :all) do
+	@the_record = TestModel.create a_string: "test" 
+      end
+
+      it "status quo" do
+	expect( @the_record.a_string ).to eq "test"
+	expect( @the_record.version ).to eq 1
+      end
+
+      it " update the record" do
+	@the_record.update a_string: "test2"
+	expect( @the_record.a_string ).to eq "test2"
+	expect( @the_record.version ).to eq 2
+      end
+
+      it "fringe update" do
+	x= ORD.execute { "update #{@the_record.rrid} set a_string =  'test5' "}
+	expect( x).to eq [1]
+
+	expect( @the_record.a_string ).to eq "test2"
+	expect( @the_record.version ).to eq 2
+
+	@the_record.reload!
+	expect( @the_record.a_string ).to eq "test5"
+	expect( @the_record.version ).to eq 3
+      end
+    end
+
+
+
   end
 
 

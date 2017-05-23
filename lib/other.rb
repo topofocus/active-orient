@@ -25,7 +25,7 @@ class Array
   # def abc *key
   # where key is a Range, an comma separated List or an item
   # aimed to support #compose_where
-  def analysea # :nodoc:
+  def analyse # :nodoc:
     if first.is_a?(Range) 
      first
     elsif size ==1
@@ -44,6 +44,9 @@ class Symbol
   # symbols are masked with ":{symbol}:"
   def to_orient
     ":"+self.to_s+":"
+  end
+  def to_or
+  "'"+self.to_s+"'"
   end
 end
 

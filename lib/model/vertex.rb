@@ -2,6 +2,15 @@ class V   < ActiveOrient::Model
   ## link to the library-class
  
 =begin
+specialized creation of vertices, overloads model#create
+=end
+  def self.create( **keyword_arguments )
+    new_vert = db.create_vertex self, attributes: keyword_arguments
+    new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
+
+    new_vert # returns the created vertex (or an array of created vertices)
+  end
+=begin
 Vertex#delete fires a "delete vertex" command to the database.
 The where statement can be empty ( "" or {}"), then all vertices are removed 
 
@@ -15,7 +24,7 @@ The rid-cache is reseted, too
   def detect_inherent_edge kind,  edge_name  # :nodoc:
     ## returns a list of inherented classes
     get_superclass = ->(e) do
-      n = ORD.get_db_superclass(e)
+      n = orientdb.get_db_superclass(e)
       n =='E' ? e : e + ',' + get_superclass[n]
     end
     if edge_name.present?

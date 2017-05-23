@@ -46,9 +46,11 @@ require_relative "model/model.rb"
 require 'active_support/core_ext/string' # provides blank?, present?, presence etc
 require_relative 'init.rb'
 # create Base Classes
+
 require_relative "model/vertex.rb"
 require_relative "model/edge.rb"
 
+require_relative "railtie" if defined?(Rails)
 
 module  ActiveOrient
 mattr_accessor :database

@@ -54,6 +54,7 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
 
   def query query
     
+    query.from = rrid
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     result = orientdb.execute do
       sql_cmd[query.to_s]

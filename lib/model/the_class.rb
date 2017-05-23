@@ -208,7 +208,11 @@ Examples:
 # get elements by rid
 
   def get rid
-    db.get_record rid
+    if @excluded.blank?
+      db.get_record(rid)
+    else
+      db.execute{ "select expand( @this.exclude( #{@excluded.map(&:to_or).join(",")})) from #{rid} "} 
+    end
   end
 
 # get all the elements of the class

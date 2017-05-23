@@ -32,9 +32,7 @@ module RestCreate
 
 =begin
 
-CreateClasses  just performing the database-stuff 
-
-its now private
+This is the historic method CreateClasses. It's just performing the database-stuff and now private
 
 it takes superclass and abstract (a hash) as block
 
@@ -43,7 +41,7 @@ usually, only one classname is provided, however the method takes a row of class
 #todo reintegrate the ability to create abstract classes
 =end
 private
-  def create_this_class  *db_classname
+  def create_this_class  *db_classname  #nodoc#
      if block_given?
 	      additional_args =     yield
 		  superclass = additional_args[ :superclass ]
@@ -223,7 +221,7 @@ A composite index
     begin
       if all_properties_in_a_hash.is_a?(Hash)
 	response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
-	# response.body.to_i returns  response.code, only to_f.to_i returns the correrect value
+	# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
 	count= response.body.to_f.to_i if response.code == 201
       end
     rescue RestClient::InternalServerError => e
@@ -254,7 +252,7 @@ Create a single property.
 
 Supported types: https://orientdb.com/docs/last/SQL-Create-Property.html
  
-If index is to be specified, it's defined in the optional block
+If an index is to be specified, it's defined in the optional block
 
   create_property(class, field){:unique | :notunique}	                    
   --> creates an automatic-Index on the given field

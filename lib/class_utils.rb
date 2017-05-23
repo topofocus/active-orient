@@ -191,6 +191,32 @@ Creates one or more edge-classes and allocates the provided properties to each c
     end
   end
 
+=begin
+
+creates a vertex
+
+=end
+  def create_vertex( o_class, attributes:{} )
+
+   command = { type: "cmd",
+	   language: 'sql',
+	    command: "CREATE VERTEX #{classname(o_class)} CONTENT #{attributes.to_orient.to_json}"
+		      } 
+      begin
+	response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
+	   [ command ]
+	end
+	if response.is_a?(Array) && response.size == 1
+	  response.pop # RETURN_VALUE
+	else
+	  response  # return value (the normal case)
+	end
+      rescue ArgumentError => e
+	puts "CreateVertex:ArgumentError "
+	puts e.inspect
+      end  # begin
+
+  end
 
 =begin
   create_edge connects two vertexes

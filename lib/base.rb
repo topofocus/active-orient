@@ -265,10 +265,19 @@ The model instance fields are then set automatically from the opts Hash.
 #      []
 #    end
 #
-# ActiveRecord::Base misc
-
-    def self.serialize *properties # :nodoc:
+=begin
+Exclude some properties from loading via get, reload!, get_document, get_record
+=end
+    def self.exclude_the_following_properties *args
+      puts "excluding #{args}"
+    @excluded =  (@excluded.is_a?( Array))?  @excluded + args : args
+      puts "#{self.inspect} --> excluded #{@excluded}"
     end
 
+# ActiveRecord::Base misc
+    def self.serialize *properties # :nodoc:
+    end
+# Enable lazy loading
+    ActiveSupport.run_load_hooks(:active_orient, self)
   end # Model
 end # module

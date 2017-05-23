@@ -29,7 +29,7 @@ _Note:_ This function is not located in ModelClass since it needs to use @@rid_s
 	if  @@rid_store[rid].present?
 	  @@rid_store[rid]  # return_value
 	else
-	   db.get_record(rid)
+	   get(rid)
 	end
       else
         logger.progname = "ActiveOrient::Model#AutoloadObject"
@@ -41,6 +41,8 @@ _Note:_ This function is not located in ModelClass since it needs to use @@rid_s
     def persisted?
       true
     end
+
+
 
 =begin
 Based on the parameter rid (as "#{a}:{b}" or "{a}:{b}") the cached value is used if found.
