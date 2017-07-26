@@ -53,7 +53,8 @@ Classnames appear unchanged as Database-Classes. Strings and Symbols are accepte
 **Naming-Convention:** The name given in the »create-class«-Statement becomes the Database-Classname. 
 In Ruby-Space its Camelized, ie:  ORD.create_class(:hut_ab) generates a Ruby-Class »HutAb«. 
 
-This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'. The naming_convention changes the ruby-view to the classes. The Database-Class-Name is derived from the argument to #CreateClass, ORD.create_class('HANDS_UP') creates a database-class "HANDS_UP' and a Ruby-Class "HandsUp".
+This can be customized in the "naming_convention"-class-method, which has to be defined in 'config/boot.rb'. The naming_convention changes the ruby-view to the classes. The Database-Class-Name is derived from the argument to #CreateClass. 
+ORD.create_class('HANDS_UP') creates a database-class "HANDS_UP' and a Ruby-Class "HandsUp".
 
 ActiveOrient::Model's can be customized through methods defined in the model-directory. These methods are
 loaded automatically afert executing #CreateClass (and through the preallocation process). Further details in the Examples-Section.
@@ -89,15 +90,32 @@ Create a Tree of Objects with create_classes
  ```
   
 
-#### Preallocation of Model-Classes
+#### Preallocation and Cashing
 All database-classes are preallocated after connecting to the database. Thus you can use Model-Classes from the start.
 
 If the "rid" is known, any Object can be retrieved and correctly allocated by
 ```ruby
-  the_object =  V.autoload_object "xx:yy" # or "#xx:yy"
+  the_object =  V.get "xx:yy" # or "#xx:yy"
   --->  {ActiveOrient::Model} Object 
 ```
 The database-class  «V» is present in any case. Any model-class can be used, even the parent »ActiveOrient::Model«
+»get« queries the database and gets the current database-content. Any preciously changed (and unsafed ) attributes are lost.
+
+However, Model-Instances are cashed by ActiveOrient. There is always only one instance of a specific database-record. 
+```ruby
+ ORD.create_class :m
+ m1= M.create test: 1
+ m1.test = 2
+ # access changed attributes
+ m2 = V.autoload_object m1.rid
+ m2.test --> 2
+ # access database-value
+ m2 =  V.get m1.rid   
+ m1.test --> 1
+
+```
+m1 and m2 share the same Ruby-ObjectID.
+
 
 #### Properties
 The schemaless mode has many limitations. ActiveOrient offers a Ruby way to define Properties and Indexes
