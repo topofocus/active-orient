@@ -35,7 +35,7 @@ describe ActiveOrient::Model do
   context "ActiveOrient::Model classes got a logger and a database-reference"  do
 
     subject { ActiveOrient::Model.orientdb_class name: 'Test' }
-    it{ is_expected.to be_a Class }
+    it { is_expected.to be_a Class }
     its( :logger) { is_expected.to be_a Logger }
     its( :orientdb) { is_expected.to be_a ActiveOrient::OrientDB }
     if RUBY_PLATFORM == 'java'
@@ -137,7 +137,6 @@ describe ActiveOrient::Model do
     it "save new document"  do
       n =  WorkingClass.new w_att: 'Attribute' 
       n.save
-      puts n.inspect
       expect( n.rid.rid? ).to be_truthy
       n.w_att = "New_Attribute"
       expect{ n.save }.to change{ n.version }.by 1
@@ -165,7 +164,6 @@ describe ActiveOrient::Model do
     it "create a document"  do
       new_document = TestModel.create test: 45 
       expect( new_document.test ).to eq 45
-      puts new_document.inspect
       expect(new_document).to be_a  ActiveOrient::Model
       expect( ActiveOrient::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
     end

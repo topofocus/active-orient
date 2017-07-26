@@ -65,19 +65,26 @@ Override to change its behavior
 =begin
 requires the file specified in the model-dir
 
-In fact, the model-files are loaded instead of required. After recreation of a class (Class.delete_class, 
-ORD.create_class classname) custom methods declared in the model files are present. Required modelfiles are
-gone, if the class is destroyed, but the interpreter thinks, they have already been required. Rebuilding the 
-class does not reestablish the connection to the required model file.
+In fact, the model-files are loaded instead of required. 
+Thus, even after recreation of a class (Class.delete_class, ORD.create_class classname) 
+custom methods declared in the model files are present. 
 
-Actual only a flat directory is supported. However -the Parameter model has the format: [ superclass, class ]. Its possible to extend the method adress a model-tree.
+Required modelfiles are gone, if the class is destroyed. 
+
+The directory specified is expanded by the namespace. The directory specified as parameter is the base-dir.
+
+Example:
+  Namespace:  HC
+  model_dir : 'lib/model'
+  searched directory: 'lib/model/hc'
+
 =end
-def require_model_file  dir=nil
+def require_model_file  the_directory=nil
   logger.progname = 'ModelClass#RequireModelFile'
-  dir = dir.presence ||  ActiveOrient::Model.model_dir 
-  if File.exists?( dir )
-    model= model.flatten.last if model.is_a?( Array )
-    filename =   dir + "/" + self.to_s.underscore + '.rb'
+  the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir)   # the_directory is a Pathname
+  if File.exists?( the_directory )
+    model= self.to_s.underscore + ".rb"
+    filename =   the_directory +  model
     if  File.exists?(filename )
       if load filename
 	logger.info{ "#{filename} sucessfully loaded"  }

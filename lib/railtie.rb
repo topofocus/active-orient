@@ -25,6 +25,7 @@ module  ActiveOrient
 	Rails.logger.error{ "Using defaults to connect database-server"  }
 	puts "Using defaults to connect database-server"
       end
+      ## Rails.root is a Pathname, as well as model_dir
       ActiveOrient::Model.model_dir = Rails.root.join  configyml.present? ? configyml[:model_dir] : "app/model" 
 
       # set the database
