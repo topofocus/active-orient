@@ -70,33 +70,6 @@ E.count
 ```
 should display details.
 
-## Modify the Console Output
-
-The rails console can print the intro-screen as /bin/active-orient-console of the plain active-orient gem.
-Just copy the output-part of  /bin/active-orient-console  into /config/application, like:
-```ruby
-
-module {yourRails}
-  class Application < Rails::Application
-    console do
-      ns= case ActiveOrient::Model.namespace
-	when Object
-	  "No Prefix, just ClassName#CamelCase"
-	else
-	  ActiveOrient::Model.namespace.to_s + "{ClassName.camelcase}"
-	end
-	puts '_'*45
-	puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
-	puts '-'* 45
-	puts "Namespace for model-classes : #{ns}"
-	puts "Present Classes (Hierarchy) "
-	puts ORD.class_hierarchy.to_yaml
-	puts ActiveOrient::show_classes
-      end
-    end
-  end
-
-```
 
 **Notice** The spring-facility is running in the background. Stop the server prior reloading
 the console ( ./bin/spring stop ). 
