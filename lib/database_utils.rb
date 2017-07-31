@@ -77,6 +77,9 @@ Service-Method for Model#OrientdbClass
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
   def preallocate_classes   from_model_dir= nil  # :nodoc:
+    # always scan for E+V model-file and include
+    [E,V].each{|y| y.require_model_file(from_model_dir) }
+
     ActiveOrient.database_classes.each do | db_name, the_class |
       allocate_class_in_ruby( db_name ) do |detected_class|
 	keep_the_dataset =  true
