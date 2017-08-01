@@ -88,6 +88,14 @@ class String
     self.sub(/^(.)/) { $1.capitalize }
   end
 
+  def as_json
+    if rid?
+      rid
+    else
+      self
+    end
+  end
+
   def where **args
     if rid?
       from_orient.where **args
@@ -124,9 +132,9 @@ class String
     self =~ /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/
   end
 
-#  return a valid rid or nil
+#  return a valid rid (format: "nn:mm") or nil
   def rid
-    rid? ? self : nil
+      self["#"].nil? ? self : self[1..-1] if rid? 
   end
 
   def to_classname
@@ -177,6 +185,12 @@ class Hash #WithIndifferentAccess
     substitute_hash
   end
 
+  def as_json
+    #puts "here hash"
+    substitute_hash = Hash.new
+    keys.each{|k| substitute_hash[k] = self[k].as_json}
+    substitute_hash
+  end
   def nested_under_indifferent_access
     HashWithIndifferentAccess.new self
   end

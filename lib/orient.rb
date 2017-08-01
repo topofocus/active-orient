@@ -36,6 +36,9 @@ module OrientSupport
       @name = @orient.attributes.key(self)
       @name =  yield if @name.nil? && block_given?
     end
+    def as_json
+      map{|x| x.rid? ? x.rid : x }
+    end
 
     def record
       @orient
