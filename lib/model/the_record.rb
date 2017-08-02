@@ -243,6 +243,7 @@ is identical
     self.attributes.merge!(set) if set.present?
     self.attributes.merge!(args) if args.present?
     self.attributes['updated_at'] =  DateTime.now
+#    puts "attributes: #{attributes.inspect}"
     if rid.rid?
       updated_data= db.update self, attributes, @metadata[:version]
       # if the updated dataset changed, drop the changes made siently
@@ -250,8 +251,7 @@ is identical
 	self.version =  updated_data["@version"]
 	self # return value
       else
-	logger.error{ "UPDATE:  #{rrid} "}
-	logger.error{ "Version Conflict: reloading database values, local updates are lost!"}
+	logger.error{ "UPDATE:  #{rrid} FAILED "}
 	logger.error{ "The Args: #{attributes.inspect} "}
 	logger.error{ "The Object: #{updated_data.inspect} "}
 	reload!

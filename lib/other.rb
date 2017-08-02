@@ -87,14 +87,14 @@ class String
   def capitalize_first_letter
     self.sub(/^(.)/) { $1.capitalize }
   end
-
-  def as_json
-    if rid?
-      rid
-    else
-      self
-    end
-  end
+### as_json has unexpected side-effects, needs further consideration
+#  def as_json o=nil
+#    if rid?
+#      rid
+#    else
+#     super o
+#    end
+#  end
 
   def where **args
     if rid?
@@ -114,17 +114,7 @@ class String
   end
 # if the string contains "#xx:yy" omit quotes
   def to_orient
-    if rid? 
-      if self[0] == "#"
-	self
-      else
-	"#"+self
-      end
-    else
-       self   # return the sting (not the quoted string. this is to_or)
-    end
-    #self.gsub /%/, '(percent)'
-   # quote 
+     rid? ? "#"+rid : self   # return the string (not the quoted string. this is to_or)
   end
 
   # a rid is either #nn:nn or nn:nn
@@ -184,13 +174,13 @@ class Hash #WithIndifferentAccess
     keys.each{|k| substitute_hash[k] = self[k].to_orient}
     substitute_hash
   end
-
-  def as_json
-    #puts "here hash"
-    substitute_hash = Hash.new
-    keys.each{|k| substitute_hash[k] = self[k].as_json}
-    substitute_hash
-  end
+## needs testing!!
+#  def as_json o=nli
+#    #puts "here hash"
+#    substitute_hash = Hash.new
+#    keys.each{|k| substitute_hash[k] = self[k].as_json}
+#    substitute_hash
+#  end
   def nested_under_indifferent_access
     HashWithIndifferentAccess.new self
   end

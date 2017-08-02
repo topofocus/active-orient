@@ -27,7 +27,7 @@ describe ActiveOrient::OrientDB do
 
   context "create and manage a 2 layer 1:n relation" do
 
-    it "check base"  do
+    it "check base" do
       (0..9).each do | b |
 	base =  Base.where( label: b )
 	expect( base ).to be_a Array

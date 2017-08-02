@@ -20,6 +20,12 @@ module RestChange
   called from ModelRecord#update
 
   if the update was successful, the updated data are returned as Hash.
+
+  First the cached object is retrieved
+  Its modified by the parameters provided
+  and then patched
+
+  better would be: update the cached object and patch that. 
 =end
 
   def update record, attributes , version=0   
@@ -37,10 +43,8 @@ module RestChange
        JSON.parse(result) # return value
     else
       logger.error{ "REST::Update was not successfull" }
-      logger.error{ "DB-Record #{rrid} is NOT updated "}
        nil   # returnvalue
     end
-    #   ActiveOrient::Model.orientdb_class(name: r.class.ref_name).new(JSON.parse(result))  if result.is_a?(String)
   end
 
 
@@ -77,18 +81,21 @@ Returns the JSON-Response.
   end
 
 # Lazy Updating of the given Record.
-
+# internal using while updating  records
   def patch_record rid	    # :nodoc:   (used by #update )
     logger.progname = 'RestChange#PatchRecord'
     content = yield
     if content.is_a? Hash
       begin
         @res["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
-      rescue Exception => e
-        logger.error{e.message}
+      rescue RestClient::InternalServerError => e
+	sentence=  JSON.parse( e.response)['errors'].last['content']
+	  logger.error{sentence}
+	  logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+	  logger.error{e.message.to_s}
       end
     else
-  	  logger.error{"FAILED: The Block must provide an Hash with properties to be updated"}
+  	  logger.error{"PATCH FAILED: The Block must provide an Hash with properties to be updated"}
     end
   end
   alias patch_document patch_record
