@@ -1,3 +1,8 @@
+
+### OUTDATED  ####
+### Please do not use anymore. 
+### Insteed take a look to the Rspec-files in /spec/lib
+
 require_relative "../lib/active-orient.rb"
 
 ActiveOrient::OrientDB.default_server = { user: 'root', password: 'tretretre' }
