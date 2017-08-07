@@ -1,3 +1,10 @@
+### OUTDATED  ####
+### Please do not use anymore. 
+### Insteed take a look to the Rspec-files in /spec/lib
+
+
+
+
 require 'awesome_print'
 require_relative "../lib/active-orient.rb"
 
