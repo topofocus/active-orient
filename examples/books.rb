@@ -36,7 +36,8 @@ defines two search criteria.
 	  puts " omitting deletion of database-classes "
 	end
 	print " creating Book and  Keyword as Vertex; HasContent as Edge \n"
-	ORD.create_classes( { V: [:book, :keyword], E: :has_content })
+	ORD.create_vertex_class :book, :keyword
+	ORD.create_edge_class :has_content
         print "\n === PROPERTY === \n"
         Keyword.create_property  :item,  type: :string, index: :unique
         Book.create_property     :title, type: :string, index: :unique
@@ -99,9 +100,13 @@ defines two search criteria.
       puts '-' * 23 
       puts "found books: "
       puts result.map( &:title ).join("; ")
-      puts " -- None -- " if result.empty?
-      puts '-_' * 23 
-      puts "that's it folks"
+      if result.empty?
+	puts " -- None -- "
+	puts " try » ruby books.rb japan flaute «  for a positive search in one of the two sentences"
+      else 
+	puts '-_' * 23 
+	puts "that's it folks"
+      end 
     end
  end
 
@@ -116,8 +121,8 @@ if $0 == __FILE__
    # search_items =  ARGV.empty? ? ['China', 'aus', 'Flaute'] : ARGV
     b = BooksExample.new  rebuild:  true
 
-    ORD.create_classes([ "Book", "Keyword" ]){ "V" }
-    ORD.create_edge_class 'has_content'
+#    ORD.create_vertex_class "Book", "Keyword" 
+#    ORD.create_edge_class 'has_content'
 
     b.read_samples if Keyword.count.zero?
     b.display_books_with *search_items

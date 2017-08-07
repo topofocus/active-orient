@@ -15,7 +15,7 @@ describe ActiveOrient::Model do
   context "simple adhoc properties"  do
 
     it "check basic class apperarence " do
-      [[ :a_integer, 100, Fixnum], 
+      [[ :a_integer, 100, Integer ], 
        [ :a_string, 'string', String ], 
        [ :a_symbol, :symbol, Symbol ], 
        [ :a_float, 45.98923, Float] ,
@@ -24,7 +24,7 @@ describe ActiveOrient::Model do
       ].each do | a |
 	 record =  TestModel.create a.first => a.at(1)
 	 ## test fails for array in jruby-mode , as it converts arrays into :OTrackedList: 
-	 expect( record ).to be_a ActiveOrient::Model::TestModel
+	 expect( record ).to be_a TestModel
 	 expect( record.send a.first ).to be_a a.last unless record.document.present?
 	 ## test fails for hash, as HashWithIndifferentAccess returns Symbols as String
 	# puts record.inspect
@@ -71,7 +71,7 @@ describe ActiveOrient::Model do
     
     end
 
-    context "update record ", focus: true do
+    context "update record " do
       before( :all) do
 	@the_record = TestModel.create a_string: "test" 
       end

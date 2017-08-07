@@ -60,7 +60,8 @@ describe OrientSupport::OrientQuery do
 
   context "Books Words example" do
     before(:all) do
-      ORD.create_classes( :book, :word ){ :V }
+      ORD.create_class 'E', 'V'
+      ORD.create_vertex_class :book, :word 
       Book.create_property( :title, type: :string, index: :unique )
       Word.create_property( :item , type: :string, index: :unique )
       HC = ORD.create_edge_class :has_content
@@ -80,7 +81,7 @@ describe OrientSupport::OrientQuery do
     end
    
     # we test the lambda "fill database"
-    it "put test-content"  do
+    it "apply test-content"  do
       fill_database = ->(sentence, this_book ) do
       nw = Array.new
       ## duplicates are not created, a log-entry is created
@@ -97,16 +98,13 @@ describe OrientSupport::OrientQuery do
       fill_database[ words2, this_book ]
       expect( Word.count ).to be  > 100
     end
-    it "Query Initialisation"  do
-      # search all books with words "Quartal" or "Landereien"
-      query = OrientSupport::OrientQuery.new where:  "out('has_content').item IN ['Quartal','Flaute']",
-					      from: Book
-      #puts "QERY1: #{query.compose}"
-       result= Book.query_database query
+    it "search all books with words \"Quartal\" or \"Flaute\"" do
+      query = OrientSupport::OrientQuery.new where:  "out('has_content').item IN ['Quartal','Flaute']"
+      result= Book.query_database query
       expect( result).to be_a Array
       expect( result).to have_at_least(1).item
       queried_book =  result.first
-      puts queried_book.inspect
+#      puts queried_book.inspect
       expect( queried_book ).to be_a Book
       expect( queried_book.title ).to eq 'second'
 
@@ -129,7 +127,7 @@ describe OrientSupport::OrientQuery do
       puts q.compose
       result = Word.query_database  q, set_from: false
       expect( result.first ).to be_a Book
-      puts result.inspect
+      expect( result.title ).to eq ["second"]
       puts " ------------------------------"
       puts "congratulations"
       puts "result: #{result.title} (should be second!)"
