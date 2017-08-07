@@ -1,4 +1,6 @@
 =begin
+---> The Streets Example does not work as the structure of external data used changed! 
+
 Streets Example
 
 We load german cities from wikipedia and parse the document for cities and countries(states).
@@ -50,20 +52,18 @@ class StreetExample
       db.delete_class :City
       db.delete_class :Street
       db.delete_class :CONNECTS
-      db.create_vertex_class :State
-      db.create_vertex_class :City
-      db.create_vertex_class :Street
+      db.create_vertex_class :state, :city, :street
       db.create_edge_class :CONNECTS
-      ActiveOrient::Model::State.create_property( :name, type: :string, index: :unique )
-      ActiveOrient::Model::City.create_properties(  { name: { type: :string },
-      state: { type: :link, :linked_class => 'State' } }
-      ) do
-        { citi_idx: :unique }
-      end
-      ActiveOrient::Model::Street.create_property :name , type: :string, index: :notunique
-      ActiveOrient::Model::CONNECTS.create_property :distance, type: :integer, index: :notunique
-      ActiveOrient::OrientDB.logger.progname = "StreetsExample#Initialize"
-      ActiveOrient::OrientDB.logger.info { "Vertex- and Edge-Classes rebuilded" }
+      State.create_property( :name, type: :string, index: :unique )
+      City.create_properties(  { name: { type: :string },
+                                 state: { type: :link, :linked_class => 'State' } }
+                             ) do
+                   { citi_idx: :unique }
+                               end
+      Street.create_property :name , type: :string, index: :notunique
+      CONNECTS.create_property :distance, type: :integer, index: :notunique
+      logger.progname = "StreetsExample#Initialize"
+      logger.info { "Vertex- and Edge-Classes rebuilded" }
     end
   end
 
@@ -73,8 +73,8 @@ class StreetExample
       state =  State.update_or_create( where: { name: state }).first
       City.create name: city, state: "##{state.rid}"
     end
-    ActiveOrient::OrientDB.logger.progname = "StreetsExample#ReadFromWeb"
-    ActiveOrient::OrientDB.logger.info { "#{City.count} Cities imported from Wikipedia " }
+    logger.progname = "StreetsExample#ReadFromWeb"
+    logger.info { "#{City.count} Cities imported from Wikipedia " }
 
     cities_rids =  City.all.map &:rid
     read_german_street_names.each_with_index do |street, i|
@@ -85,10 +85,10 @@ class StreetExample
         cities << cities_rids[count]
         count =  count + i
       end
-      C.create_edge :from => street_record,  :to => cities
+      CONNECTS.create_edge :from => street_record,  :to => cities
     end
-    ActiveOrient::OrientDB.logger.progname = "StreetsExample#ReadFromWeb"
-    ActiveOrient::OrientDB.logger.info { "#{C.count} Edges between Streets and Cities created " }
+    logger.progname = "StreetsExample#ReadFromWeb"
+    logger.info { "#{CONNECTS.count} Edges between Streets and Cities created " }
   end
 
   def display_streets_per_state
@@ -119,10 +119,13 @@ if $0 == __FILE__
   ActiveOrient::OrientDB.logger.level = Logger::INFO
   s= StreetExample.new r, rebuild:  true
 
-  City = r.open_class :City
-  State = r.open_class :State
-  Street = r.open_class :Street
-  C = r.open_class :CONNECTS
+  def to_orient
+    #puts "here hash"
+    substitute_hash = Hash.new
+    keys.each{|k| substitute_hash[k] = self[k].to_orient}
+    substitute_hash
+  end
+
 
   s.read_from_web if City.count.zero?
   s.display_streets_per_state
