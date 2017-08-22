@@ -89,7 +89,7 @@ create a single class and provide properties as well
 
   ORD.create_class( class1, class2 ... ) { Superclass } 
 
-  or
+  ORD.create_class( class ) { {superclass: the_superclass_name, abstract: true_or_false } } 
 
   ORD.create_class class
 
@@ -99,13 +99,13 @@ create a single class and provide properties as well
 
     if block_given?
       the_block =  yield
-      if the_block.is_a? Class
-	superclass = the_block
+      superclass, abstract = if the_block.is_a? Class
+	 [ the_block, nil ]
       elsif the_block.is_a?(String) || the_block.is_a?(Symbol)
-	superclass = ActiveOrient.database_classes[the_block.to_s] 
+	[ ActiveOrient.database_classes[the_block] , nil ]
       elsif the_block.is_a?(Hash)
-	superclass =  ActiveOrient.database_classes[the_block[:superclass]]
-	abstract =  ActiveOrient.database_classes[the_block[:abstract]]
+	[ ActiveOrient.database_classes[the_block[:superclass]], 
+	  ActiveOrient.database_classes[the_block[:abstract]] ]
       end
     end
     superclass =  superclass.presence ||  ActiveOrient::Model

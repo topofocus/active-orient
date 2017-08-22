@@ -19,20 +19,21 @@ describe ActiveOrient::OrientDB do
     before(:all) do
 
       # create classes Abstract, Depends and DependsOn
-     ORD.create_class 'abstract' 
+      ORD.create_class( 'abstract') do  { abstract: true } end
      ORD.create_class( 'depends') { Abstract }
      ORD.create_class( 'depends_on' ){ Depends }
     end
 
-   it 'create a abstract class' do
+   it 'create an abstract class' do
      expect( Abstract.superclass ).to be ActiveOrient::Model 
    end
-   it 'create a class_hierachie'  do
-     expect(Depends.new).to be_a ActiveOrient::Base
-     expect(Depends.new).to be_a ActiveOrient::Model
-     expect(Depends.superclass ).to be Abstract
-     expect(Depends.superclass.superclass ).to be ActiveOrient::Model
-     expect(Depends.superclass.superclass.superclass ).to be ActiveOrient::Base
+   it 'created a class_hierachie in class  Depends'  do
+     expect( Depends.new).to be_a ActiveOrient::Base
+     expect( Depends.new).to be_a ActiveOrient::Model
+     expect( Depends.ancestors[1..2] ).to eq [Abstract, ActiveOrient::Model]
+     expect( Depends.superclass ).to be Abstract
+     expect( Depends.superclass.superclass ).to be ActiveOrient::Model
+     expect( Depends.superclass.superclass.superclass ).to be ActiveOrient::Base
    end
    it 'ensure that methods defined later are passed through the object-tree' do
      class Abstract # :nodoc:

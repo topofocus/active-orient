@@ -10,7 +10,7 @@ describe ActiveOrient::OrientDB do
 
   before( :all ) do
     reset_database
-    ORD.create_class "E", "V"
+#    ORD.create_class "E", "V"
   end
 
   context "empty dataset"  do 
@@ -29,7 +29,6 @@ describe ActiveOrient::OrientDB do
       ["OFunction" ,
         "OIdentity" ,"ORestricted" ,
         "ORole" , "OSchedule" , "OTriggered" , "OUser" ].each do |c|
-	  puts c
           expect( classes.detect{ |x|  x['name'] == c } ).to be_truthy
         end
       end
