@@ -6,6 +6,7 @@ describe ActiveOrient::OrientDB do
   before( :all ) do
     reset_database
 
+      ORD.create_class "V","E"
       ORD.create_class :emb, :a_set, :a_list
       ORD.create_vertex_class :base 
       Base.create_property  :a_list,  type: :linklist, linkedClass: :a_list 
@@ -37,9 +38,9 @@ describe ActiveOrient::OrientDB do
 
     it "update and extend the map " do
       qr=  Base.custom_where(  "a_set.currency containskey 'EUR'" )
-      z= ORD.execute{ " update #{qr.first.rrid} set a_set.OptionMarketValue= { \"value\": 0 , \"currency\":  \"USD\" }" }
-      puts z.inspect
-      z= ORD.execute{ " update #{qr.first.rrid} add a_set = {OptionMarketValue: { \"value\": 0 , \"currency\":  \"EUR\" }}" }
+      z= ORD.execute{ " update #{qr.first.rrid} set a_set.OptionMarketValue= { \"value\": 70 , \"currency\":  \"USD\" }" }
+				expect{  }
+      z= ORD.execute{ " update #{qr.first.rrid} set a_set.StockmarketValue = { \"value\": 500 , \"currency\":  \"EUR\" }" }
       puts z.inspect
       qr.reload!
       puts qr.inspect

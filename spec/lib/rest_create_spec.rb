@@ -7,7 +7,7 @@ describe ActiveOrient::OrientDB do
     before(:all) do 
       reset_database
       ORD.create_class "V","E"
-      ORD.create_vertex_class 'dataset', :the_dataset
+      ORD.create_class('dataset', 'the_dataset'){ :V }
       ORD.create_class 'linked_data'
     end
 
@@ -92,26 +92,26 @@ describe ActiveOrient::OrientDB do
 #      expect( m[EIZR] ).to eq [HasContent, BecomesHot]
 #
 #    end
-      it "create  vertex classes through block" do
-	classes_simple = [ :one_z, :two_z, :three_z]
-        klasses = ORD.create_class( *classes_simple ){ 'V' }
-        classes_simple.each{|y| expect( ActiveOrient.database_classes.keys).to include y.to_s }
-	expect( klasses ).to have( 3 ).items
-        klasses.each{|x| expect(x.superclass).to eq V }
-      end
-      it "create and delete an Edge " do
-	edge_name = 'the_edge'
-#	ActiveOrient::Model::E.delete_class
-        model = ORD.create_edge_class  edge_name
-        expect( model.new ).to be_a ActiveOrient::Model
-        expect( model.superclass ).to eq E 
-        ## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
-        expect( model.new.is_edge? ).to be_falsy
-        expect( ORD.classname  model ).to eq edge_name.underscore
-        model.delete_class
-        expect( ORD.database_classes ).not_to include edge_name 
-      end
-  end
+		it "create  vertex classes through block"  do
+			classes_simple = [ :one_z, :two_z, :three_z]
+			klasses = ORD.create_class( *classes_simple ){ 'V' }
+			classes_simple.each{|y| expect( ActiveOrient.database_classes.keys).to include y.to_s }
+			expect( klasses ).to have( 3 ).items
+			klasses.each{|x| expect(x.superclass).to eq V }
+		end
+		it "create and delete an Edge " do
+			edge_name = 'the_edge'
+			#	ActiveOrient::Model::E.delete_class
+			model = ORD.create_edge_class  edge_name
+			expect( model.new ).to be_a ActiveOrient::Model
+			expect( model.superclass ).to eq E 
+			## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
+			expect( model.new.is_edge? ).to be_falsy
+			expect( ORD.classname  model ).to eq edge_name.underscore
+			model.delete_class
+			expect( ORD.database_classes ).not_to include edge_name 
+		end
+	end
 
   context "create and delete records "  do
     before(:all) do
@@ -154,53 +154,34 @@ describe ActiveOrient::OrientDB do
 
   end
 
-  context "populate records with data"  do
 
-  context "update records "  do
-    before(:all) do
-      TheDataset.create_property :the_date, type: 'Date', index: :unique
-      TheDataset.create_property :the_value, type: 'String' , index: :unique
-      TheDataset.create_property :the_other_element, type: 'String'
+		context "update records "  do
+			before(:all) do
+				TheDataset.create_property :the_date, type: 'Date', index: :unique
+				TheDataset.create_property :the_value, type: 'String' , index: :unique
+				TheDataset.create_property :the_other_element, type: 'String'
 
-    end
+			end
 
-    it "add to records"  do
-      TheDataset.create the_value: 'TestValue', the_other_value: 'a string', 
-				    the_date: Date.new(2015,11,11) 
-      TheDataset.create the_value: 'TestValue2', the_other_value: 'a string2', 
-				    the_date: Date.new(2015,11,14) 
-      expect( TheDataset.count).to eq 2
-    end
+			it "add to records"  do
+				TheDataset.create the_value: 'TestValue', the_other_value: 'a string', 
+					the_date: Date.new(2015,11,11) 
+				TheDataset.create the_value: 'TestValue2', the_other_value: 'a string2', 
+					the_date: Date.new(2015,11,14) 
+				expect( TheDataset.count).to eq 2
+			end
 
-    it "update via upsert" do
-      TheDataset.create  the_value: 'TestValue3', the_other_value: 'a string2', 
-				    the_date: Date.new(2015,11,17) 
-      ## insert dataset
-      expect{ @orginal= DB.upsert TheDataset, set: {the_value: 'TestValue4', the_other_value: 'a string2'}, 
-			    where: {the_date: Date.new(2015,11,15) } }.to change{ TheDataset.count }.by 1
-      ## update dataset
-#     orginal = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
-     expect{ @updated= DB.upsert TheDataset, set: {the_value: 'TestValue5', the_other_value: 'a string6'}, 
-			      where: { the_date: Date.new(2015,11,14) } }.not_to change { TheDataset.count }
-
-     # updated = ORD.get_records(from: TheDataset, where: { the_date: Date.new(2015,11,14) }, limit: 1).pop
-     #puts "The original: "+ @orginal.to_human
-     #puts "The update  : "+ @updated.to_human
-     expect( @orginal.the_value).not_to eq @updated.the_value
-
-     # insert dataset and perfom action with created object
-     new_record = DB.upsert( TheDataset, 
-				   set: {the_value: 'TestValue40', the_other_value: 'a string02'}, 
-				   where: {the_date: Date.new(2015,11,14)} ) do | the_new_record |
-				  # expect( the_new_record ).to be_a ActiveOrient::Model
-				  # expect( the_new_record.the_value).to eq 'TestValue40'
-				   end
-#				     }.to change{ TheDataset.count }.by 1
-     expect( new_record.the_value ).to eq 'TestValue40' 
-
-    end
-    end
-  end
+			it "update via upsert"  do
+				TheDataset.create  the_value: 'TestValue3', the_other_value: 'a string2', 
+					the_date: Date.new(2015,11,17) 
+				## insert dataset
+				expect{ TheDataset.upsert set: {the_value: 'TestValue4', the_other_value: 'a string2'}, 
+						where: {the_date: Date.new(2015,11,15) } }.to change{ TheDataset.count }.by 1
+				## update dataset
+				expect{  TheDataset.upsert set: {the_value: 'TestValue5', the_other_value: 'a string6'}, 
+						 where: { the_date: Date.new(2015,11,14) } }.not_to change { TheDataset.count }
+			end
+		end
  # this interferes with other test, thus placing it to the end
   context "play with naming conventions" do
 
@@ -212,13 +193,12 @@ describe ActiveOrient::OrientDB do
 
     it "change the naming convention"  do
       ## We want to represent all Edges with Uppercase-Letters
-      class E < ActiveOrient::Model  # :nodoc:
-	def self.naming_convention name=nil
+    #  class E < ActiveOrient::Model  # :nodoc:
+	def E.naming_convention name=nil
 	  name.present? ? name.upcase : ref_name.upcase
 	end
-      end
 
-      m = ORD.create_class( "zweiter" ){ :E }
+      m = ORD.create_class( "zweiter" ){ E }
       puts m.classname
       expect(m.superclass).to be E
       expect(m).to be ZWEITER

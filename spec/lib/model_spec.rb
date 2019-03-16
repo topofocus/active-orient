@@ -183,7 +183,7 @@ describe ActiveOrient::Model do
     end
 ##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
     #und nicht von der Datenbank abgefragt
-    it "the document can be updated"   do
+    it "the document can be updated"  do
       obj =  TestModel.create test: 77
       expect{ obj.update set: { test: 76, new_entry: "This is a new Entry" } }.to change{ obj.version }.by 1
       expect( obj.test ).to eq 76
@@ -213,13 +213,14 @@ describe ActiveOrient::Model do
     end
   end #context
 
-  context "ActiveRecord mimics"   do
-    before(:all) do 
-          ORD.create_edge_class  'my_edge'
-	  ORD.create_vertex_class  'my_node'
-	  (0..45).each{|x| TestModel.create  test: x  }
-	  DB.database_classes requery:true
-    end
+  context "ActiveRecord mimics", focus: true  do
+		before(:all) do 
+			ORD.create_edge_class  'my_edge'
+			ORD.create_vertex_class  'my_node'
+			 TestModel.create_property :test,    index: :unique
+			(0..45).each{|x| TestModel.create  test: x  }
+			DB.database_classes requery: true
+		end
     it "fetch all documents into an Array" do
       all_documents = TestModel.all
       expect( all_documents ).to be_a Array #HashWithIndifferentAccess
@@ -227,26 +228,26 @@ describe ActiveOrient::Model do
       all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }
     end
 
-    it "get a set of documents queried by where"   do
+    it "get a set of documents queried by where"  do
       nr_23=  TestModel.where  test: 23
       expect( nr_23 ).to have(1).element
       expect( nr_23.first.test).to eq 23
     end
-    it "datasets are unique only  on update"   do
+    it "datasets are unique only  on update"    do
       expect{ TestModel.upsert(  :where => { test: 45 }) }. not_to change { TestModel.count }
-      expect{ TestModel.create  test: 45 }.to change { TestModel.count }
+      expect{ TestModel.create  test: 45 }.not_to change { TestModel.count }
     end
 
     it "specific datasets can be manipulated" do
-      expect( TestModel.where( 'test > 40' ) ).to have(7).elements
-      expect( TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')).to eq 7
-      expect( TestModel.where( new_ds: 45 ) ).to have(7).elements
+      expect( TestModel.where( 'test > 40' ) ).to have(5).elements
+      expect( TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')).to eq 5
+      expect( TestModel.where( new_ds: 45 ) ).to have(5).elements
     end
 
     it "specific datasets can be removed" do
-       TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')
-      expect( TestModel.remove(  :new_ds , where: 'test = 42')).to eq 1
-      expect( TestModel.where( new_ds: 45 ) ).to have(6).elements
+      count= TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')
+      expect( TestModel.remove(  :new_ds , where: {test: 42})).to eq 1
+      expect( TestModel.where( new_ds: 45 ) ).to have( count -1 ).elements
     end
 
     it "creates an edge between two vertices"  do
@@ -293,11 +294,11 @@ describe ActiveOrient::Model do
       the_edges =  E.all
       expect(the_edges.size).to  be >=1
       the_edges.each do |edge|
-        edge.delete
+        edge.remove
       end
       expect(E.count).to  be_zero
     end
-#
+
   end
 
 end

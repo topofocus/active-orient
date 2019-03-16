@@ -19,7 +19,8 @@ module RestOperations
   def count **args
     logger.progname = 'RestOperations#CountRecords'
     query = OrientSupport::OrientQuery.new args
-    query.projection << 'COUNT (*)'
+    query.projection << 'COUNT(*)'
+		puts "query: #{query.to_s}"
     result = get_records raw: true, query: query
     result.first["COUNT(*)"] rescue  0  # return_value
   end
@@ -101,7 +102,6 @@ Multible statements are transmitted at once if the Block provides an Array of st
   def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil
     batch = {transaction: transaction, operations: yield}
     logger.progname= "Execute"
-#    puts "batch: #{batch[:operations]}"
     unless batch[:operations].blank?
       batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
       batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
@@ -109,7 +109,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
       # transaction is true only for multible statements
 #      batch[:transaction] = transaction & batch[:operations].size >1
       begin
-	logger.debug{ batch[:operations].map{|y|y[:command]}.join("; ") } 
+	logger.debug{ batch[:operations].map{|y|y[:command]}.join(";\n ") } 
         response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
       rescue RestClient::BadRequest => f
 	# extract the misspelled query in logfile and abort
@@ -144,7 +144,9 @@ Multible statements are transmitted at once if the Block provides an Array of st
 	  return result if raw.present?
           result.map do |x|
             if x.is_a? Hash
-              if x.has_key?('@class')
+							if x.has_key?( 'count' )
+								x['count']
+              elsif x.has_key?('@class')
 		the_object = ActiveOrient::Model.orientdb_class( name: x['@class'] ).new x
 		ActiveOrient::Base.store_rid( the_object )   # update cache
               elsif x.has_key?('value')

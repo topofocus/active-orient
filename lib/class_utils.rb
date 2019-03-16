@@ -94,42 +94,42 @@ create a single class and provide properties as well
   ORD.create_class class
 
 =end
-  def create_class( *class_names, properties: nil, &b )
-    
+	def create_class( *class_names, properties: nil, &b )
 
-    if block_given?
-      the_block =  yield
-      superclass, abstract = if the_block.is_a? Class
-	 [ the_block, nil ]
-      elsif the_block.is_a?(String) || the_block.is_a?(Symbol)
-	[ ActiveOrient.database_classes[the_block] , nil ]
-      elsif the_block.is_a?(Hash)
-	[ ActiveOrient.database_classes[the_block[:superclass]], 
-	  ActiveOrient.database_classes[the_block[:abstract]] ]
-      end
-    end
-    superclass =  superclass.presence ||  ActiveOrient::Model
-  
-    
-    r= class_names.map do | the_class_name |
-      the_class_name =  superclass.namespace_prefix + the_class_name.to_s 
 
-      ## lookup the database_classes-Hash
-      if ActiveOrient.database_classes[the_class_name].is_a?(Class)
-	ActiveOrient.database_classes[the_class_name] 
-      else
-	if superclass =="" || superclass.ref_name == ""
-	  create_this_class the_class_name 
-	else
-	  create_this_class( the_class_name ) do
-	    if the_block.is_a?(Hash) 
-	      the_block[:superclass] = superclass.ref_name
-	      the_block
-	    else
-	      { superclass: superclass.ref_name }
-	    end
-	  end
-	end
+		if block_given?
+			the_block =  yield
+			superclass, abstract = if the_block.is_a? Class
+															 [ the_block, nil ]
+														 elsif the_block.is_a?(String) || the_block.is_a?(Symbol)
+															 [ ActiveOrient.database_classes[the_block] , nil ]
+														 elsif the_block.is_a?(Hash)
+															 [ ActiveOrient.database_classes[the_block[:superclass]], 
+																ActiveOrient.database_classes[the_block[:abstract]] ]
+														 end
+		end
+		superclass =  superclass.presence ||  ActiveOrient::Model
+
+
+		r= class_names.map do | the_class_name |
+			the_class_name =  superclass.namespace_prefix + the_class_name.to_s 
+
+			## lookup the database_classes-Hash
+			if ActiveOrient.database_classes[the_class_name].is_a?(Class)
+				ActiveOrient.database_classes[the_class_name] 
+			else
+				if superclass =="" || superclass.ref_name == ""
+					create_this_class the_class_name 
+				else
+					create_this_class( the_class_name ) do
+						if the_block.is_a?(Hash) 
+							the_block[:superclass] = superclass.ref_name
+							the_block
+						else
+							{ superclass: superclass.ref_name }
+						end
+					end
+				end
 	database_classes  # update_class_array
 	create_properties( the_name , properties )  if properties.present?
 	allocate_class_in_ruby( the_class_name ) do |that_class| 

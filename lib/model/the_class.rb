@@ -1,5 +1,8 @@
 module ModelClass
 require 'stringio'
+include OrientSupport::Support
+
+
   ########### CLASS FUNCTIONS ######### SELF ####
 
 
@@ -134,12 +137,15 @@ Parameter:
 - where: A string or hash as condition which should return just one record.
 
 The where-part should be covered with an unique-index.
-If :where is omitted, #Upsert becomes #Create, attributes are taken from :set.
 
 returns the affected record
 =end
-  def upsert set: {}, where: {}, &b
-    db.upsert self, set: set, where: where, &b
+  def upsert set:, where: 
+			specify_return_value =  "return after @rid"
+#			set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
+			command = "Update #{ref_name} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}"
+      query_database(command, set_from: false){| record |  record.reload! } &.first
+    #db.upsert self, set: set, where: where, &b
   end
 =begin
 Create a new Instance of the Class with the applied attributes if does not exists, 

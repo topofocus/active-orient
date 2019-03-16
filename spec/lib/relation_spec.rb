@@ -91,20 +91,19 @@ describe ActiveOrient::OrientDB do
       expect( ORD.compose_where( attributes ) ).to eq "where uwe = 34 and hans = 'trzit'"
     end
   end
-  context "document-handling"   do
+  context "document-handling"  do
     before(:all) do
       classname = "doc_klasse10"
-      ORD.create_class :doc_klasse10
-      ORD.create_class :contract
-      DocKlasse10.create_properties( 
+      ORD.create_class  :contract, :doc_klasse10  
+			DocKlasse10.create_properties( 
 				    symbol: { type: :string },
 				    con_id: { type: :integer } ,
-				    details: { type: :link, linkedClass: 'Contract' }  )
+				    details: { type: :link, linkedClass: 'contract' }  )
     end
 
 
     it "create a single document"  do
-      res=  ORD.create_document DocKlasse10 , attributes: {con_id: 345, symbol: 'EWQZ' }
+      res=  DocKlasse10.create con_id: 345, symbol: 'EWQZ' 
       expect( res ).to be_a ActiveOrient::Model
       expect( res.con_id ).to eq 345
       expect( res.symbol ).to eq 'EWQZ'
@@ -113,10 +112,10 @@ describe ActiveOrient::OrientDB do
 
 
     it "create through upsert"  do
-      res=  ORD.upsert   DocKlasse10 , set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
+      res=  DocKlasse10.upsert  set: { a_new_property: 34 } , where: {con_id: 345, symbol: 'EWQZ' }
       expect( res ).to be_a DocKlasse10
       expect(res.a_new_property).to eq 34
-      res2= ORD.upsert  DocKlasse10 , set: { a_new_property: 35 } , where: {con_id: 345 }
+      res2=  DocKlasse10.upsert  set: { a_new_property: 35 } , where: {con_id: 345 }
       expect( res2.a_new_property).to eq 35
       expect( res2).to eq res
     end
@@ -133,7 +132,7 @@ describe ActiveOrient::OrientDB do
       ###check 
       expect( ORDes.a_new_property).to eq [36]
       ###check
-      expect( ORDes.attributes.keys ).not_to include 'another_wired_property'  ## block is not executed, because its not a new document
+      expect( ORDes.attributes.keys ).not_to include :another_wired_property  ## block is not executed, because its not a new document
 
     end
     it   "uses create_or_update and a block on a new document" do
@@ -146,7 +145,7 @@ describe ActiveOrient::OrientDB do
       end.to change{ DocKlasse10.count }.by 1
 
       expect( @ord.a_new_property).to eq [37]
-      expect( @ord.attributes.keys.first).to include 'another_wired_property'  ## block is executed, because its a new document
+      expect( @ord.attributes.keys.first).to include :another_wired_property  ## block is executed, because its a new document
 
     end
 

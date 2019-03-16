@@ -11,7 +11,7 @@ describe OrientSupport::Array do
   end
 
   let( :testrecord ){ TestModel.create }
-  context "check isolated"  do
+  context "check isolated" do
     let( :basic ) { OrientSupport::Array.new work_on: testrecord, work_with: [ 'test', 6, 5 ]  }
     it { expect( basic ).to be_a OrientSupport::Array }
 
@@ -27,13 +27,15 @@ describe OrientSupport::Array do
 
 
   context "add and populate an Array" do
-    before(:each){ testrecord.update set: { ll:  ['test','test_2', 5, 8 , 7988, "uzg"] } }
+#    before(:each){ testrecord.update set: { ll:  ['test','test_2', 5, 8 , 7988, "uzg"] } }
 
-    it "initialize the Object"  do
-      expect( testrecord.ll ).to be_a OrientSupport::Array
-      expect( testrecord.ll.first ).to eq "test"
-      expect( testrecord.ll[2] ).to eq 5
-      expect( testrecord.version ).to be 2
+    it "initialize the Object"  , focus: true  do
+		 t = TestModel.create 
+		 t.update set: {ll:  ['test','test_2', 5, 8 , 7988, "uzg"]  }
+      expect( t.ll ).to be_a OrientSupport::Array
+      expect( t.ll.first ).to eq "test"
+      expect( t.ll[2] ).to eq 5
+      expect( t.version ).to be 1
     end
     it "modify the Object"  do
       puts "Testrecord.ll #{testrecord.ll}"
@@ -82,8 +84,8 @@ describe OrientSupport::Array do
 #
       it "verify the datastructure" do
         new_record = TestModel.create ll: [ ]
-	lk = LinkClass.create att: "{i} attribute" 
-	(1..9).each{|i| new_record.ll << i ; new_record.ll <<  lk } # LinkClass.create( att: "#{i} attribute" ) }
+	lk = -> (z){ LinkClass.create att: "{z} attribute" }
+	(1..9).each{|i| new_record.ll << i ; new_record.ll <<  lk[i] } # LinkClass.create( att: "#{i} attribute" ) }
         expect( new_record.ll ).to have(18).items
         expect( new_record.ll.first).to eq 1
         expect( new_record.ll.at(1)).to eq LinkClass.first

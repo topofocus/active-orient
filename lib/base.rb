@@ -161,7 +161,7 @@ The model instance fields are then set automatically from the opts Hash.
     end
 
     def attributes
-      @attributes ||= HashWithIndifferentAccess.new
+      @attributes ||= Hash.new # WithIndifferentAccess.new
     end
 
     def attributes= attrs

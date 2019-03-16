@@ -62,7 +62,7 @@ private
     end
     # execute anything as batch, don't roll back in case of an error
 
-   execute transaction: false, tolerated_error_code: /already exists in current database/ do
+   execute transaction: false, tolerated_error_code: /already exists/ do
       command
     end
    
@@ -155,13 +155,14 @@ The method returns the included or the updated dataset
       yield new_record if block_given?	  # in case if insert execute optional block
       new_record			  # return_value
     else
-      specify_return_value =  block_given? ? "" : "return after @this"
+      specify_return_value =  block_given? ? "" : "return after @rid"
       set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
       command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
-    #    puts "COMMAND: #{command} "
-      result = execute  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
-	[ { type: "cmd", language: 'sql', command: command}]
+        puts "COMMAND: #{command} "
+      result = execute transaction: false,  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
+	 { type: "cmd", language: 'sql', command: command}
       end 
+			puts "result #{result.inspect}"
       result =result.pop if result.is_a? Array
       if result.is_a? Hash 
 	if result.has_key?('@class')
@@ -176,10 +177,17 @@ The method returns the included or the updated dataset
 	  elsif result['value'].to_i == 0
 	    logger.info{ "Dataset inserted"}
 	  end
-	  the_record  # return_value
 
+	  the_record  # return_value
+	elsif result.has_key?( "@rid" )
+		ActiveOrient::Base.get_rid result['@rid']
+	elsif result.has_key?( 'count' )
+		  get_records( query: OrientSupport::OrientQuery.new( from:  o_class ,
+				      where: set.merge( where))) &.first
 	else
 	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
+		puts "Command #{command}"
+		puts "result #{result}"
 	  raise ArgumentError
 	end
       else

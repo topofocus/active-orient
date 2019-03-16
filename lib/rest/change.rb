@@ -62,23 +62,20 @@ Returns the JSON-Response.
 =end
 
   def update_records o_class, set:{}, where: {}, remove: nil
-    logger.progname = 'RestChange#UpdateRecords'
-    url = if set.present?
-      "UPDATE #{classname(o_class)} SET #{generate_sql_list(set)} #{compose_where(where)}"
-    elsif remove.present?
-      "UPDATE #{classname(o_class)} remove #{remove} #{compose_where(where)}"
-    end
-    r = @res[URI.encode("/command/#{ActiveOrient.database}/sql/" << url)].post ''
-    count_of_updated_records = (JSON.parse( r))['result'].first['value']
-     ## remove all records of the class from cache
-    ActiveOrient::Base.display_rid.delete_if{|x,y| y.is_a? o_class } if count_of_updated_records > 0 && o_class.is_a?(Class)
-    count_of_updated_records # return_value
-    rescue Exception => e
-         logger.error{e.message}
-     nil
+		logger.progname = 'RestChange#UpdateRecords'
+		count =  execute do 
+			if set.present?
+				"UPDATE #{classname(o_class)} SET #{generate_sql_list(set)} #{compose_where(where)}"
+			elsif remove.present?
+				"UPDATE #{classname(o_class)} remove #{remove} #{compose_where(where)}"
+			end 
+		end &.first
+	rescue Exception => e
+		logger.error{e.message}
+		nil
 
-    
-  end
+
+	end
 
 # Lazy Updating of the given Record.
 # internal using while updating  records
