@@ -2,6 +2,13 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets.
 
+**NOTE**
+>Update to OrientDB Version 3 in progress
+
+>Most Specs are passing 
+
+>Checkout Branch "ver_3" 
+
 #### Other Documents
 - [Experiments with Joins / Linkmaps ](./linkmap.md)
 
