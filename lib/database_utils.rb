@@ -24,9 +24,9 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 Returns the class_hierachy
 
 To fetch all Vertices:
-   class_hiearchie(base_class: 'V').flatten
+   class_hieararchy(base_class: 'V').flatten
 To fetch all Edges:
-   class_hierachy(base_class: 'E').flatten
+   class_hierarchy(base_class: 'E').flatten
 --
 notice: 
 To retrieve the class hierarchy from Objects avoid calling `ORD.classname (obj)`,  because it depends on class_hierarchy.
@@ -34,17 +34,12 @@ To retrieve the class hierarchy from Objects avoid calling `ORD.classname (obj)`
 
 	def class_hierarchy base_class: '',  system_classes: nil
 		@actual_class_hash = get_classes('name', 'superClass') #if requery || @all_classes.blank?
-		def fv s   # :nodoc:
-			@actual_class_hash.find_all{|x| x['superClass']== s}.map{|v| v['name']}
-		end
-
-		def fx v # :nodoc:
-			fv(v.strip).map{|x| ar = fx(x); ar.empty? ? x : [x, ar]}
-		end
+		fv = ->( s )	{ 	@actual_class_hash.find_all{|x| x['superClass']== s}.map{|v| v['name']} }
+		fx = ->( v )  {		fv[v.strip].map{|x| ar = fx[x]; ar.empty? ? x : [x, ar]} }
 		if system_classes.present?
-			fx base_class.to_s
+			fx[ base_class.to_s ]
 		else
-			fx( base_class.to_s ) - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]] - [ ["OShape",["OGeometryCollection","OLineString", "OMultiLineString", "OMultiPoint", "OMultiPolygon", "OPoint", "OPolygon", "ORectangle"]  ] ]
+			fx[ base_class.to_s ] - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]] - [ ["OShape",["OGeometryCollection","OLineString", "OMultiLineString", "OMultiPoint", "OMultiPolygon", "OPoint", "OPolygon", "ORectangle"]  ] ]
 		end
 	end
 
