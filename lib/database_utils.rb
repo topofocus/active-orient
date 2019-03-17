@@ -32,21 +32,21 @@ notice:
 To retrieve the class hierarchy from Objects avoid calling `ORD.classname (obj)`,  because it depends on class_hierarchy.
 =end
 
-  def class_hierarchy base_class: '',  system_classes: nil
-    @actual_class_hash = get_classes('name', 'superClass') #if requery || @all_classes.blank?
-    def fv s   # :nodoc:
-  	@actual_class_hash.find_all{|x| x['superClass']== s}.map{|v| v['name']}
-    end
+	def class_hierarchy base_class: '',  system_classes: nil
+		@actual_class_hash = get_classes('name', 'superClass') #if requery || @all_classes.blank?
+		def fv s   # :nodoc:
+			@actual_class_hash.find_all{|x| x['superClass']== s}.map{|v| v['name']}
+		end
 
-    def fx v # :nodoc:
-  	  fv(v.strip).map{|x| ar = fx(x); ar.empty? ? x : [x, ar]}
-    end
-    if system_classes.present?
-	 fx base_class.to_s
-    else
-    	 fx( base_class.to_s ) - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]]
-    end
-  end
+		def fx v # :nodoc:
+			fv(v.strip).map{|x| ar = fx(x); ar.empty? ? x : [x, ar]}
+		end
+		if system_classes.present?
+			fx base_class.to_s
+		else
+			fx( base_class.to_s ) - system_classes()  - [ ["OIdentity", ["ORole", "OUser"]]] - [ ["OShape",["OGeometryCollection","OLineString", "OMultiLineString", "OMultiPoint", "OMultiPolygon", "OPoint", "OPolygon", "ORectangle"]  ] ]
+		end
+	end
 
 
 =begin
@@ -57,7 +57,7 @@ Parameters: system_classes: false|true, requery: false|true
 
   def database_classes system_classes: nil, requery: false
     class_hierarchy system_classes: system_classes #requery: true
-    all_classes = get_classes('name').map(&:values).sort.flatten
+    all_classes = get_classes(']name').map(&:values).sort.flatten
     all_user_classes =  all_classes - system_classes()
 
     all_user_classes.each{|x| ActiveOrient.database_classes[x] = "unset" unless ActiveOrient.database_classes.has_key?(x) }
