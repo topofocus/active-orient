@@ -42,7 +42,7 @@ log_file =   if config_file.present?
 	     end
 
 
-logger = ActiveSupport::TaggedLogging.new( Logger.new(log_file))
+logger = Logger.new(log_file)
 logger.level = case env
 	       when 'production' 
 		 Logger::ERROR
@@ -54,12 +54,15 @@ logger.level = case env
 logger.formatter = proc do |severity, datetime, progname, msg|
   "#{datetime.strftime("%d.%m.(%X)")}#{"%5s" % severity}->#{msg}\n"
 end
-ActiveOrient::Base.logger =  logger
-ActiveOrient::OrientDB.logger =  logger
+ActiveOrient::OrientDB.logger = logger # 
+
+#ActiveOrient::OrientDB.configure_logger logger # 
+#ActiveOrient::Base.configure_logger logger # 
+
 
 if connectyml.present? and connectyml[:user].present? and connectyml[:pass].present?
   ActiveOrient.default_server= { user: connectyml[:user], password: connectyml[:pass] ,
-				 server: 'localhost', port: 2480  }
+				 server: '172.28.50.25', port: 2480  }
   ActiveOrient.database = @configDatabase.presence || databaseyml[env.to_sym]
 
 # because V and E are present in any case,  edge+vertex initialisation is required in model/model.rb

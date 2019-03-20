@@ -8,25 +8,25 @@ module RestCreate
   Returns the name of the working-database
 =end
 
-  def create_database type: 'plocal', database: 
-    logger.progname = 'RestCreate#CreateDatabase'
-    old_d = ActiveOrient.database
-    ActiveOrient.database_classes = {} 
-    ActiveOrient.database = database 
-    begin
-      response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
-      if response.code == 200
-	logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
-      else
-	logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
-	ActiveOrient.database = old_d
-      end
-    rescue RestClient::InternalServerError => e
-      logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
-      ActiveOrient.database = old_d
-    end
-    ActiveOrient.database  # return_value
-  end
+	def create_database type: 'plocal', database: 
+		logger.progname = 'RestCreate#CreateDatabase'
+		old_d = ActiveOrient.database
+		ActiveOrient.database_classes = {} 
+		ActiveOrient.database = database 
+		begin
+			response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
+			if response.code == 200
+				logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
+			else
+				logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
+				ActiveOrient.database = old_d
+			end
+		rescue RestClient::InternalServerError => e
+			logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
+			ActiveOrient.database = old_d
+		end
+		ActiveOrient.database  # return_value
+	end
 
 
 
@@ -124,12 +124,12 @@ Puts the database-response into the cache by default
   alias create_document create_record
 
 # UPDATE <class>|CLUSTER:<cluster>|<recordID>
-  #   [SET|INCREMENT|ADD|REMOVE|PUT <field-name> = <field-value>[,]*]|[CONTENT|MERGE <JSON>]
-  #     [UPSERT]
-  #       [RETURN <returning> [<returning-expression>]]
-  #         [WHERE <conditions>]
-  #           [LOCK default|record]
-  #             [LIMIT <max-records>] [TIMEOUT <timeout>]
+#   [SET|INCREMENT|ADD|REMOVE|PUT <field-name> = <field-value>[,]*]|[CONTENT|MERGE <JSON>]
+#     [UPSERT]
+#       [RETURN <returning> [<returning-expression>]]
+#         [WHERE <conditions>]
+#           [LOCK default|record]
+#             [LIMIT <max-records>] [TIMEOUT <timeout>]
 
 =begin
 update or insert one record is implemented as upsert.
@@ -148,53 +148,30 @@ The method returns the included or the updated dataset
 # end
 # returns nil if no insert and no update was made, ie. the dataset is identical to the given attributes
 =end
-  def upsert o_class, set: {}, where: {}   #    use Model#Upsert instead
-    logger.progname = 'RestCreate#Upsert'
-    if where.blank?
-      new_record = create_record(o_class, attributes: set)
-      yield new_record if block_given?	  # in case if insert execute optional block
-      new_record			  # return_value
-    else
-      specify_return_value =  block_given? ? "" : "return after @rid"
-      set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
-      command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
-        puts "COMMAND: #{command} "
-      result = execute transaction: false,  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
-	 { type: "cmd", language: 'sql', command: command}
-      end 
-			puts "result #{result.inspect}"
-      result =result.pop if result.is_a? Array
-      if result.is_a? Hash 
-	if result.has_key?('@class')
-	  the_object = ActiveOrient::Model.orientdb_class(name: result['@class']).new  result
-	   ActiveOrient::Base.store_rid( the_object )   # update cache
-	elsif result.has_key?('value')
-	  the_record=  get_records(from: o_class, where: where, limit: 1).pop
-	  ## process Code if a new dataset is inserted
-	  if  result['value'].to_i == 1
-	    yield the_record 	if block_given?
-	    logger.info{ "Dataset updated" }
-	  elsif result['value'].to_i == 0
-	    logger.info{ "Dataset inserted"}
-	  end
-
-	  the_record  # return_value
-	elsif result.has_key?( "@rid" )
-		ActiveOrient::Base.get_rid result['@rid']
-	elsif result.has_key?( 'count' )
-		  get_records( query: OrientSupport::OrientQuery.new( from:  o_class ,
-				      where: set.merge( where))) &.first
-	else
-	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
-		puts "Command #{command}"
-		puts "result #{result}"
-	  raise ArgumentError
+	def upsert o_class, set: , where:    #    use Model#Upsert instead
+		logger.progname = 'RestCreate#Upsert'
+		specify_return_value =  "return after @rid"
+		#			set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
+		command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
+		result = execute transaction: false,  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
+			{ type: "cmd", language: 'sql', command: command}
+		end 
+		puts "result #{result.inspect}"
+		result =result.pop if result.is_a? Array
+		if result.is_a? Hash 
+			if result.has_key?( "@rid" )
+				result
+			elsif result.has_key?( 'count' )
+				get_records( query: OrientSupport::OrientQuery.new( from:  o_class ,
+																													 where: set.merge( where))) &.first
+			else
+				logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
+				puts "Command #{command}"
+				puts "result #{result}"
+				raise ArgumentError
+			end
+		end
 	end
-      else
-	logger.debug{ "No Insert or Update nessesary \n #{command} " }
-    end
-    end
-  end
   ############### PROPERTIES #############
 
 =begin

@@ -21,59 +21,59 @@ module ClassUtils
 	     end
 	   end
   end
-  def allocate_class_in_ruby db_classname, &b
-    # retrieve the superclass recursively
+	def allocate_class_in_ruby db_classname, &b
+		# retrieve the superclass recursively
 
-    unless ActiveOrient.database_classes[ db_classname ].is_a? Class
+		unless ActiveOrient.database_classes[ db_classname ].is_a? Class
 
-      s = get_db_superclass( db_classname )
-      superclass =  if s.present? 
-		      allocate_class_in_ruby( s, &b ) 
-		    else
-		      ActiveOrient::Model
-		    end
-      # superclass is nil, if allocate_class_in_ruby is recursivley
-      # called and the superclass was not established
-      if superclass.nil?
-	ActiveOrient.database_classes[ db_classname ] = "Superclass model file missing"
-	return
-      end
-      reduced_classname =  superclass.namespace_prefix.present? ? db_classname.split( superclass.namespace_prefix ).last :  db_classname
-      classname =  superclass.naming_convention(  reduced_classname )
+			s = get_db_superclass( db_classname )
+			superclass =  if s.present?     # get the superclass recusivly
+											allocate_class_in_ruby( s, &b ) 
+										else
+											ActiveOrient::Model
+										end
+			# superclass is nil, if allocate_class_in_ruby is recursivley
+			# called and the superclass was not established
+			if superclass.nil?
+				ActiveOrient.database_classes[ db_classname ] = "Superclass model file missing"
+				return
+			end
+			reduced_classname =  superclass.namespace_prefix.present? ? db_classname.split( superclass.namespace_prefix ).last :  db_classname
+			classname =  superclass.naming_convention(  reduced_classname )
 
-      the_class = if !( ActiveOrient::Model.namespace.send :const_defined?, classname, false )
-		    ActiveOrient::Model.namespace.send( :const_set, classname, Class.new( superclass ) )
-		  elsif ActiveOrient::Model.namespace.send( :const_get, classname).ancestors.include?( ActiveOrient::Model )
-		    ActiveOrient::Model.namespace.send( :const_get, classname)
-		  else
-		    t= ActiveOrient::Model.send :const_set, classname, Class.new( superclass )
-		    logger.warn{ "Unable to allocate class #{classname} in Namespace #{ActiveOrient::Model.namespace}"}
-		    logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
-		    t
-		  end
-      the_class.ref_name = db_classname
-      keep_the_dataset = block_given? ? yield( the_class ) : true
-      if keep_the_dataset 
-	ActiveOrient.database_classes[db_classname] = the_class 
-	the_class.ref_name =  db_classname
-	the_class #  return the generated class
-      else
-	unless ["E","V"].include? classname  # never remove Base-Classes!
-	  base_classname =  the_class.to_s.split("::").last.to_sym
+			the_class = if !( ActiveOrient::Model.namespace.send :const_defined?, classname, false )
+										ActiveOrient::Model.namespace.send( :const_set, classname, Class.new( superclass ) )
+									elsif ActiveOrient::Model.namespace.send( :const_get, classname).ancestors.include?( ActiveOrient::Model )
+										ActiveOrient::Model.namespace.send( :const_get, classname)
+									else
+										t= ActiveOrient::Model.send :const_set, classname, Class.new( superclass )
+										logger.warn{ "Unable to allocate class #{classname} in Namespace #{ActiveOrient::Model.namespace}"}
+										logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
+										t
+									end
+			the_class.ref_name = db_classname
+			keep_the_dataset = block_given? ? yield( the_class ) : true
+			if keep_the_dataset 
+				ActiveOrient.database_classes[db_classname] = the_class 
+				the_class.ref_name =  db_classname
+				the_class #  return the generated class
+			else
+				unless ["E","V"].include? classname  # never remove Base-Classes!
+					base_classname =  the_class.to_s.split("::").last.to_sym
 
-	  if ActiveOrient::Model.namespace.send( :const_defined? , classname)
-	    ActiveOrient::Model.namespace.send( :remove_const, classname )
-	  else
-	    ActiveOrient::Model.send( :remove_const, classname)
-	  end
+					if ActiveOrient::Model.namespace.send( :const_defined? , classname)
+						ActiveOrient::Model.namespace.send( :remove_const, classname )
+					else
+						ActiveOrient::Model.send( :remove_const, classname)
+					end
+				end
+				nil  # return-value
+			end
+		else
+			# return previosly allocated ruby-class
+			ActiveOrient.database_classes[db_classname] 
+		end
 	end
-	nil  # return-value
-      end
-    else
-      # return previosly allocated ruby-class
-      ActiveOrient.database_classes[db_classname] 
-    end
-  end
 
 =begin
 create a single class and provide properties as well

@@ -78,14 +78,15 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
     #  }.merge default_server.presence || {}
     #  @res = get_resource
       ActiveOrient.database ||= database
-      ActiveOrient.database_classes ||=   HashWithIndifferentAccess.new
+      ActiveOrient.database_classes ||=   Hash.new
       @res = get_resource
       connect() if connect
       database_classes # initialize @classes-array and ActiveOrient.database_classes 
+			ActiveOrient::Base.logger =  logger
       ActiveOrient::Model.orientdb = self 
       ActiveOrient::Model.db = self 
       ActiveOrient::Model.keep_models_without_file ||= nil
-      preallocate_classes(model_dir)  if preallocate
+      preallocate_classes( model_dir )  if preallocate
 
     end
 

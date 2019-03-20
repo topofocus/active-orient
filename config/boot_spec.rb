@@ -53,7 +53,7 @@ ActiveOrient::OrientDB.logger =  logger
 
 if connectyml.present? and connectyml[:user].present? and connectyml[:pass].present?
   ActiveOrient.default_server= { user: connectyml[:user], password: connectyml[:pass] ,
-				 server: 'localhost', port: 2480  }
+				 server: '172.28.50.25', port: 2480  }
   ActiveOrient.database = databaseyml[:test]
 
 #  ORD = ActiveOrient::OrientDB.new  preallocate: @do_not_preallocate.present? ? false : true

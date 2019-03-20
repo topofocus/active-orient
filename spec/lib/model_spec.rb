@@ -32,7 +32,7 @@ describe ActiveOrient::Model do
     ORD.create_vertex_class "test_model"  # creates class TestModel
   end
 
-  context "ActiveOrient::Model classes got a logger and a database-reference"  do
+  context "ActiveOrient::Model classes got a logger and a database-reference" , focus: true do
 
     subject { ActiveOrient::Model.orientdb_class name: 'Test' }
     it { is_expected.to be_a Class }

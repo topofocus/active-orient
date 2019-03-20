@@ -52,7 +52,7 @@ Parameters: system_classes: false|true, requery: false|true
 
   def database_classes system_classes: nil, requery: false
     class_hierarchy system_classes: system_classes #requery: true
-    all_classes = get_classes(']name').map(&:values).sort.flatten
+    all_classes = get_classes('name').map(&:values).sort.flatten
     all_user_classes =  all_classes - system_classes()
 
     all_user_classes.each{|x| ActiveOrient.database_classes[x] = "unset" unless ActiveOrient.database_classes.has_key?(x) }
@@ -73,25 +73,26 @@ Service-Method for Model#OrientdbClass
 =begin
 preallocate classes reads any class from the  @classes-Array and allocates adequat Ruby-Objects
 =end
-  def preallocate_classes   from_model_dir= nil  # :nodoc:
-    # always scan for E+V model-file and include
-    [E,V].each{|y| y.require_model_file(from_model_dir) }
+	def preallocate_classes   from_model_dir= nil  # :nodoc:
+		# always scan for E+V model-file and include
+		[E,V].each{|y| y.require_model_file(from_model_dir) }
 
-    ActiveOrient.database_classes.each do | db_name, the_class |
-      allocate_class_in_ruby( db_name ) do |detected_class|
-	keep_the_dataset =  true
-	# keep the class if it is already noted in database_classes 
-	if !ActiveOrient::Model.keep_models_without_file && 
-	  !ActiveOrient.database_classes.key( detected_class) && 
-	  ![E,V].include?(detected_class) &&
-	  !detected_class.require_model_file(from_model_dir) 
-	  logger.info{ "#{detected_class.name} -->  Class NOT allocated"}
-	  ActiveOrient.database_classes[ detected_class.ref_name ] = "no model file"
-	  keep_the_dataset = false 
-	end
-	keep_the_dataset # return_value
-      end  # block
-    end  # each iteration
-  end	# def
+		ActiveOrient.database_classes.each do | db_name, the_class |
+			allocate_class_in_ruby( db_name ) do |detected_class|
+			keep_the_dataset =  true
+			# keep the class if it is already noted in database_classes 
+		 if	![E,V].include?(detected_class) &&
+				!ActiveOrient.database_classes.key( detected_class) && 
+				!detected_class.require_model_file(from_model_dir) &&
+			  !ActiveOrient::Model.keep_models_without_file  
+	
+				logger.info{ "#{detected_class.name} -->  Class NOT allocated"}
+				ActiveOrient.database_classes[ detected_class.ref_name ] = "no model file"
+				keep_the_dataset = false 
+			end
+			keep_the_dataset # return_value
+		end  # block
+		end  # each iteration
+	end	# def
 
 end # module

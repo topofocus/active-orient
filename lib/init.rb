@@ -16,22 +16,31 @@ i.e.
   #or
   module IB # first declare the Module-Const
   end	    # then assign to the namespace
-  ActiveOrient.Init.define_namespace { IB }  
+  ActiveOrient.Init.define_namespace { IB } 
+
+	If a namespace is defined providing a block, 
+
+			ActiveOrient::Model.keep_models_without_file 
+	
+	is set, thus enabling subsequent Namespaces
+
+		
 =end
     def self.define_namespace(  yml: {}, namespace: nil )
       n =  namespace.presence || yml[:namespace].presence || :object
-      ActiveOrient::Model.namespace = if block_given?
-					yield
-				      else
-					case n
-					when :self
-					  ActiveOrient::Model
-					when :object
-					  Object
-					when :active_orient
-					  ActiveOrient
-					end
-				      end
-    end # define namespace
+			ActiveOrient::Model.namespace = if block_given?
+																				ActiveOrient::Model.keep_models_without_file = true
+																				yield
+																			else
+																				case n
+																				when :self
+																					ActiveOrient::Model
+																				when :object
+																					Object
+																				when :active_orient
+																					ActiveOrient
+																				end
+																			end
+		end # define namespace
   end # module Init
 end  # module ActiveOrient
