@@ -15,13 +15,13 @@ ActiveOrient::Init.define_namespace namespace: :object
 ```
 
 
+
 ### Activate Namespace
 
-to activate the namespace "HC" simply run
+to activate the namespace "HC" run
 
 ```ruby
-module HC
-end
+module HC; end
 ActiveOrient::Init.define_namespace { HC }
 ```
 
@@ -35,7 +35,6 @@ ActiveOrient::Model.namespace_prefix translates a single namespace into a databa
 
 ```ruby
 ActiveOrient::Init.define_namespace namespace: :object
-ActiveOrient::Model.keep_models_without_file = true
 ORD = ActiveOrient::OrientDB.new  preallocate: true
 ActiveOrient::Init.define_namespace { HH  }
 ActiveOrient::OrientDB.new  preallocate: true
@@ -44,8 +43,7 @@ ActiveOrient::OrientDB.new  preallocate: true
 ```
 **note** The preallocation-algorithm tries to load any class.  If the classes "tg_hui, ib_hui, hui" are
 present, "TgHui,IbHui,Hui" are created during the basic initialisation of ActiveOrientDB (Namespace: Object). 
-If »ActiveOrient::Model.keep_models_without_file«
-is set to false, classes are allocated only, if a model-file is present. 
+If `ActiveOrient::Model.keep_models_without_file` is set to false, classes are allocated only, if a model-file is present. 
 
 
 As a result something like this appears:
@@ -66,11 +64,11 @@ Database Class  ->  ActiveOrient Class
 
 ```
 
-By changing the namespace-scope with  'ActiveOrient::Init.define_namespace'  its always possible to 
+By changing the namespace-scope with  `ActiveOrient::Init.define_namespace`  its always possible to 
 change properties, include links and edges or to add  and remove classes in the Sub-Modules.
 
-ORD.create_class "hurry" creates a Ruby-Class »HH::Hurry« and a DatabaseClass »hh_hurry«.
-This can be changed through redefinition of »ActiveOrient::Model.namespace_prefix«
+`ORD.create_class "hurry"` creates a Ruby-Class `HH::Hurry` and a DatabaseClass `hh_hurry`.
+This can be changed through redefinition of `ActiveOrient::Model.namespace_prefix`
 
 ```ruby
 ## Deactivate Namespace-Prefix
@@ -116,7 +114,6 @@ In »config/boot.rb« we just call
 ```ruby
 require 'ib-ruby'
 ActiveOrient::Init.define_namespace namespace: :object
-ActiveOrient::Model.keep_models_without_file = true
 ORD = ActiveOrient::OrientDB.new  preallocate: true
 IB::OrientDB.connect
 ```
