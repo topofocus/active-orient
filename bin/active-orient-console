@@ -7,11 +7,26 @@
 ##	       development (d)  [default]
 ##	       test (t)
 require 'logger'
-LogLevel = Logger::WARN
+LogLevel = Logger::INFO
 require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
 
  require 'orientdb' if RUBY_PLATFORM == 'java'
  require 'yaml'
+
+ class Array
+	 # Method missing enables fancy stuff like
+	 # Jahr[2000 .. 2005].monat(5..7).value 
+	 #
+	 # its included only in the console, for inspection purposes
+
+	 def method_missing(method, *key)
+		 unless method == :to_hash || method == :to_str #|| method == :to_int
+			 return self.map{|x| x.public_send(method, *key)}
+		 end
+
+	 end
+ end # Array
+
 
 puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
 puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
@@ -27,11 +42,7 @@ puts "Namespace for model-classes : #{ns}"
 puts "Present Classes (Hierarchy) "
 
 puts ORD.class_hierarchy.to_yaml
-#puts ""
-#puts "Active Classes  ->  ActiveOrient ClassName"
-#puts '-'* 45
 puts ActiveOrient::show_classes
-#puts '-'* 45
 
 include OrientDB
 

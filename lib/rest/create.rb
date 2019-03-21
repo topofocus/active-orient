@@ -58,6 +58,7 @@ private
 	    "CREATE CLASS #{database_class} "
 	  end
       c << " ABSTRACT" if abstract.present?
+		 logger.info{ ">>: #{c}"}
       { type: "cmd", language: 'sql', command: c }  # return value 4 command
     end
     # execute anything as batch, don't roll back in case of an error

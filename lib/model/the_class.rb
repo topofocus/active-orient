@@ -16,7 +16,7 @@ It can be overwritten to provide different conventions for different classes, eg
 and to introduce distinct naming-conventions in differrent namespaces
 
 To overwrite use 
-  class Model < ActiveOrient::Model[:: ...]
+  class Model # < ActiveOrient::Model[:: ...]
     def self.naming_convention
     ( conversion code )
     end
@@ -29,6 +29,8 @@ To overwrite use
      else
        nc.camelize
      end
+	rescue
+		nil
   end
 
 =begin
@@ -82,36 +84,36 @@ Example:
   searched directory: 'lib/model/hc'
 
 =end
-def require_model_file  the_directory=nil
-  logger.progname = 'ModelClass#RequireModelFile'
-  the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir)   # the_directory is a Pathname
-  if File.exists?( the_directory )
-    model= self.to_s.underscore + ".rb"
-    filename =   the_directory +  model
-    if  File.exists?(filename )
-      if load filename
-	logger.info{ "#{filename} sucessfully loaded"  }
-	self #return_value
-      else
-	logger.error{ "#{filename} load error" }
-	nil #return_value
-      end
-    else
-      logger.info{ "model-file not present: #{filename}" }
-      nil #return_value
-    end
-  else
-    logger.info{ "Directory #{ dir  } not present " }
-    nil  #return_value
-  end
-rescue TypeError => e
-     puts "TypeError:  #{e.message}" 
-     puts "Working on #{self.to_s} -> #{self.superclass}"
-     puts "Class_hierarchy: #{orientdb.class_hierarchy.inspect}."
-     print e.backtrace.join("\n") 
-     raise
-  #
-end
+	def require_model_file  the_directory=nil
+		logger.progname = 'ModelClass#RequireModelFile'
+		the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir)   # the_directory is a Pathname
+		if File.exists?( the_directory )
+			model= self.to_s.underscore + ".rb"
+			filename =   the_directory +  model
+			if  File.exists?(filename )
+				if load filename
+					logger.info{ "#{filename} sucessfully loaded"  }
+					self #return_value
+				else
+					logger.error{ "#{filename} load error" }
+					nil #return_value
+				end
+			else
+				logger.info{ "model-file not present: #{filename}" }
+				nil #return_value
+			end
+		else
+			logger.info{ "Directory #{ dir  } not present " }
+			nil  #return_value
+		end
+	rescue TypeError => e
+		puts "TypeError:  #{e.message}" 
+		puts "Working on #{self.to_s} -> #{self.superclass}"
+		puts "Class_hierarchy: #{orientdb.class_hierarchy.inspect}."
+		print e.backtrace.join("\n") 
+		raise
+		#
+	end
 
   ########## CREATE ############
 
@@ -393,7 +395,7 @@ These connections are defined in the Block
 
   var = Industry.match do | query |
     query.connect :in, count: 2, as: 'Subcategories'
-    puts query.to_s  # print the query send to the database
+    puts query.to_s  # print the query before sending it to the database
     query            # important: block has to return the query 
   end
   => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories

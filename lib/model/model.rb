@@ -99,7 +99,7 @@ Deletes the database class and removes the ruby-class
 				end
 			end
 			self.allocated_classes.delete_if{|x,y| x == self.ref_name && ns_found[y]}  if allocated_classes.is_a?(Hash)
-			namespace.send(:remove_const, naming_convention.to_sym) if namespace.send( :const_defined?, naming_convention)
+			namespace.send(:remove_const, naming_convention.to_sym) if namespace &.send( :const_defined?, naming_convention)
 		end
 
     # provides an unique accessor on the Class

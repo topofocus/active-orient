@@ -9,18 +9,6 @@ class Array
     map &:from_orient
   end
 
-# Method missing enables fancy stuff like
-# Jahr[2000 .. 2005].monat(5..7).value  (https://github.com/topofocus/orientdb_time_graph)
-  def method_missing(method, *key)
-    #if method == :to_int
-    #  return self.first 
-    #else 
-
-    unless method == :to_hash || method == :to_str #|| method == :to_int
-      return self.map{|x| x.public_send(method, *key)}
-   # end
-    end
-  end
   # used to enable 
   # def abc *key
   # where key is a Range, an comma separated List or an item
@@ -143,19 +131,19 @@ class String
     [ self ]
   end
 
-    def quote
-      str = self.dup
-      if str[0, 1] == "'" && str[-1, 1] == "'"
-	self
-      else
-	last_pos = 0
-	while (pos = str.index("'", last_pos))
-	  str.insert(pos, "\\") if pos > 0 && str[pos - 1, 1] != "\\"
-	  last_pos = pos + 1
+	def quote
+		str = self.dup
+		if str[0, 1] == "'" && str[-1, 1] == "'"
+			self
+		else
+			last_pos = 0
+			while (pos = str.index("'", last_pos))
+				str.insert(pos, "\\") if pos > 0 && str[pos - 1, 1] != "\\"
+				last_pos = pos + 1
+			end
+			"'#{str}'"
+		end
 	end
-	"'#{str}'"
-      end
-    end
 
 
 end

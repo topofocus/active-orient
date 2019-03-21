@@ -105,7 +105,7 @@ create a single class and provide properties as well
 															 [ ActiveOrient.database_classes[the_block] , nil ]
 														 elsif the_block.is_a?(Hash)
 															 [ ActiveOrient.database_classes[the_block[:superclass]], 
-																ActiveOrient.database_classes[the_block[:abstract]] ]
+									ActiveOrient.database_classes[the_block[:abstract]] ]
 														 end
 		end
 		superclass =  superclass.presence ||  ActiveOrient::Model
@@ -130,15 +130,15 @@ create a single class and provide properties as well
 						end
 					end
 				end
-	database_classes  # update_class_array
-	create_properties( the_name , properties )  if properties.present?
-	allocate_class_in_ruby( the_class_name ) do |that_class| 
-	  keep_the_dataset =  true
+				database_classes  # update_class_array
+				create_properties( the_name , properties )  if properties.present?
+				allocate_class_in_ruby( the_class_name ) do |that_class| 
+					keep_the_dataset =  true
+				end
+			end
+		end
+		r.size==1 ? r.pop : r  # return a single class or an array of created classes
 	end
-      end
-    end
-    r.size==1 ? r.pop : r  # return a single class or an array of created classes
-  end
 
 =begin
 Creates one or more vertex-classes and allocates the provided properties to each class.
