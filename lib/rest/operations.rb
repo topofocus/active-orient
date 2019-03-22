@@ -20,7 +20,6 @@ module RestOperations
     logger.progname = 'RestOperations#CountRecords'
     query = OrientSupport::OrientQuery.new args
     query.projection << 'COUNT(*)'
-		puts "query: #{query.to_s}"
     result = get_records raw: true, query: query
     result.first["COUNT(*)"] rescue  0  # return_value
   end
@@ -109,7 +108,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
       # transaction is true only for multible statements
 #      batch[:transaction] = transaction & batch[:operations].size >1
       begin
-	logger.debug{ batch[:operations].map{|y|y[:command]}.join(";\n ") } 
+	logger.info{ batch[:operations].map{|y|y[:command]}.join(";\n ") } 
         response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
       rescue RestClient::BadRequest => f
 	# extract the misspelled query in logfile and abort

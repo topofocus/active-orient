@@ -150,7 +150,7 @@ end
 
 class Hash #WithIndifferentAccess
   def from_orient
-    substitute_hash = HashWithIndifferentAccess.new
+    substitute_hash =  {} # HashWithIndifferentAccess.new
     #keys.each{|k| puts self[k].inspect}
     keys.each{|k| substitute_hash[k] = self[k].from_orient}
     substitute_hash
@@ -170,7 +170,8 @@ class Hash #WithIndifferentAccess
 #    substitute_hash
 #  end
   def nested_under_indifferent_access
-    HashWithIndifferentAccess.new self
+#    HashWithIndifferentAccess.new self
+		self
   end
 end
 

@@ -29,7 +29,6 @@ i.e.
     def self.define_namespace(  yml: {}, namespace: nil )
       n =  namespace.presence || yml[:namespace].presence || :object
 			ActiveOrient::Model.namespace = if block_given?
-																				ActiveOrient::Model.keep_models_without_file = true
 																				yield
 																			else
 																				case n

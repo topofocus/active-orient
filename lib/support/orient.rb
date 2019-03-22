@@ -33,7 +33,21 @@ module OrientSupport
 		def initialize( work_on:, work_with: )
 			@orient = work_on.class == Class ? work_on.new : work_on
 			super work_with
-			@name = @orient.attributes.key(self)
+			begin
+			@name = @orient.attributes.key(self) 
+			rescue TypeError => e   #  not defined
+				ActiveOrient::Base.logger.debug{ "--------------------Type Error ----------------------------------" }
+			ActiveOrient::Base.logger.debug("OrientSupport::Array"){ "Attributes  #{@orient.attributes.inspect}" }
+			ActiveOrient::Base.logger.debug("OrientSupport::Array"){ e.inspect 
+			ActiveOrient::Base.logger.debug{ "indicates a try to access a non existing array element" }}
+			nil
+			rescue NameError =>e
+			ActiveOrient::Base.logger.debug{ "--------------------Name Error ------------" }
+			ActiveOrient::Base.logger.debug ("OrientSupport::Array"){ e.inspect }
+			#ActiveOrient::Base.logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+			ActiveOrient::Base.logger.debug{ "due to a bug in ActiveSupport DateTime Calculations" }
+			# we just ignore the error
+			end
 			@name =  yield if @name.nil? && block_given?
 		end
 		def as_json o=nil
