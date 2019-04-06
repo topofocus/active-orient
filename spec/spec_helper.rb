@@ -1,17 +1,12 @@
-#ARGV << 'test'
-#@do_not_preallocate =  true
-require './config/boot_spec'
-#bundler/setup'
+require 'bundler/setup'
+require 'yaml'
 require 'rspec'
 require 'rspec/its'
 require 'rspec/collection_matchers'
 require 'yaml'
 require 'active_support'
-project_root = File.expand_path('../..', __FILE__)
-#require 'my_spec_helper'
 
-unless defined?(SPEC_HELPER_LOADED)
-SPEC_HELPER_LOADED =  true
+require 'active-orient'
 RSpec.configure do |config|
 	config.mock_with :rspec
 	config.color = true
@@ -38,9 +33,3 @@ RSpec.shared_context 'private', private: true do
 	      end
 
 end
-else
-  puts "***  ---- *** \n"*3
-  puts "Reusing rspec configuration "
-  puts "***  ---- *** \n"*3
-end
-#require 'model_helper'

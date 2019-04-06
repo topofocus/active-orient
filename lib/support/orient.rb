@@ -10,7 +10,6 @@ module OrientSupport
 
 	class Array < Array
 		include OrientSupport::Support
-		mattr_accessor :logger
 
 =begin
 	During initialisation  the model-instance to work on is stored  in @orient.
@@ -57,15 +56,49 @@ module OrientSupport
 		def record
 			@orient
 		end
+
+#		returns the modified array and is chainable
+#
+#      i= V.get( '89:0')
+	#    ii=i.zwoebelkuchen <<  'z78' << 6 << [454, 787]
+	#		 => [7, 5, 6, "z78", 78, 45, "z78", 6, 454, 787] 
 =begin
 Append the argument to the Array, changes the Array itself.
 
-The change is transmitted to the database immediately
+The change is immediately transmitted to the database. 
+
+
 =end
-		def << *arg
-			@orient.add_item_to_property(@name, *arg) if @name.present?
-			super
+		def   append arg
+			raise ArgumentError if arg.is_a? Hash
+			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or}  "}[@name]
 		end
+
+		alias  << append 
+
+		def delete k
+			super k
+			o = OrientSupport::OrientQuery.new from: @orient, 
+																				kind: 'update', 
+																				set: "#{@name}.#{k.to_s}",
+																			return: "$current.#{@name}"
+			@orient.db.execute{  o.to_s.gsub( 'set ', 'remove ' ) }.first.send( @name )  # extracts the modified array (from DB)  from the result
+			@orient.reload!
+			@orient.send @name  # return value
+	end
+
+
+#		def << arg
+#			if empty?
+#				@orient.db.
+#			end
+#			super arg
+##		arg.each{|y|  puts "y: #{y} ";self.push y }	
+#puts "Name : #{@orient.inspect}"
+#		puts "self #{self.inspect}"
+#			@orient.add_item_to_property(@name, arg) 
+#
+#		end
 
 =begin
 	Updating of single items
@@ -99,23 +132,20 @@ If the Array-element is a link, this is removed, the linked table is untouched
 			where_string = item.map{|m| where_string = compose_where( m ) }.join(' and ')
 			subquery= OrientSupport::OrientQuery.new from: @orient, projection: "expand( #{@name})"
 			q= OrientSupport::OrientQuery.new from: subquery, where: item
-			@orient.query q 
+			@orient.query q.to_s 
+
 		end
 
 		def method_missing *args
 
-			map{|x| x.send *args }
+			self.map{|x| x.send *args }
 		rescue NoMethodError => e
-			logger.progname = "OrientSupport::Array#MethodMissing"
-			logger.error{"Undefined method: #{e.message}"}
+			ActiveOrient::Base.logger.error("OrientSupport::Array"){ "MethodMissing  -> Undefined method: #{args.first} --  Args: #{args[1..-1].inspect}"}
+			ActiveOrient::Base.logger.error {" The Message #{e.message}"}
+			ActiveOrient::Base.logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
 		end
 
 	end #Class
-
-	class LinkMap < OrientSupport::Array
-		def []= arg
-		end
-	end  #Class
 
 
 
@@ -124,34 +154,48 @@ If the Array-element is a link, this is removed, the linked table is untouched
 		include OrientSupport::Support
 		def initialize modelinstance, args
 			super()
+		#	puts "Hash.new args #{args}"
 			@orient = modelinstance
-			self.merge! args.from_orient
+			self.merge! args
 			@name = modelinstance.attributes.key(self)
 			@name =  yield if @name.nil? && block_given?
+		#	puts "@name #{@name}"
+			self
 		end
 
 
-		def [] key
-			 key.is_a?(Symbol) ?  super(key.to_s) : super(key)
+		def []=  k, v
+			 @orient.update { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }
 		end
-		def []=  key, value
-			puts " i will handle this in the future"
-			#@orient.attributes[key] = value
 
+		def << **arg
+#			@orient.attributes[@name][k] = v
+#			self.merge! key => value 
+#			super key, value
 			#	r = (@orient.query  "update #{@orient.rid} put #{@name} = #{key.to_orient}, #{value.to_orient} RETURN AFTER @this").pop
-			super key, value
-			@orient.update set:{ @name => self}
-			#	@orient = @orient.class(@orient.rid){r} if r.is_a? ActiveOrient::Model
-			#	 self[ key ]= value
-			#	 puts self.inspect 
-			#@orient[@name]=self.merge  key => value
-			#
+			result = arg.map do | k, v |
+				o = OrientSupport::OrientQuery.new from: @orient, 
+																				kind: 'update', 
+																				set: "#{@name}.#{k.to_s} = #{v.to_or}",
+																				return: "$current.#{@name}"
+			 	@orient.db.execute{ o.to_s }.first.send( @name )  # extracts the modified array (from DB)  from the result
+			end.last
+			@orient.reload!
+			@orient.send @name  # return value
 		end
 
-		def delete key
-			super key
-			@orient.update set:{ @name => self}
-		end
+		def delete *key
+
+			key.each do | k |
+				o = OrientSupport::OrientQuery.new from: @orient, 
+																						kind: 'update', 
+																						set: "#{@name}.#{k.to_s}",
+																					return: "$current.#{@name}"
+			@orient.db.execute{  o.to_s.gsub( 'set ', 'remove ' ) }.first.send( @name )  # extracts the modified array (from DB)  from the result
+			end
+			@orient.reload!
+			@orient.send @name  # return value
+	end
 
 		def delete_if &b
 			super &b

@@ -1,6 +1,6 @@
 require 'active_model'
 require 'active_support/concern'
-require 'active_support/hash_with_indifferent_access'
+#require 'active_support/hash_with_indifferent_access'
 
 module ActiveOrient
   module BaseProperties
@@ -23,7 +23,8 @@ module ActiveOrient
 # Comparison support
 
     def content_attributes  # :nodoc:
-      HashWithIndifferentAccess[attributes.reject do |(attr, _)|
+#      HashWithIndifferentAccess[attributes.reject do |(attr, _)|
+      Hash[attributes.reject do |(attr, _)|
         attr.to_s =~ /(_count)\z/ || [:created_at, :updated_at, :type, :id, :order_id, :contract_id].include?(attr.to_sym)
       end]
     end
@@ -98,26 +99,26 @@ module ActiveOrient
             :validate => body[2]
 
         when Hash # recursion base case
-#	  puts "NAME: "+name.to_S
-#		     puts "BODY::"+body.inspect
-          getter = case # Define getter
-          when body[:get].respond_to?(:call)
-            body[:get]
-          when body[:get]
-            proc{self[name].send "to_#{body[:get]}"}
-          else
-            proc{self[name]}
-          end
-          define_method name, &getter if getter
-          setter = case # Define setter
-          when body[:set].respond_to?(:call)
-            body[:set]
-          when body[:set]
-            proc{|value| self[name] = value.send "to_#{body[:set]}"}
-          else
-            proc{|value| self[name] = value} # p name, value;
-          end
-          define_method "#{name}=", &setter if setter
+	#  puts "NAME: "+name.to_s
+	#	     puts "BODY::"+body.inspect
+				 getter = case # Define getter
+									when body[:get].respond_to?(:call)
+										body[:get]
+									when body[:get]
+										proc{self[name].send "to_#{body[:get]}"}
+									else
+										proc{self[name]}
+									end
+				 define_method name, &getter if getter
+				 setter = case # Define setter
+									when body[:set].respond_to?(:call)
+										body[:set]
+									when body[:set]
+										proc{|value| self[name] = value.send "to_#{body[:set]}"}
+									else
+										proc{|value| self[name] = value} # p name, value;
+									end
+				 define_method "#{name}=", &setter if setter
 
           # Define validator(s)
           [body[:validate]].flatten.compact.each do |validator|

@@ -1,21 +1,7 @@
 
 require 'spec_helper'
-require 'rest_helper'
-#require 'active_support'
- shared_examples_for 'basic class properties' do |bez|
-     
-     it "class #{bez}: initialize and add a property " do 
-      ORD.delete_class bez 
-      subject = ORD.create_class bez
-puts "subject:  #{subject.inspect}"
-puts "superclass: #{subject.superclass}"
-puts "ref name: #{subject.ref_name}"
-      subject.create_property :test_ind, type: 'string' 
-
-      expect( subject.get_properties[:properties] ).to have(1).item 
-     end
- end
-
+require 'connect_helper'
+require 'model_helper'
 module ActiveOrient
   class Base
     def self.get_riid
@@ -26,13 +12,14 @@ end
 
 describe ActiveOrient::Model do
   before( :all ) do
-    reset_database
-       ORD.create_class "E"
-       ORD.create_class "V"
-    ORD.create_vertex_class "test_model"  # creates class TestModel
+    @db = connect database: 'temp'
+    @db.create_vertex_class "test_model"  # creates class TestModel
+    @db.create_vertex_class "test_model2"  # creates class TestModel
   end
+	after(:all){ @db.delete_database database: 'temp' }
 
-  context "ActiveOrient::Model classes got a logger and a database-reference" , focus: true do
+  context "create ActiveOrient::Model classes"  do
+#  context "ActiveOrient::Model classes got a logger and a database-reference"  do
 
     subject { ActiveOrient::Model.orientdb_class name: 'Test' }
     it { is_expected.to be_a Class }
@@ -58,9 +45,9 @@ describe ActiveOrient::Model do
 
   context "The Models have proper superClasses"  do
     before(:all) do
-       ORD.create_class :my_class 
-       ORD.create_vertex_class :my_node 
-       ORD.create_edge_class :my_edge 
+       @db.create_class :my_class 
+       @db.create_vertex_class :my_node 
+       @db.create_edge_class :my_edge 
     end
     it "A document class has an empty superClass" do
       expect( MyClass.superclass ).to eq  ActiveOrient::Model
@@ -78,52 +65,9 @@ describe ActiveOrient::Model do
 #      it_behaves_like 'basic class properties' , this_class
 #    end
 #  end
-  context "add properties and indexes"  do
-
-    before(:all) do
-     ORD.create_class( :test_index1,  :test_index2,  :test_index3 , :test_index4 ) 
-      ORD.create_class :industry
-    end
-    it "create a single property"  do
-
-      TestIndex1.create_property( :Test, type: 'string' ) 
-
-      expect( TestIndex1.get_properties[:properties].size ).to eq 1
-      expect( TestIndex1.get_properties[:indexes]).to be_nil
-    end
-    it "create manualy properties and indices" do
-      TestIndex2.create_property( :Test, type: 'string' ) 
-      ORD.create_index TestIndex2, name: :testindex, on: :Test
-      expect( TestIndex2.get_properties[:indexes] ).to have(1).item
-      ## this test fails if no index is preset before the condition ist fired.
-      #  (get_properties is nil and size is not defined for nilclass.)
-      expect { TestIndex2.create_property( :Facility, type: 'integer' ) }.to change { TestIndex2.get_properties[:properties].size }.by 1
-
-      expect{ ORD.create_index TestIndex2, name: :facilindex, on: :Facility }.to  change { TestIndex2.get_properties[:indexes].size }.by 1
-    end
-# indices are definded on DB-Level and have to have unique names
-    it "create a single property with a manual index" do
-      TestIndex3.create_property( :Test, type: 'string', index: {test_indes: :unique} )
-
-      expect( TestIndex3.get_properties[:properties] ).to have(1).item
-      expect( TestIndex3.get_properties[:indexes] ).to have(1).item
-    end
-    it "create several  properties with a composite index"  do
-      count= TestIndex4.create_properties( test:  {type: :integer},
-					   symbol: { type: :string },
-					   industries: { type: 'LINKMAP', linked_class: 'industry' }   ) do
-					    { sumindex: :unique }
-					  end
-      #expect( count ).to eq 3  # three properties
-      expect( TestIndex4.get_properties[:properties] ).to have(3).items
-      expect( TestIndex4.get_properties[:indexes] ).to have(1).item
-      expect{ ORD.create_index TestIndex4, name: :facil4index, on: :symbol }.to  change { TestIndex4.get_properties[:indexes].size }.by 1
-    end
-  end   ## properties 
-
   context "Create a new document" do
     before( :all ) do 
-      ORD.create_class 'working_class' 
+      @db.create_class 'working_class' 
     end
 
     it "new document"  do
@@ -134,7 +78,7 @@ describe ActiveOrient::Model do
 
     end
 
-    it "save new document"  do
+    it "save new document" do
       n =  WorkingClass.new w_att: 'Attribute' 
       n.save
       expect( n.rid.rid? ).to be_truthy
@@ -147,25 +91,25 @@ describe ActiveOrient::Model do
 
   context "Add and modify documents"   do
     before( :all ) do
-      ORD.create_class "doc_class"
+      @db.create_class "doc_class"
     end
-    it "put some data into the class"  do
+		let( :obj ){ TestModel.create test: 45  }
 
+    it "put some data into the class"  do
       (0..45).each{|x|  DocClass.create  test_cont: x  }
       expect( DocClass.count ).to eq 46
     end
 
     it "the database is empty before we start"  do
       expect( TestModel.all ).to be_empty
-      expect( ORD.get_documents  from: TestModel ).to be_empty
+      expect( @db.get_documents  from: TestModel ).to be_empty
       expect( TestModel.count ).to be_zero
     end
 
     it "create a document"  do
-      new_document = TestModel.create test: 45 
-      expect( new_document.test ).to eq 45
-      expect(new_document).to be_a  ActiveOrient::Model
-      expect( ActiveOrient::Base.get_riid.values.detect{|x| x == new_document}).to be_truthy
+      expect( obj.test ).to eq 45
+      expect( obj ).to be_a  ActiveOrient::Model
+      expect( ActiveOrient::Base.get_riid.values.detect{|x| x == obj}).to be_truthy
     end
 
 
@@ -184,46 +128,46 @@ describe ActiveOrient::Model do
 ##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
     #und nicht von der Datenbank abgefragt
     it "the document can be updated"  do
-      obj =  TestModel.create test: 77
       expect{ obj.update set: { test: 76, new_entry: "This is a new Entry" } }.to change{ obj.version }.by 1
       expect( obj.test ).to eq 76
       expect( obj.new_entry).to be_a String
     end
 
     it "various Properties can be added to the document" do
-      obj =  TestModel.first
       aa = [ 1,4,'r', :r ]  
       ah = { :a => 'b', b: 2, c: :d } 
       eh = { "a" => "b" , "b" => 2, "c" => :d  }
-      obj.update set: { a_array: aa  , a_hash: ah }
+      obj.update set: { a_array: aa  , a_hash: eh }   
       expect( obj.a_array ).to eq aa
-      expect( obj.a_hash ).to eq  eh
+      expect( obj.a_hash ).to eq  ah   # Hash-keys are always symbols!!
     end
 
     it "a value can be added to the array" do
-      obj =  TestModel.first
-      obj.add_item_to_property 'a_array', 56
+      obj.update a_array: [1,4,'r',:r]
+			obj.a_array << 56
       expect(obj.a_array).to eq [ 1,4,'r', :r, 56 ]
 
     end
 
     it "the document can be deleted"  do
-      obj =  TestModel.first
-      expect{ obj.delete }.to change { TestModel.count }.by -1
+			d =  TestModel.create test: 56  # does not work using obj
+      expect{ d.delete }.to change { TestModel.count }.by -1
     end
   end #context
 
-  context "ActiveRecord mimics", focus: true  do
+  context "ActiveRecord mimics"  do
 		before(:all) do 
-			ORD.create_edge_class  'my_edge'
-			ORD.create_vertex_class  'my_node'
-			 TestModel.create_property :test,    index: :unique
+			@db.create_edge_class  'my_edge'
+			@db.create_vertex_class  'my_node'
+			TestModel.delete
+			 TestModel.create_property :test, type: :integer,   index: :unique
+			 expect( TestModel.indexes.first['fields'] ).to eq ["test"]
 			(0..45).each{|x| TestModel.create  test: x  }
-			DB.database_classes requery: true
+			@db.database_classes requery: true
 		end
     it "fetch all documents into an Array" do
       all_documents = TestModel.all
-      expect( all_documents ).to be_a Array #HashWithIndifferentAccess
+      expect( all_documents ).to be_a Array 
       expect( all_documents ).to have_at_least(45).elements
       all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }
     end
@@ -237,6 +181,7 @@ describe ActiveOrient::Model do
       expect{ TestModel.upsert(  :where => { test: 45 }) }. not_to change { TestModel.count }
       expect{ TestModel.create  test: 45 }.not_to change { TestModel.count }
     end
+
 
     it "specific datasets can be manipulated" do
       expect( TestModel.where( 'test > 40' ) ).to have(5).elements
@@ -301,4 +246,26 @@ describe ActiveOrient::Model do
 
   end
 
+	context "upsert returns a valid dataset" do
+		before( :all ) { TestModel2.delete }    # erase any content from TestModel
+
+		context " on a new record " do
+			subject  { TestModel2.upsert set: { a: 5, b:7 }, where: { c: 8 } }
+			it_behaves_like 'a new record'
+		end
+
+		context "on an updated record " do
+			context  "add a dataset" do
+				subject{  TestModel2.upsert set: { a: 5, b:7 }, where: { c: 9 } }
+				it_behaves_like 'a new record'
+			end
+			context "update a dataset" do
+
+				subject{ TestModel2.upsert set: { a: 6, b:7 }, where: { c: 9 } }
+				it_behaves_like 'a valid record'
+				its( :version ){ is_expected.to be > 1 }
+				its( :a ){ is_expected.to eq 6 }
+			end
+		end
+	end
 end

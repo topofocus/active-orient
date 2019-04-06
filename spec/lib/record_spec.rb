@@ -1,15 +1,14 @@
 
 require 'spec_helper'
-require 'rest_helper'
+require 'connect_helper'
 #require 'model_helper'
 #require 'active_support'
 
 
 describe ActiveOrient::Model do
-  before( :all ) do
-#   ao =   ActiveOrient::OrientDB.new 
-    reset_database
-    ORD.create_vertex_class "test_model"
+    before(:all) do 
+      @db = connect database: 'temp'
+			@db.create_vertex_class "test_model"
   end
 
   context "simple adhoc properties"  do
@@ -41,6 +40,7 @@ describe ActiveOrient::Model do
 				      a_string: 'test',
 				      a_symbol: :TestSymbol,
 				      an_array: [:a, :b, :c],
+							an_hash: { a: 'eins', b: 'zwei', c: 4 },
 				      a_float: 245.5  }
     it "arithmetiric on simple classes" do
       expect{ record.a_integer += 5 }.to change {record.a_integer}.by 5
@@ -50,12 +50,12 @@ describe ActiveOrient::Model do
       expect(record.a_integer).to eq "trzr"
       
     end
-    it "some string operations" do
+    it "some string operations" do:w
       expect{ record.a_string.capitalize!; record.update }.to change {record.a_string}
-      modified_record= DB.get_record record.rid  
+      modified_record= @db.get_record record.rid  
       expect( modified_record.a_string ).to eq 'Test'
       expect{ record.a_string.delete!('es'); record.update }.to change {record.a_string}
-      modified_record= DB.get_record record.rid  
+      modified_record= @db.get_record record.rid  
       expect( modified_record.a_string ).to eq 'Tt'
     end
 
@@ -71,38 +71,38 @@ describe ActiveOrient::Model do
     
     end
 
-    context "update record " do
-      before( :all) do
-	@the_record = TestModel.create a_string: "test" 
-      end
+		context "update record " do
+			before( :all) do
+				@the_record = TestModel.create a_string: "test" 
+			end
 
-      it "status quo" do
-	expect( @the_record.a_string ).to eq "test"
-	expect( @the_record.version ).to eq 1
-      end
+			it "status quo" do
+				expect( @the_record.a_string ).to eq "test"
+				expect( @the_record.version ).to eq 1
+			end
 
-      it " update the record" do
-	@the_record.update a_string: "test2"
-	expect( @the_record.a_string ).to eq "test2"
-	expect( @the_record.version ).to eq 2
-      end
+			it " update the record" do
+				@the_record.update a_string: "test2"
+				expect( @the_record.a_string ).to eq "test2"
+				expect( @the_record.version ).to eq 2
+			end
 
-      it "fringe update" do
-	x= ORD.execute { "update #{@the_record.rrid} set a_string =  'test5' "}
-	expect( x).to eq [1]
+			it "fringe update" do
+				x= @db.execute { "update #{@the_record.rrid} set a_string =  'test5' "}
+				expect( x).to eq [1]
 
-	expect( @the_record.a_string ).to eq "test2"
-	expect( @the_record.version ).to eq 2
+				expect( @the_record.a_string ).to eq "test2"
+				expect( @the_record.version ).to eq 2
 
-	@the_record.reload!
-	expect( @the_record.a_string ).to eq "test5"
-	expect( @the_record.version ).to eq 3
-      end
-    end
+				@the_record.reload!
+				expect( @the_record.a_string ).to eq "test5"
+				expect( @the_record.version ).to eq 3
+			end
+		end
 
 
 
-  end
+	end
 
 
 end

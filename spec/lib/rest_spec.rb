@@ -1,6 +1,6 @@
 
 require 'spec_helper'
-require 'rest_helper'
+require 'connect_helper'
 
 
 shared_examples_for 'a valid Class' do
@@ -8,11 +8,14 @@ shared_examples_for 'a valid Class' do
 end
 describe ActiveOrient::OrientDB do
 
+  before( :all ) do
+    @db = connect database: 'temp'
+  end
+
+	after(:all){ @db.delete_database database: 'temp' }
+
   #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
 
-  before( :all ) do
-    reset_database
-  end
 
 
   context "check private methods", :private do
@@ -32,44 +35,43 @@ describe ActiveOrient::OrientDB do
       it "simple property" do
         ph= { :type => :string }
         field = 't'
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
       end
       it "simple property with linked_class" do
-        ORD.create_class :Contract
+        @db.create_class :Contract
         ph= { :type => :link, linked_class: 'Contract' }
         field = 't'
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"LINK", :linkedClass=>"Contract"}
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"LINK", :linkedClass=>"Contract"}
       end
 
       it 'primitive property definition' do
         ph= {:propertyType=>"STRING" }
         field = 't'
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
         ph= {:propertyType=> :string}
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
         ph= {:propertyType=> 'string'}
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING"}
       end
       it 'primitive property definition with linked_class' do
         ph= {:propertyType=>"STRING", linked_class: :Contract }
         field = 't'
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>:Contract}
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>:Contract}
         ph= {:propertyType=> :string, linkedClass: :Contract }
-        expect( ORD.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>:Contract }
+        expect( @db.translate_property_hash field , ph ).to eq  field => {:propertyType=>"STRING", :linkedClass=>:Contract }
       end
     end
   end
   context "establish a basic-auth ressource"   do
     it "connect " do
-      expect( ORD.get_resource ).to be_a RestClient::Resource
-      expect( ORD.connect ).to be_truthy
+      expect( @db.get_resource ).to be_a RestClient::Resource
     end
   end
 
 
   describe "handle Properties at Class-Level"  do
     before(:all) do
-      ORD.create_class  :Contract, :exchange, 'property', :industry
+      @db.create_class  :Contract, :exchange, 'property', :industry
       Property.create_properties( 
 				 symbol: { propertyType: 'STRING' },
 				 con_id: { propertyType: 'INTEGER' } ,
@@ -85,26 +87,26 @@ describe ActiveOrient::OrientDB do
 
       ## count the number of defined properties 
 #      expect( predefined_property ).to eq 5
-      rp= ORD.get_class_properties(  Property )['properties']
+      rp= @db.get_class_properties(  Property )['properties']
       expect(rp.map{|y| y['name']}).to eq ["date", "symbol", "con_id", "exchanges", "details"]
     end
     it "define property with automatic index"   do
-      c = ORD.create_class :contract_detail
-      ORD.create_property( c, :con_id, type: :integer) { :unique }
-      expect( ORD.get_class_properties(c)['indexes'] ).to have(1).item
-      expect( ORD.get_class_properties(c)['indexes'].first).to eq(
+      c = @db.create_class :contract_detail
+      @db.create_property( c, :con_id, type: :integer) { :unique }
+      expect( @db.get_class_properties(c)['indexes'] ).to have(1).item
+      expect( @db.get_class_properties(c)['indexes'].first).to eq(
 	{	"name"=>"contract_detail.con_id", "type"=>"UNIQUE", "fields"=>["con_id"] } )
     end
 
     it "define a property with manual index" do
-      rp = ORD.create_properties( Contract,
+      rp = @db.create_properties( Contract,
 				 { symbol: { type: :string },
        con_id: { type: :integer } ,
        industry: { type: :link, linkedClass: 'industry' }  } ) do
 	 { test_ind: :unique }
        end
-       expect( ORD.get_class_properties(Contract)['indexes'] ).to have(1).item
-       expect( ORD.get_class_properties(Contract)['indexes'].first).to eq(
+       expect( @db.get_class_properties(Contract)['indexes'] ).to have(1).item
+       expect( @db.get_class_properties(Contract)['indexes'].first).to eq(
 	 {	"name"	  =>  "test_ind", 
 		"type"	  =>  "UNIQUE", 
 		"fields"  =>  ["symbol", "con_id", "industry"] } )
@@ -112,15 +114,13 @@ describe ActiveOrient::OrientDB do
 
     it "add a dataset"   do
       ## without predefined property the test fails because the date is recognized as string.
-      linked_record = DB.create_record Industry, attributes:{ label: 'TestIndustry' }
-      expect{ DB.upsert  Property,  where: { con_id: 12345 }, 
+      linked_record = @db.create_record Industry, attributes:{ label: 'TestIndustry' }
+      expect{ @db.upsert  Property,  where: { con_id: 12345 }, 
 					set: { industry: linked_record.rid, 
 					date: Date.parse( "2011-04-04") } 
 	    }.to change{ Property.count }.by 1
 
       ds = Property.where con_id: 12345
-      puts "PROPERTY:"
-      puts ds.inspect
       expect( ds ).to be_a Array
       expect( ds.first ).to be_a ActiveOrient::Model
       expect( ds.first.con_id ).to eq 12345
@@ -148,11 +148,16 @@ describe ActiveOrient::OrientDB do
 #      pending( "Query Database for last entry does not work in 2.2" )
       property_record=  Property.create  con_id: 12346, property: []
       industries =  ['Construction','HealthCare','Bevarage']
-      industries.each{| industry | property_record.property <<  Industry.create( label: industry ) }
+      industries.each do | industry | 
+				property_record.property <<  Industry.create( label: industry )
+			puts "PR: #{property_record.property.inspect}"
+			end
       # to query: select * from Property where 'Stuttgart' in exchanges.label
       # or select * from Property where exchanges contains ( label = 'Stuttgart' )
-      #
-      expect( property_record.property.label ).to eq industries 
+      property_record.reload!
+			puts "PR: #{property_record.property.inspect}"
+      expect(  property_record.property.label ).to eq industries 
+			
 
       pr =  Property.custom_where( "'HealthCare' in property.label").first
       expect( pr ).to eq property_record
@@ -189,7 +194,7 @@ describe ActiveOrient::OrientDB do
 
   context "Update a record" do
           before(:all) do
-	    ORD.create_class 'this_test'
+	    @db.create_class 'this_test'
 	    @the_record =  ThisTest.create a: 15
 	  end
 
@@ -203,19 +208,19 @@ describe ActiveOrient::OrientDB do
 	  end
 	  
 	  it "reread the unchanged data  from the database" do
-	    expect( ORD.get_record( @the_record.rid).a).to eq 15 
+	    expect( @db.get_record( @the_record.rid).a).to eq 15 
 	  end
 
 	  it "perform REST-Update" do
-	    json_hash = ORD.update @the_record.rid, {a: 25} 
+	    json_hash = @db.update @the_record.rid, {a: 25} 
 	    expect( json_hash['a'] ).to eq 25
 	  end
   end
 end
 =begin
           it "get a document through the query-class" , focus: true do
-            r=  ORD.create_document  ORDest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
-            expect( @query_class.get_documents ORDest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
+            r=  @db.create_document  ORDest_class, attributes: { con_id: 343, symbol: 'EWTZ' }
+            expect( @query_class.get_documents @dbest_class, where: { con_id: 343, symbol: 'EWTZ' }).to eq 1
             expect( @query_class.records ).not_to be_empty
             expect( @query_class.records.first ).to eq r
             expect( @query_class.queries ).to have(1).record
@@ -237,10 +242,10 @@ end
 
         context "execute batches"  do
           it "a simple batch" do
-            ORD.delete_class 'Person'
-            ORD.delete_class 'Car'
-            ORD.delete_class 'Owns'
-            res = ORD.execute  transaction: false do
+            @db.delete_class 'Person'
+            @db.delete_class 'Car'
+            @db.delete_class 'Owns'
+            res = @db.execute  transaction: false do
               ## perform operations from the tutorial
               sql_cmd = -> (command) { { type: "cmd", language: "sql", command: command } }
 
@@ -278,7 +283,7 @@ end
 
         it "list all databases" do
           # the temp-database is always present
-          databases =  ORD.get_databases
+          databases =  @db.get_databases
           expect( databases ).to be_a Array
           expect( databases ).to include 'temp'
 
@@ -286,14 +291,14 @@ end
 
         it "create a database" do
           newDB = 'newTestDatabase'
-          r =  ORD.create_database database: newDB
+          r =  @db.create_database database: newDB
           expect(r).to eq newDB
         end
 
         it "delete a database"  do
 
           rmDB = 'newTestDatabase'
-          r = ORD.delete_database database: rmDB
+          r = @db.delete_database database: rmDB
           expect( r ).to be_truthy
         end
       end

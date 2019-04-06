@@ -4,11 +4,16 @@ class V   < ActiveOrient::Model
 =begin
 specialized creation of vertices, overloads model#create
 =end
-  def self.create( **keyword_arguments )
-    new_vert = db.create_vertex self, attributes: keyword_arguments
-    new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
-
-    new_vert # returns the created vertex (or an array of created vertices)
+	def self.create( **keyword_arguments )
+		new_vert = db.create_vertex self, attributes: keyword_arguments
+		new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
+		if new_vert.nil?
+			logger.error('Vertex'){ "Table #{ref_name} ->>  create failed:  #{keyword_arguments.inspect}" } 
+		elsif block_given?
+			yield new_vert
+		else
+			new_vert # returns the created vertex (or an array of created vertices)
+		end
   end
 =begin
 Vertex#delete fires a "delete vertex" command to the database.

@@ -101,22 +101,30 @@ The model instance fields are then set automatically from the opts Hash.
 					@metadata[:cluster], @metadata[:record] = @d.rid[1,@d.rid.size].split(':')
 					puts "Metadata:  #{@metadata}"
 				end
+
+				# transform $current to :current and $current.mgr to :mgr
+				 transformers = attributes.keys.map{|x|  [x, x[1..-1].split(".").last.to_sym] if x[0] == '$'}.compact
+				 # transformers:  [ [original key, modified key] , [] ]
+				 transformers.each do |a|
+					 attributes[a.last] = attributes[a.first]
+					 attributes.delete a.first
+				 end
+
 				attributes.keys.each do |att|
 					unless att[0] == "@" # @ identifies Metadata-attributes
-						att = att.to_sym if att.is_a?(String)
-						unless self.class.instance_methods.detect{|x| x == att}
-							self.class.define_property att, nil
+						unless self.class.instance_methods.detect{|x| x == att.to_sym}
+							self.class.define_property att.to_sym, nil
 						else
 							#logger.info{"Property #{att.to_s} NOT assigned"}
 						end
 					end
 				end
-
 				if attributes['@type'] == 'd'  # document via REST
 					@metadata[:type]       = attributes.delete '@type'
 					@metadata[:class]      = attributes.delete '@class'
 					@metadata[:version]    = attributes.delete '@version'
 					@metadata[:fieldTypes] = attributes.delete '@fieldTypes'
+					
 					if attributes.has_key?('@rid')
 						rid = attributes.delete '@rid'
 						cluster, record = rid[1 .. -1].split(':')
@@ -189,46 +197,50 @@ The model instance fields are then set automatically from the opts Hash.
   Autoload mechanism and data conversion are defined in the method "from_orient" of each class
 =end
 
-    def [] key
-      iv = attributes[key.to_sym]
-       if my_metadata( key: key) == "t"
-	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
-      elsif my_metadata( key: key) == "x"
-	iv = ActiveOrient::Model.autoload_object iv
-      elsif iv.is_a? Array
-	  OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
-     elsif iv.is_a? Hash
-	  OrientSupport::Hash.new( self, iv){ key.to_sym }
-#     elsif iv.is_a? RecordMap 
- #      iv
-#       puts "RecordSet detected"
-      else
-	iv.from_orient
-      end
-    end
+		def [] key
 
-    def []= key, val
-      val = val.rid if val.is_a?( ActiveOrient::Model ) && val.rid.rid?
-      attributes[key.to_sym] = case val
-			       when Array
-				 if val.first.is_a?(Hash)
-				   v = val.map do |x|
-				     if x.is_a?(Hash)
-				       HashWithIndifferentAccess.new(x)
-				     else
-				       x
-				     end
-				   end
-				   OrientSupport::Array.new(work_on: self, work_with: v )
-				 else
-				   OrientSupport::Array.new(work_on: self, work_with: val )
-				 end
-			       when Hash
-				 HashWithIndifferentAccess.new(val)
-			       else
-				 val
-			       end
-    end
+			iv = attributes[key]
+			if my_metadata( key: key) == "t"
+				iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
+			elsif my_metadata( key: key) == "x"
+				iv = ActiveOrient::Model.autoload_object iv
+			elsif iv.is_a? Array
+				OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
+			elsif iv.is_a? Hash
+#				if iv.keys.include?("@class" )
+#				ActiveOrient::Model.orientdb_class( name: iv["@class"] ).new iv
+#				else
+#					iv
+				OrientSupport::Hash.new( self, iv.from_orient){ key.to_sym }
+	#			end
+				#     elsif iv.is_a? RecordMap 
+				#      iv
+				#       puts "RecordSet detected"
+			else
+				iv.from_orient
+			end
+		end
+
+		def []= key, val
+			val = val.rid if val.is_a?( ActiveOrient::Model ) && val.rid.rid?
+			attributes[key.to_sym] = case val
+															 when Array
+																 if val.first.is_a?(Hash)
+																	 v = val.map{ |x| x }
+																	 OrientSupport::Array.new(work_on: self, work_with: v )
+																 else
+																	 OrientSupport::Array.new(work_on: self, work_with: val )
+																 end
+															 when Hash
+																 if val.keys.include?("@class" )
+																	 OrientSupport::Array.new( work_on: self, work_with: val.from_orient){ key.to_sym }
+																 else
+																	 OrientSupport::Hash.new( self, val  )
+																 end
+															 else
+																 val
+															 end
+		end
 
     def update_attribute key, value
       @attributes[key] = value

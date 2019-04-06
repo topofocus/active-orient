@@ -19,6 +19,9 @@ flag whether a property exists on the Record-level
     attributes.keys.include? property.to_s
   end
 
+	def properties 
+		{ "@type" => "d", "@class" => self.metadata[:class] }.merge attributes
+	end
 
   #
   # Obtain the RID of the Record  (format: *00:00*)
@@ -54,12 +57,11 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
 
   def query query
     
-    query.from = rrid
-    sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
+    query.from = rrid if query.is_a? OrientSupport::OrientQuery
     result = orientdb.execute do
-      sql_cmd[query.to_s]
+      query.to_s
     end
-    if result.is_a? Array
+    if result.is_a? Array  
       OrientSupport::Array.new work_on: self, work_with: result
     else
       result
@@ -115,18 +117,18 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
     model.array << new_item
 =end
 
-  def update_item_property method, array, item = nil, &ba # :nodoc:
- #   begin
-      logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
-      self.attributes[array] = Array.new unless attributes[array].present?
-
-      items = if item.present?
-		item.is_a?(Array)? item : [item]  
-	      elsif block_given?
-		yield
-	      end
-      db.manipulate_relation self, method, array, items
-    end
+#  def update_item_property method, array, *item = nil, &ba # :nodoc:
+# #   begin
+#      logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
+#      self.attributes[array] = Array.new unless attributes[array].present?
+#
+#      items = if item.present?
+#		item.is_a?(Array)? item : [item]  
+#	      elsif block_given?
+#		yield
+#	      end
+#      db.manipulate_relation self, method, array, items   #  only java!
+#    end
 =begin
 Add Items to a linked or embedded class
 
@@ -147,7 +149,7 @@ Example: add 10 elements to the property
 
 The method returns the model record itself. Thus nested initialisations are possible:
    
-       ORD.create_classes([:base, :first_list, :second_list ]){ "V" }
+       ORD.create_class(:base, :first_list, :second_list ){ V }
        ORD.create_property :base, :first_list,  type: :linklist, linkedClass: :first_list
        ORD.create_property :base, :label, index: :unique
        ORD.create_property :first_list,  :second_list , type: :linklist, linkedClass: :second_list
@@ -175,13 +177,17 @@ If only single Items are to  be inserted, use
 
   def add_item_to_property array, *item
        item =  yield if block_given?
-	if attributes.keys.include? array.to_s
-	  item.each{|x| self.attributes[array].push x.to_orient }
-	  update
-	else
-	  update array=> item 
-	end	
-#  rescue NoMethodError
+#	  item.each{|x| self.attributes[array].push x.to_orient }
+#	  update
+#	else
+			 puts attributes.keys
+			 if attributes.keys.include? array.to_sym
+				 send array.to_sym, :<<, item
+				 reload!
+			 else
+				nil 
+			 end
+
     #undefined method `<<' for nil:NilClass
 
   end
@@ -238,38 +244,34 @@ _note:_ The keyword »set« is optional, thus
 is identical
 =end
 
-  def update set: {}, **args
+  def update set:{}, add: nil, to: nil, **args
     logger.progname = 'ActiveOrient::Model#Update'
-    self.attributes.merge!(set) if set.present?
-    self.attributes.merge!(args) if args.present?
-    self.attributes['updated_at'] =  DateTime.now
-#    puts "attributes: #{attributes.inspect}"
-    if rid.rid?
-      updated_data= db.update self, attributes, @metadata[:version]
-      # if the updated dataset changed, drop the changes made siently
-      if updated_data.is_a? Hash
-	self.version =  updated_data["@version"]
-	self # return value
-      else
-	logger.error{ "UPDATE:  #{rrid} FAILED "}
-	logger.error{ "The Args: #{attributes.inspect} "}
-	logger.error{ "The Object: #{updated_data.inspect} "}
-	reload!
-      end
-    else
-      save 
-    end
+
+		if block_given?			# calling vs. a block is used internally
+			transfer_content from: 	 query( "update #{rrid} set  #{ yield }  return after @this" )&.first
+		 else
+			set.merge! args
+			set.merge updated_at: DateTime.now
+
+			if rid.rid?
+				transfer_content from:  db.update( self, set, version )
+				# if the updated dataset changed, drop the changes made siently
+				self # return value
+			else  # new record
+				@attributes.merge! set
+				save
+			end
+		end
 
   end
 
 # mocking active record  
   def update_attribute the_attribute, the_value # :nodoc:
-    update set: {the_attribute => the_value }
-    super the_attribute, the_value
+    update { " #{the_attribute} = #{the_value.to_or} " }
   end
 
   def update_attributes **args    # :nodoc:
-    update set: args
+    update  args
   end
 
   ########## SAVE   ############
@@ -287,32 +289,35 @@ Saves the record  by calling update  or  creating the record
   a.save
 
 =end
-def save
-  if rid.rid?
-    update
-  else
-    the_record =   db.create_record  self, attributes: attributes, cache: false 
-    transfer_content from: the_record
-    ActiveOrient::Base.store_rid self
-  end
-end
+	def save
+		transfer_content from:  if rid.rid?
+															db.update self, attributes, version
+														else
+															db.create_record  self, attributes: attributes, cache: false 
+														end
+		ActiveOrient::Base.store_rid self
+	end
 
-=begin
-  Overwrite the attributes with Database-Contents 
-
-  If a record is provided as argument, those attributes and metadata are copied to the object
-=end
-
-  def reload! updated_dataset = nil
-    updated_dataset = db.get_record(rid) if updated_dataset.nil?
-    transfer_content from: updated_dataset
-  self
+  def reload! 
+    transfer_content from: db.get_record(rid) 
+		self
   end
 
 
   def transfer_content  from:
+		# »from« can be either 
+		# a model record (in case of  create-record, get_record) or
+		# a hash containing {"@type"=>"d", "@rid"=>"#xx:yy", "@version"=>n, "@class"=>'a_classname'} 
+		# and a list of updated properties (in case of db.update). Then  update the version field and the 
+		# attributes.
+			if from.is_a? ActiveOrient::Model
        @metadata = from.metadata
        @attributes =  from.attributes
+			else
+				self.version =  from['@version']
+				# throw from["@..."] away and convert keys to symbols, merge that into attributes
+				@attributes.merge! Hash[ from.delete_if{|k,_| k =~ /^@/}.map{|k,v| [k.to_sym, v.from_orient]}]
+			end
   end
   ########## CHECK PROPERTY ########
 
@@ -347,7 +352,7 @@ Automatic database-updates are deactivated for now
     # if the first entry of the parameter-array is a known attribute
     # proceed with the assignment
     if args.size == 1
-       attributes[args.first.to_s]  # return the attribute-value
+       attributes[args.first.to_sym]  # return the attribute-value
     elsif args[0][-1] == "=" 
       if args.size == 2
 #	if rid.rid? 

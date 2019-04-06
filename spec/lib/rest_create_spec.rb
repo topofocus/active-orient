@@ -2,26 +2,24 @@ require 'spec_helper'
 require 'rest_helper'
 require 'active_support'
 require 'pp'
+require 'connect_helper'
 
 describe ActiveOrient::OrientDB do
     before(:all) do 
-      reset_database
-      ORD.create_class "V","E"
-      ORD.create_class('dataset', 'the_dataset'){ :V }
-      ORD.create_class 'linked_data'
+      @db = connect database: 'temp'
+      @db.create_class('dataset', 'the_dataset'){ :V }
+      @db.create_class 'linked_data'
     end
 
-  #  let(:rest_class) { (Class.new { include HCTW::Rest } ).new }
-
-
+		after(:all){ @db.delete_database database: 'temp' }
 
   context "create ActiveOrient::Model classes"  do
     before(:all) do
 
       # create classes Abstract, Depends and DependsOn
-      ORD.create_class( 'abstract') do  { abstract: true } end
-     ORD.create_class( 'depends') { Abstract }
-     ORD.create_class( 'depends_on' ){ Depends }
+     @db.create_class( 'abstract') do  { abstract: true } end
+     @db.create_class( 'depends') { Abstract }
+     @db.create_class( 'depends_on' ){ Depends }
     end
 
    it 'create an abstract class' do
@@ -68,10 +66,10 @@ describe ActiveOrient::OrientDB do
   context "create classes" do
     
     it "create a single class" do
-       ORD.create_class "erste_klasse"
+       @db.create_class "erste_klasse"
       expect( ErsteKlasse.new ).to be_a ActiveOrient::Model
       expect( ErsteKlasse.ref_name).to eq "erste_klasse"
-      m= ORD.create_class "erste_SYMBOL_klasse"
+      m= @db.create_class "erste_SYMBOL_klasse"
       expect(m).to be ErsteSymbolKlasse
       expect(m.ref_name).to eq "erste_SYMBOL_klasse"
     end
@@ -80,13 +78,13 @@ describe ActiveOrient::OrientDB do
 #    it "create a class hierachy "  do
 #      cl_hash= { Z: [ :test1, :test2, 'test3'], :UZ => 'reisser' }
 #      
-#      m =  Hash[ ORD.create_class( cl_hash ){ ORD.create_class( 'GT') } ]
+#      m =  Hash[ @db.create_class( cl_hash ){ ORD.create_class( 'GT') } ]
 #      expect(m).to eq  Z  => [Test1, Test2, Test3], UZ => Reisser  
 #    end
 #
 #    it "complex hierarchy"  do
 #
-#      m= Hash[ ORD.create_class( { TZV: [ :A, :B, C: [:c1,:c3,:c2]  ],  EIZR: [:has_content, :becomes_hot ]} ) ]
+#      m= Hash[ @db.create_class( { TZV: [ :A, :B, C: [:c1,:c3,:c2]  ],  EIZR: [:has_content, :becomes_hot ]} ) ]
 #      expect(  m.keys ).to eq [TZV, EIZR ]
 #      expect( m[TZV] ).to eq [A, B, [[C, [C1, C3, C2]]]]
 #      expect( m[EIZR] ).to eq [HasContent, BecomesHot]
@@ -94,7 +92,7 @@ describe ActiveOrient::OrientDB do
 #    end
 		it "create  vertex classes through block"  do
 			classes_simple = [ :one_z, :two_z, :three_z]
-			klasses = ORD.create_class( *classes_simple ){ 'V' }
+			klasses = @db.create_class( *classes_simple ){ 'V' }
 			classes_simple.each{|y| expect( ActiveOrient.database_classes.keys).to include y.to_s }
 			expect( klasses ).to have( 3 ).items
 			klasses.each{|x| expect(x.superclass).to eq V }
@@ -102,22 +100,22 @@ describe ActiveOrient::OrientDB do
 		it "create and delete an Edge " do
 			edge_name = 'the_edge'
 			#	ActiveOrient::Model::E.delete_class
-			model = ORD.create_edge_class  edge_name
+			model = @db.create_edge_class  edge_name
 			expect( model.new ).to be_a ActiveOrient::Model
 			expect( model.superclass ).to eq E 
 			## a freshly initiated edge does not have "in" and "out" properties and thus does not look like an edge
 			expect( model.new.is_edge? ).to be_falsy
-			expect( ORD.classname  model ).to eq edge_name.underscore
+			expect( @db.classname  model ).to eq edge_name.underscore
 			model.delete_class
-			expect( ORD.database_classes ).not_to include edge_name 
+			expect( @db.database_classes ).not_to include edge_name 
 		end
 	end
 
   context "create and delete records "  do
     before(:all) do
 
-      ORD.create_edge_class :the_edge 
-      ORD.create_vertex_class :vertex1,:vertex2 
+      @db.create_edge_class :the_edge 
+      @db.create_vertex_class :vertex1,:vertex2 
     end
     
     it "populate database-table with data and subsequent delete them" do
@@ -140,7 +138,7 @@ describe ActiveOrient::OrientDB do
       cachesize= ActiveOrient::Base.display_rid.size
 
       expect {
-      DB.create_edge TheEdge do  | attributes |
+      @db.create_edge TheEdge do  | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
 	       { from: record1.find{|x| x.testentry == o },
 		 to: record2.find{ |x| x.testentry.to_s.ord == o } ,
@@ -186,7 +184,7 @@ describe ActiveOrient::OrientDB do
   context "play with naming conventions" do
 
     it "the standard case" do
-      m = ORD.create_class "erster_test"
+      m = @db.create_class "erster_test"
       expect(m).to be ErsterTest
       expect(m.ref_name).to eq "erster_test"
     end
@@ -198,7 +196,7 @@ describe ActiveOrient::OrientDB do
 	  name.present? ? name.upcase : ref_name.upcase
 	end
 
-      m = ORD.create_class( "zweiter" ){ E }
+      m = @db.create_class( "zweiter" ){ E }
       puts m.classname
       expect(m.superclass).to be E
       expect(m).to be ZWEITER

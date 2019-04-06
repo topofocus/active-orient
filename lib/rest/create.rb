@@ -41,26 +41,25 @@ usually, only one classname is provided, however the method takes a row of class
 #todo reintegrate the ability to create abstract classes
 =end
 private
-  def create_this_class  *db_classname  #nodoc#
-     if block_given?
-	      additional_args =     yield
-		  superclass = additional_args[ :superclass ]
-		  abstract = additional_args[ :abstract ].presence || nil
-      else 
-	superclass = nil
-	abstract =  nil
-      end
-    #
-    command= db_classname.map do | database_class |
-      c = if superclass.present?
-	    "CREATE CLASS #{database_class} EXTENDS #{superclass}" 
-	  else
-	    "CREATE CLASS #{database_class} "
-	  end
-      c << " ABSTRACT" if abstract.present?
-		 logger.info{ ">>: #{c}"}
-      { type: "cmd", language: 'sql', command: c }  # return value 4 command
-    end
+def create_this_class  *db_classname  #nodoc#
+	if block_given?
+		additional_args =     yield
+		superclass = additional_args[ :superclass ]
+		abstract = additional_args[ :abstract ].presence || nil
+	else 
+		superclass = nil
+		abstract =  nil
+	end
+	#
+	command= db_classname.map do | database_class |
+		c = if superclass.present?
+					"CREATE CLASS #{database_class} EXTENDS #{superclass}" 
+				else
+					"CREATE CLASS #{database_class} "
+				end
+		c << " ABSTRACT" if abstract.present?
+		{ type: "cmd", language: 'sql', command: c }  # return value 4 command
+	end
     # execute anything as batch, don't roll back in case of an error
 
    execute transaction: false, tolerated_error_code: /already exists/ do
@@ -69,6 +68,8 @@ private
    
   rescue ArgumentError => e
     logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+	rescue ActiveOrient::Error::ServerError
+		# do nothing
   end
 
 
@@ -154,24 +155,9 @@ The method returns the included or the updated dataset
 		specify_return_value =  "return after @rid"
 		#			set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
 		command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
-		result = execute transaction: false,  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
-			{ type: "cmd", language: 'sql', command: command}
-		end 
-		puts "result #{result.inspect}"
+		result = execute( tolerated_error_code: /found duplicated key/){ command }	
+	#	puts "result #{result.inspect}"
 		result =result.pop if result.is_a? Array
-		if result.is_a? Hash 
-			if result.has_key?( "@rid" )
-				result
-			elsif result.has_key?( 'count' )
-				get_records( query: OrientSupport::OrientQuery.new( from:  o_class ,
-																													 where: set.merge( where))) &.first
-			else
-				logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
-				puts "Command #{command}"
-				puts "result #{result}"
-				raise ArgumentError
-			end
-		end
 	end
   ############### PROPERTIES #############
 
@@ -199,39 +185,41 @@ A composite index
   		end
 =end
 
-  def create_properties o_class, all_properties, &b
-    logger.progname = 'RestCreate#CreateProperties'
-    all_properties_in_a_hash = HashWithIndifferentAccess.new
-    all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
-    count=0
-    begin
-      if all_properties_in_a_hash.is_a?(Hash)
-	response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
-	# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
-	count= response.body.to_f.to_i if response.code == 201
-      end
-    rescue RestClient::InternalServerError => e
-      logger.progname = 'RestCreate#CreateProperties'
-      response = JSON.parse(e.response)['errors'].pop
-      error_message = response['content'].split(':').last
-      logger.error{"Properties in #{classname(o_class)} were NOT created"}
-      logger.error{"The Error was: #{response['content'].split(':').last}"}
-      nil
-    end
-        ### index
-    if block_given?# && count == all_properties_in_a_hash.size
-      index = yield
-      if index.is_a?(Hash)
-	if index.size == 1
-	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
-	else
-	  index_hash =  HashWithIndifferentAccess.new(type: :unique, on: all_properties_in_a_hash.keys).merge index
-	  create_index o_class,  name: index_hash[:name], on: index_hash[:on], type: index_hash[:type]
+	def create_properties o_class, all_properties, &b
+		logger.progname = 'RestCreate#CreateProperties'
+		all_properties_in_a_hash = Hash.new  #WithIndifferentAccess.new
+		all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
+		count=0
+#		puts "all_properties_in_a_hash #{all_properties_in_a_hash.to_json}"
+		begin
+			if all_properties_in_a_hash.is_a?(Hash)
+				response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
+#				puts response.inspect
+				# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
+				count= response.body.to_f.to_i if response.code == 201
+			end
+		rescue RestClient::InternalServerError => e
+			logger.progname = 'RestCreate#CreateProperties'
+			response = JSON.parse(e.response)['errors'].pop
+			error_message = response['content'].split(':').last
+			logger.error{"Properties in #{classname(o_class)} were NOT created"}
+			logger.error{"The Error was: #{response['content'].split(':').last}"}
+			nil
+		end
+		### index
+		if block_given?# && count == all_properties_in_a_hash.size
+			index = yield
+			if index.is_a?(Hash)
+				if index.size == 1
+					create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
+				else
+					index_hash =  {type: :unique, on: all_properties_in_a_hash.keys}.merge index
+					create_index o_class,  name: index_hash[:name], on: index_hash[:on], type: index_hash[:type]
+				end
+			end
+		end
+		count  # return_value
 	end
-      end
-    end
-    count  # return_value
-  end
 
 =begin
 Create a single property.
@@ -249,7 +237,7 @@ If an index is to be specified, it's defined in the optional block
 
   def create_property o_class, field, index: nil, **args, &b
     logger.progname = 'RestCreate#CreateProperty'
-    args= { type: :integer} if args.blank?  # the default case
+    args= { type: :string} if args.blank?  # the default case
     c = create_properties o_class, {field => args}
     if index.nil? && block_given?
       index = yield
@@ -270,28 +258,23 @@ If an index is to be specified, it's defined in the optional block
 
   def create_index o_class, name:, on: :automatic, type: :unique
     logger.progname = 'RestCreate#CreateIndex'
-    begin
       c = classname o_class
-      execute transaction: false do
-    	  command = if on == :automatic
-    		  "CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
-    		elsif on.is_a? Array
-    		  "CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
-    		else
-    		  "CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
-    		  #nil
-    		end
-	  #puts "command: #{command}"
-    	  {type: "cmd", language: 'sql', command: command} if command.present?
-      end
-      logger.info{"Index on #{c} based on #{name} created."}
-    rescue RestClient::InternalServerError => e
-      response = JSON.parse(e.response)['errors'].pop
-  	  error_message = response['content'].split(':').last
-      logger.error{"Index not created."}
-      logger.error{"Error-code #{response['code']} --> #{response['content'].split(':').last }"}
-      nil
-    end
+			if  execute( transaction: false, tolerated_error_code: /found duplicated key/) do
+				command = if on == :automatic
+										"CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
+									elsif on.is_a? Array
+										"CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
+									else
+										"CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
+										#nil
+									end
+				#puts "command: #{command}"
+				{type: "cmd", language: 'sql', command: command} if command.present?
+			end
+			logger.info{"Index on #{c} based on #{name} created."}
+			else
+				logger.error {"index #{name}.#{type} on  #{c}  NOT created"}
+			end
   end
 
 end

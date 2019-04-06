@@ -5,6 +5,10 @@ class Array
     map( &:to_orient) # .join(',')
   end
 
+  def to_or
+    map( &:to_or) # .join(',')
+  end
+
   def from_orient
     map &:from_orient
   end
@@ -34,8 +38,53 @@ class Symbol
     ":"+self.to_s+":"
   end
   def to_or
-  "'"+self.to_s+"'"
+  "'"+self.to_orient+"'"
   end
+	
+	# inserted to prevent error message while initialising a model-recorda
+=begin
+2.6.1 :008 > ii.first.attributes
+ => {:zwoebelkuchen=>[7, 9, 9, 7, 8, 8, 3, 6, 9, ":zt:", ":zt:", ":zg:", ":zg:", ":tzu:", ":grotte:"], :created_at=>Wed, 27 Mar 2019 14:59:45 +0000} 
+2.6.1 :009 > ii.first.send :zwoebelkuchen
+key zwoebelkuchen
+iv [7, 9, 9, 7, 8, 8, 3, 6, 9, ":zt:", ":zt:", ":zg:", ":zg:", ":tzu:", ":grotte:"]
+27.03.(15:00:36)ERROR->MethodMissing  -> Undefined method: coerce --  Args: [Wed, 27 Mar 2019 14:59:45 +0000]
+27.03.(15:00:36)ERROR-> The Message undefined method `coerce' for :zt:Symbol
+27.03.(15:00:36)ERROR->  /home/dev/topo/activeorient/lib/support/orient.rb:129:in `block in method_missing'
+  /home/dev/topo/activeorient/lib/support/orient.rb:129:in `map'
+  /home/dev/topo/activeorient/lib/support/orient.rb:129:in `method_missing'
+  /home/ubuntu/.rvm/gems/ruby-2.6.1/gems/activesupport-5.2.2.1/lib/active_support/core_ext/date/calculations.rb:140:in `<=>'
+  /home/ubuntu/.rvm/gems/ruby-2.6.1/gems/activesupport-5.2.2.1/lib/active_support/core_ext/date/calculations.rb:140:in `compare_with_coercion'
+  /home/ubuntu/.rvm/gems/ruby-2.6.1/gems/activesupport-5.2.2.1/lib/active_support/core_ext/date_time/calculations.rb:208:in `<=>'
+  /home/dev/topo/activeorient/lib/support/orient.rb:36:in `=='
+  /home/dev/topo/activeorient/lib/support/orient.rb:36:in `key'
+  /home/dev/topo/activeorient/lib/support/orient.rb:36:in `initialize'
+  /home/dev/topo/activeorient/lib/base.rb:216:in `new'
+  /home/dev/topo/activeorient/lib/base.rb:216:in `[]'
+  /home/dev/topo/activeorient/lib/base_properties.rb:110:in `block in define_property_methods'
+  (irb):9:in `irb_binding'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/workspace.rb:85:in `eval'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/workspace.rb:85:in `evaluate'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/context.rb:385:in `evaluate'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:493:in `block (2 levels) in eval_input'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:647:in `signal_status'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:490:in `block in eval_input'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/ruby-lex.rb:246:in `block (2 levels) in each_top_level_statement'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/ruby-lex.rb:232:in `loop'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/ruby-lex.rb:232:in `block in each_top_level_statement'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/ruby-lex.rb:231:in `catch'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb/ruby-lex.rb:231:in `each_top_level_statement'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:489:in `eval_input'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:428:in `block in run'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:427:in `catch'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:427:in `run'
+  /home/ubuntu/.rvm/rubies/ruby-2.6.1/lib/ruby/2.6.0/irb.rb:383:in `start'
+  ./active-orient-console:51:in `<main>'
+=end
+
+	def coerce a  #nodoc#
+	 nil	
+	end
 end
 
 class Object
@@ -63,7 +112,8 @@ end
 class Numeric
 
   def to_or
-   "#{self.to_s}"
+  # "#{self.to_s}"
+		self
   end
 
   def to_a
@@ -145,23 +195,57 @@ class String
 		end
 	end
 
+	def coerce a  #nodoc#
+	 nil	
+	end
 
 end
 
 class Hash #WithIndifferentAccess
-  def from_orient
+
+	# converts "abc" => {anything} to :abc => {anything}
+	# converts "nn" => {anything} to nn => {anything}
+  def to_orient   # converts hast from activeorient to db
     substitute_hash =  {} # HashWithIndifferentAccess.new
+#		puts "here to hash"
     #keys.each{|k| puts self[k].inspect}
-    keys.each{|k| substitute_hash[k] = self[k].from_orient}
+    keys.each do |k| 
+			orient_k =  case k
+									when Numeric
+										k
+									when Symbol, String
+										k.to_s
+									else
+										nil
+									end
+			substitute_hash[orient_k] = self[k].to_orient
+		end
     substitute_hash
   end
 
-  def to_orient
-    #puts "here hash"
-    substitute_hash = Hash.new
-    keys.each{|k| substitute_hash[k] = self[k].to_orient}
-    substitute_hash
+  def from_orient   # converts hash from db to activeorient
+    #puts "here hash.from_orient --> #{self.inspect}"
+		if keys.include?("@class" )
+			ActiveOrient::Model.orientdb_class( name: self["@class"] ).new self
+		else
+			substitute_hash = Hash.new
+			keys.each do |k| 
+				orient_k = if  k.to_s.to_i.to_s == k.to_s
+										 k.to_i
+									 else
+										 k.to_sym
+									 end
+
+				substitute_hash[orient_k] = self[k].from_orient
+			end
+			substitute_hash
+		end
   end
+
+	# converts a hash to a string appropiate to include in raw queries
+	def to_or
+		"{ " + to_orient.map{|k,v| "#{k.to_s.to_or}: #{v.to_or}"}.join(',') + "}"
+	end
 ## needs testing!!
 #  def as_json o=nli
 #    #puts "here hash"
@@ -169,10 +253,10 @@ class Hash #WithIndifferentAccess
 #    keys.each{|k| substitute_hash[k] = self[k].as_json}
 #    substitute_hash
 #  end
-  def nested_under_indifferent_access
+#  def nested_under_indifferent_access
 #    HashWithIndifferentAccess.new self
 		self
-  end
+#  end
 end
 
 #class RecordList

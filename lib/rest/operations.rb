@@ -98,70 +98,79 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
 =end
 
-  def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil
-    batch = {transaction: transaction, operations: yield}
-    logger.progname= "Execute"
-    unless batch[:operations].blank?
-      batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
-      batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
-      batch[:operations].compact!
-      # transaction is true only for multible statements
-#      batch[:transaction] = transaction & batch[:operations].size >1
-      begin
-	logger.info{ batch[:operations].map{|y|y[:command]}.join(";\n ") } 
-        response = @res["/batch/#{ActiveOrient.database}"].post batch.to_json
-      rescue RestClient::BadRequest => f
-	# extract the misspelled query in logfile and abort
-	sentence=  JSON.parse( f.response)['errors'].last['content']
-	logger.fatal{ " BadRequest --> #{sentence.split("\n")[1]} " }
-	puts "Query not recognized"
-	puts sentence
-	raise
-      rescue RestClient::InternalServerError => e
-        logger.progname = 'RestOperations#Execute'
-	sentence=  JSON.parse( e.response)['errors'].last['content']
-	if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
-	  logger.info{ "tolerated_error::#{e.message}"}
-	else
-	  if process_error
-#	    puts batch.to_json
-#	  logger.error{e.response}
-	  logger.error{sentence}
-	  logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
-#	  logger.error{e.message.to_s}
-	  else 
-	    raise
-	  end
-	end 
-      rescue Errno::EADDRNOTAVAIL => e
-	sleep(2)
-	retry
-      end
-      if response.present? && response.code == 200
-        if response.body['result'].present?
-          result=JSON.parse(response.body)['result']
-	  return result if raw.present?
-          result.map do |x|
-            if x.is_a? Hash
-							if x.has_key?( 'count' )
-								x['count']
-              elsif x.has_key?('@class')
-		the_object = ActiveOrient::Model.orientdb_class( name: x['@class'] ).new x
-		ActiveOrient::Base.store_rid( the_object )   # update cache
-              elsif x.has_key?('value')
-                x['value']
-              else   # create a dummy class and fill with attributes from result-set
-                ActiveOrient::Model.orientdb_class(name: 'query' ).new x
-              end
-            end
-          end.compact # return_value
-        else
-          response.body
-        end
-      else
-        nil
-      end
-    end
-  end
+	def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil
+		batch = {transaction: transaction, operations: yield}
+		logger.progname= "Execute"
+		begin
+		  batch[:operations] = [ batch[:operations] ] if batch[:operations].is_a?( Hash ) 
+			response = if batch[:operations].is_a?(Array) 
+									 batch[:operations].compact!
+									 # transaction is true only for multible statements
+									 #      batch[:transaction] = transaction & batch[:operations].size >1
+									 logger.info{ batch[:operations].map{|y|y[:command]}.join(";\n ") } 
+									 @res["/batch/#{ActiveOrient.database}"].post batch.to_json
+								 else
+									 logger.info{ batch[:operations] } 
+									 @res["/command/#{ActiveOrient.database}/sql"].post batch[:operations] #.to_json
+								 end  unless batch[:operations].blank?
+								 #		batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
+								 #		batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
+		rescue RestClient::BadRequest => f
+			# extract the misspelled query in logfile and abort
+			sentence=  JSON.parse( f.response)['errors'].last['content']
+			logger.fatal{ " BadRequest --> #{sentence.split("\n")[1]} " }
+			puts "Query not recognized"
+			puts sentence
+			raise
+		rescue RestClient::InternalServerError => e
+			sentence=  JSON.parse( e.response)['errors'].last['content']
+			if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
+				logger.debug('RestOperations#Execute'){ "tolerated_error::#{e.message}"}
+				logger.debug('RestOperations#Execute'){ e.message }
+				nil  # return value
+			else
+				if process_error
+					#	    puts batch.to_json
+					#	  logger.error{e.response}
+					logger.error{sentence}
+					#logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+					#	  logger.error{e.message.to_s}
+				else 
+					raise
+				end
+			end 
+		rescue Errno::EADDRNOTAVAIL => e
+			sleep(2)
+			retry
+		else  # code to execute if no exception  is raised
+			if response.code == 200
+				if response.body['result'].present?
+					result=JSON.parse(response.body)['result']
+					return result if raw.present?
+					result.map do |x|
+						if x.is_a? Hash
+							y = x.transform_keys{|y| y.delete('@').split('=').first.underscore.to_sym}
+							if y[:type] == 'd' #0.present?  #  == 'd'  # x.has_key?("@type")   && 
+								if y.has_key?(:class)
+									the_object = ActiveOrient::Model.orientdb_class( name: y[:class] ).new x
+									ActiveOrient::Base.store_rid( the_object )   # update cache
+								else   # create a dummy class and fill with attributes from result-set
+									ActiveOrient::Model.orientdb_class(name: 'query' ).new x
+								end
+							else
+  							 # return the result or the corresponding dataset
+								r= y.map{ | _,v | v.is_a?(String) && v.rid? ?  ActiveOrient::Model.get( v ): v }
+								y.size ==1 ? r.first : r   # return raw instead of array if only one value is present
+							end
+						end
+					end.compact # return_value
+				else
+					response.body
+				end
+			else
+				nil
+			end
+		end
+	end
 
 end
