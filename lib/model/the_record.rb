@@ -42,8 +42,8 @@ The extended representation of RID (format: *#00:00* )
   end
   alias to_orient rrid
 
-  def to_or #:nodoc:
-    rrid
+  def to_or
+    rid.rid? ?  rrid : "{ #{embedded} }"
   end
 =begin
 Query uses the current model-record  as origin of the query.

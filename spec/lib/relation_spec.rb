@@ -11,25 +11,27 @@ describe ActiveOrient::OrientDB do
 		FirstList.create_property  :second_list , type: :link_list, linked_class: SecondList 
 		if Base.count.zero?  # omit if structure is present
 
-		generate_second_list = ->( t ) { (0..9).each{ |d| t.second_list.append SecondList.create( label: d ) } }
-#					generate_second_list[ second_record ]
-	
 		(0 .. 9).each do | b |
 			base_record = Base.create( label: b, first_list: [])
 			(0..9 ).each do | c |
 					list_record = FirstList.create( label: c , second_list: [])  
-					(0..9).each do |n|
-						list_record.second_list.append SecondList.create( label: n ) 
-					end
-				base_record.first_list.append list_record
+					list_record.second_list << (0..9).map{|n| SecondList.new( label: n ) }
+				base_record.first_list <<  list_record
 			end
 			end  #c
 		end
-#		FirstList.all.each{ |r| generate_second_list[r] }
 	end		  # before
 
-#	after(:all){ @db.delete_database database: 'temp' }
+	after(:all){ @db.delete_database database: 'temp' }
 
+		context 'FirstList' do
+			subject{ FirstList }
+			its(:count){ is_expected.to eq 100 }
+		end
+		context 'SecondList' do
+			subject{ SecondList }
+			its(:count){ is_expected.to eq 1000 }
+		end
 
   context "create and manage a 2 layer 1:n relation" do
 
@@ -48,15 +50,15 @@ describe ActiveOrient::OrientDB do
 				base.first_list.each{|fl| expect( fl.second_list ).to have(10).items }
 			end
 		end
-
+		
 		it "query local structure" do
 			Base.all.each do | b |
-				#	puts "base: #{b.to_human}"
+					puts "base: #{b.to_human}"
 				(0..9).each do | c |
-				#	  puts "First_List #{c}:: #{b.first_list[c].to_human}"
+					  puts "First_List #{c}:: #{b.first_list[c].to_human}"
 				(0..9).each do | d |
-					#	  puts "Second_List: #{b.first_list[c].second_list.to_human}"
-					#	  puts "c: #{c} ; d: #{d}"
+						  puts "Second_List: #{b.first_list[c].second_list.to_human}"
+					  puts "c: #{c} ; d: #{d}"
 					expect( b.first_list[c].second_list[d].label ).to eq d
 				end
 			end

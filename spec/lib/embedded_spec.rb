@@ -8,7 +8,7 @@ describe ActiveOrient::OrientDB do
     @db = connect database: 'temp'
 		@db.create_class :emb, :a_set, :a_list
 		@db.create_vertex_class :base 
-      Base.create_property  :a_list,  type: :link_list, linked_class: :a_list 
+      Base.create_property  :a_list,  type: :embedded_list, linked_class: :a_list 
       Base.create_property  :label, type: :string, index: :unique 
       Base.create_property  :a_set, type: :embedded_map
   end
@@ -49,6 +49,11 @@ describe ActiveOrient::OrientDB do
 
 #    end
   end
+
+
+	context " embedd list records" do
+		it ""
+	end
 end
 
 #  working: 

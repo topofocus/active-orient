@@ -69,9 +69,9 @@ The change is immediately transmitted to the database.
 
 
 =end
-		def   append arg
-			raise ArgumentError if arg.is_a? Hash
-			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or}  "}[@name]
+		def   append *arg
+
+			@orient.update { "#{@name.to_s} = #{@name} || [ #{arg.map(&:to_or).join(', ')} ] "}[@name]
 		end
 
 		alias  << append 
@@ -168,6 +168,7 @@ If the Array-element is a link, this is removed, the linked table is untouched
 			 @orient.update { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }
 		end
 
+	
 		def << **arg
 #			@orient.attributes[@name][k] = v
 #			self.merge! key => value 

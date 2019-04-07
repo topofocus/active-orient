@@ -29,6 +29,14 @@ module ActiveOrient
       end]
     end
 
+# return a string ready to include as embedded document
+		def embedded
+			{ "@type" => 'd', "@class" => self.class.ref_name }
+			            .merge(content_attributes)
+			            .map{|y,x| z='';  z  <<  y.to_s << ': ' << x.to_or.to_s }.join(' ,')
+			
+		end
+
 # Update nil attributes from given Hash or model
 
     def update_missing attrs  # :nodoc:

@@ -65,25 +65,28 @@ describe ActiveOrient::Model do
 #      it_behaves_like 'basic class properties' , this_class
 #    end
 #  end
-  context "Create a new document" do
+  context "Create a new document",  focus: true do
     before( :all ) do 
       @db.create_class 'working_class' 
     end
 
-    it "new document"  do
-      n =  WorkingClass.new w_att: 'Attribute' 
-      expect( n ).to be_a WorkingClass
-      expect( n.w_att ).to eq 'Attribute'
-      expect( n.rid.rid? ).to be_falsy
+    context "new document"  do
+      subject{  WorkingClass.new w_att: 'Attribute' }
+      it { is_expected.to be_a WorkingClass }
+      its( :w_att ){ is_expected.to eq 'Attribute' }
+      its( :rid   ){ is_expected.to  eq ':'}
+			its( :metadata ){ is_expected.to be_a(Hash) and be_empty }
 
     end
 
-    it "save new document" do
-      n =  WorkingClass.new w_att: 'Attribute' 
-      n.save
-      expect( n.rid.rid? ).to be_truthy
-      n.w_att = "New_Attribute"
-      expect{ n.save }.to change{ n.version }.by 1
+    context "save new document" do
+      subject{  WorkingClass.new( w_att: 'Attribute').save  }
+			it_behaves_like 'a new record'
+#      n =  WorkingClass.new w_att: 'Attribute' 
+ #     n.save
+  #    expect( n.rid.rid? ).to be_truthy
+   #   n.w_att = "New_Attribute"
+    #  expect{ n.save }.to change{ n.version }.by 1
 
     end
   end
