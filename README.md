@@ -110,7 +110,7 @@ Graph-support:
   vertex_2 = TheVertex.create  flower: "rose"
   TheEdge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
 ```
-It connects the vertexes and assigns the attributes to the edge.
+It connects the vertices and assigns the attributes to the edge.
 
 To query a graph,  SQL-like-Queries and Match-statements can be used (see below). 
 
