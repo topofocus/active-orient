@@ -13,6 +13,8 @@ module ActiveOrient
 	v= case value
 	   when ActiveOrient::Model
 	     "< #{self.class.to_.demodulize} : #{value.rrid} >"
+		 when OrientSupport::Array
+			 value.rrid #.to_human #.map(&:to_human).join("::")
 	   else
 	     value.from_orient
 	   end
@@ -25,7 +27,7 @@ module ActiveOrient
     def content_attributes  # :nodoc:
 #      HashWithIndifferentAccess[attributes.reject do |(attr, _)|
       Hash[attributes.reject do |(attr, _)|
-        attr.to_s =~ /(_count)\z/ || [:created_at, :updated_at, :type, :id, :order_id, :contract_id].include?(attr.to_sym)
+        attr.to_s =~ /(_count)\z/ || attr.to_s =~ /^in_/ || attr.to_s =~ /^out_/ || [:created_at, :updated_at, :type, :id, :order_id, :contract_id].include?(attr.to_sym)
       end]
     end
 

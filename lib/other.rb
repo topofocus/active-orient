@@ -255,7 +255,7 @@ class Hash #WithIndifferentAccess
 #  end
 #  def nested_under_indifferent_access
 #    HashWithIndifferentAccess.new self
-		self
+#		self
 #  end
 end
 

@@ -57,6 +57,9 @@ module OrientSupport
 			@orient
 		end
 
+		def to_human
+			map &:to_human 
+		end
 #		returns the modified array and is chainable
 #
 #      i= V.get( '89:0')
@@ -76,34 +79,16 @@ The change is immediately transmitted to the database.
 
 		alias  << append 
 
-		def delete k
-			super k
-			o = OrientSupport::OrientQuery.new from: @orient, 
-																				kind: 'update', 
-																				set: "#{@name}.#{k.to_s}",
-																			return: "$current.#{@name}"
-			@orient.db.execute{  o.to_s.gsub( 'set ', 'remove ' ) }.first.send( @name )  # extracts the modified array (from DB)  from the result
-			@orient.reload!
-			@orient.send @name  # return value
-	end
+		def remove *k
+			# todo combine queries in a transaction
+			puts "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"
+			k.each{|item| @orient.remove( " #{@name} = #{item.to_or}")[@name] }
+		end
 
 
-#		def << arg
-#			if empty?
-#				@orient.db.
-#			end
-#			super arg
-##		arg.each{|y|  puts "y: #{y} ";self.push y }	
-#puts "Name : #{@orient.inspect}"
-#		puts "self #{self.inspect}"
-#			@orient.add_item_to_property(@name, arg) 
-#
-#		end
 
 =begin
 	Updating of single items
-
-	This only works if the hole embedded Array is previously loaded into the Ruby-array.
 =end
 
 		def []= key, value
@@ -111,21 +96,7 @@ The change is immediately transmitted to the database.
 			@orient.update set: {@name => self} if @name.present?
 		end
 
-=begin
-Remove_at performs Array#delete_at
-=end
-		def remove_at *pos
-			@orient.remove_position_from_property(@name,*pos) if @name.present?
-		end
 
-=begin
-Remove performs Array#delete 
-
-If the Array-element is a link, this is removed, the linked table is untouched
-=end
-		def remove  *item
-			@orient.remove_item_from_property(@name,*item) if @name.present?
-		end
 		###
 		## just works with Hashes as parameters
 		def where *item
@@ -203,5 +174,23 @@ If the Array-element is a link, this is removed, the linked table is untouched
 			@orient.update set:{ @name => self}
 
 		end
+
+
 	end
 end #Module
+
+class Hash
+
+	  def to_human
+			"{ " + self.map{ |k,v| [k.to_s,": ", v.to_orient].join }.join(', ') + " }"
+		end
+
+		def coerce arg
+			if arg.is_a? DateTime
+				nil
+			else
+				super
+
+			end
+		end
+end

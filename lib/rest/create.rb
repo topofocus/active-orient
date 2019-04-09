@@ -58,7 +58,8 @@ def create_this_class  *db_classname  #nodoc#
 					"CREATE CLASS #{database_class} "
 				end
 		c << " ABSTRACT" if abstract.present?
-		{ type: "cmd", language: 'sql', command: c }  # return value 4 command
+	#	{ type: "cmd", language: 'sql', command: c }  # return value 4 command
+	c	
 	end
     # execute anything as batch, don't roll back in case of an error
 
@@ -260,21 +261,19 @@ If an index is to be specified, it's defined in the optional block
     logger.progname = 'RestCreate#CreateIndex'
       c = classname o_class
 			if  execute( transaction: false, tolerated_error_code: /found duplicated key/) do
-				command = if on == :automatic
-										"CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
-									elsif on.is_a? Array
-										"CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
-									else
-										"CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
-										#nil
-									end
-				#puts "command: #{command}"
-				{type: "cmd", language: 'sql', command: command} if command.present?
+				if on == :automatic
+					"CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
+				elsif on.is_a? Array
+					"CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
+				else
+					"CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
+				end
 			end
+
 			logger.info{"Index on #{c} based on #{name} created."}
 			else
 				logger.error {"index #{name}.#{type} on  #{c}  NOT created"}
 			end
-  end
+	end
 
 end

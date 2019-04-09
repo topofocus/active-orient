@@ -138,16 +138,15 @@ describe ActiveOrient::OrientDB do
       cachesize= ActiveOrient::Base.display_rid.size
 
       expect {
-      @db.create_edge TheEdge do  | attributes |
 	 ('a'.ord .. 'z'.ord).map do |o| 
-	       { from: record1.find{|x| x.testentry == o },
-		 to: record2.find{ |x| x.testentry.to_s.ord == o } ,
-		 attributes: attributes.merge( key: o.chr ) }
+	      TheEdge.create from: record1.find{|x| x.testentry == o },
+					to: record2.find{ |x| x.testentry.to_s.ord == o } ,
+					attributes: {  key: o.chr } 
 	  end
-      end }.to change{ TheEdge.count }
+      }.to change{ TheEdge.count }
 
-      newcachesize= ActiveOrient::Base.display_rid.size
-      expect( cachesize - newcachesize).to  be > 0
+   #   newcachesize= ActiveOrient::Base.display_rid.size
+   #   expect( cachesize - newcachesize).to  be > 0
     end
 
   end

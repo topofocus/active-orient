@@ -98,23 +98,56 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
 =end
 
-	def execute transaction: true, tolerated_error_code: nil, process_error: true, raw: nil
-		batch = {transaction: transaction, operations: yield}
+def read_transaction
+	@transaction
+end
+	def execute transaction: false, tolerated_error_code: nil, process_error: true, raw: nil
+		@transaction = []  unless @transaction.is_a?(Array)
+		if block_given?
+			command =  yield
+			command.is_a?(Array) ? command.each{|c| @transaction << c} : @transaction << command
+		else
+			logger.error { "No Block provided to execute" }
+			return nil
+		end
+
+#			puts "transaction #{@transaction.inspect}"
+		unless transaction == :prepare
+			commands =  @transaction.map{|y| y if y.is_a? String }.compact
+			@transaction.delete_if{|y| y if y.is_a?(String)} 
+			#puts "tn #{commands.inspect}"
+			return nil if commands.empty?
+			if commands.size >1
+			@transaction <<	{ type: 'script', language: 'sql', script: commands } 
+			elsif  transaction ==  false
+				@transaction = 	commands.first
+			else
+				transaction =  true
+				@transaction <<		{ type: 'cmd', language: 'sql', command: commands.first } 
+			end	
+ 			_execute transaction, tolerated_error_code, process_error, raw
+		end
+	end
+
+
+		def _execute transaction, tolerated_error_code, process_error, raw
+
 		logger.progname= "Execute"
 		begin
-		  batch[:operations] = [ batch[:operations] ] if batch[:operations].is_a?( Hash ) 
-			response = if batch[:operations].is_a?(Array) 
-									 batch[:operations].compact!
+			response = if @transaction.is_a?(Array) 
+									 @transaction.compact!
+									 return nil if @transaction.empty?
 									 # transaction is true only for multible statements
 									 #      batch[:transaction] = transaction & batch[:operations].size >1
-									 logger.info{ batch[:operations].map{|y|y[:command]}.join(";\n ") } 
+									 logger.info{ @transaction.map{|y|y[:command]}.join(";\n ") } 
+									 logger.info{ @transaction.map{|y|y[:script]}.join(";\n ") } 
+									batch= { transaction: transaction, operations: @transaction  }
+									puts "batch:  #{batch.inspect}"
 									 @res["/batch/#{ActiveOrient.database}"].post batch.to_json
 								 else
-									 logger.info{ batch[:operations] } 
-									 @res["/command/#{ActiveOrient.database}/sql"].post batch[:operations] #.to_json
-								 end  unless batch[:operations].blank?
-								 #		batch[:operations] = {:type=>"cmd", :language=>"sql", :command=> batch[:operations]} if batch[:operations].is_a? String
-								 #		batch[:operations] = [batch[:operations]] unless batch[:operations].is_a? Array
+									 logger.info{ @transaction } 
+									 @res["/command/#{ActiveOrient.database}/sql"].post @transaction #.to_json
+								 end
 		rescue RestClient::BadRequest => f
 			# extract the misspelled query in logfile and abort
 			sentence=  JSON.parse( f.response)['errors'].last['content']
@@ -123,6 +156,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 			puts sentence
 			raise
 		rescue RestClient::InternalServerError => e
+			@transaction = []
 			sentence=  JSON.parse( e.response)['errors'].last['content']
 			if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
 				logger.debug('RestOperations#Execute'){ "tolerated_error::#{e.message}"}
@@ -143,6 +177,7 @@ Multible statements are transmitted at once if the Block provides an Array of st
 			sleep(2)
 			retry
 		else  # code to execute if no exception  is raised
+			@transaction = []
 			if response.code == 200
 				if response.body['result'].present?
 					result=JSON.parse(response.body)['result']

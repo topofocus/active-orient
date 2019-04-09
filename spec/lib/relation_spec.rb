@@ -8,7 +8,7 @@ describe ActiveOrient::OrientDB do
 		@db.create_vertex_class :base, :first_list, :second_list, :log
 		Base.create_property  :first_list,  type: :link_list, linked_class: FirstList 
 		Base.create_property  :label, index: :unique 
-		FirstList.create_property  :second_list , type: :link_list, linked_class: SecondList 
+		FirstList.create_property  :second_list , type: :list, linked_class: SecondList 
 		if Base.count.zero?  # omit if structure is present
 
 		(0 .. 9).each do | b |
@@ -22,7 +22,7 @@ describe ActiveOrient::OrientDB do
 		end
 	end		  # before
 
-	after(:all){ @db.delete_database database: 'temp' }
+#	after(:all){ @db.delete_database database: 'temp' }
 
 		context 'FirstList' do
 			subject{ FirstList }
@@ -30,7 +30,8 @@ describe ActiveOrient::OrientDB do
 		end
 		context 'SecondList' do
 			subject{ SecondList }
-			its(:count){ is_expected.to eq 1000 }
+			its(:count){ is_expected.to be_zero }  # embedded linklist
+			#its(:count){ is_expected.to eq 1000 }  # linklist
 		end
 
   context "create and manage a 2 layer 1:n relation" do
@@ -59,7 +60,7 @@ describe ActiveOrient::OrientDB do
 				(0..9).each do | d |
 						  puts "Second_List: #{b.first_list[c].second_list.to_human}"
 					  puts "c: #{c} ; d: #{d}"
-					expect( b.first_list[c].second_list[d].label ).to eq d
+					expect( b.first_list[c].second_list[d][:label] ).to eq d
 				end
 			end
 			end

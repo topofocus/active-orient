@@ -128,16 +128,13 @@ Example:
 
 =end
   def create **attributes
-		puts "create"
     attributes.merge :created_at => DateTime.new
 		result = db.create_record self, attributes: attributes
 		if result.nil
 			logger.error('Model::Class'){ "Table #{refname}:  create failed:  #{attributes.inspect}" }
 		elsif block_given?
-			puts "Block"
 			yield result
 		else
-			puts "no block"
 			result  # return value
 		end
 	end
@@ -156,17 +153,6 @@ returns the affected record
 		set = where if set.nil?
     db.upsert self, set: set, where: where
   end
-=begin
-Create a new Instance of the Class with the applied attributes if does not exists, 
-otherwise update it. It returns the freshly instantiated Objects
-=end
-
-  def update_or_create_records set: {}, where: {}, **args, &b
-    db.update_or_create_records self, set: set, where: where, **args, &b
-  end
-
-  alias update_or_create_documents update_or_create_records
-
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
 
@@ -238,6 +224,7 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 			:string        => "STRING",
 			:int           => "INTEGER",
 			:integer       => "INTEGER",
+			:link          => "LINK",
 			:link_list     => "LINKLIST",
 			:link_map      => "LINKMAP",
 			:link_set      => "LINKSET",
@@ -443,8 +430,7 @@ instead of links.
 		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
 		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
 		#		             ^...........° -> classname.pluralize
-# 
-    result = query_database(query, set_from: false){| record | record.send self.classname.pluralize.to_sym  }
+    query_database( query, set_from: false){| record | record.is_a?(ActiveOrient::Model) ? record : record.send( self.classnamepluralize.to_sym ) }
   end
 =begin
 Performs a Match-Query
@@ -517,7 +503,7 @@ query_database is used on model-level and submits
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     result = db.execute do
-      sql_cmd[query.to_s]
+    query.to_s #  sql_cmd[query.to_s]
     end
     if block_given?
       result.is_a?(Array)? result.map{|x| yield x } : yield(result)

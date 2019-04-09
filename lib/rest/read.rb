@@ -82,38 +82,38 @@ If no Record is found, nil is returned
 The rid-cache is not used or updated
 =end
 
-  def get_record rid
-    begin
-      logger.progname = 'RestRead#GetRecord'
-      if rid.rid?
-	response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
-	raw_data = JSON.parse(response.body) 
-#	ActiveOrient::Model.use_or_allocate( raw_data['@rid'] ) do 
-	the_object=   ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
-	 ActiveOrient::Base.store_rid( the_object )   # update cache
-      else
-	logger.error { "Wrong parameter #{rid.inspect}. " }
-	nil
-      end
-    rescue RestClient::InternalServerError => e
-      if e.http_body.split(':').last =~ /was not found|does not exist in database/
-	nil
-      else
-	logger.error { "Something went wrong" }
-	logger.error { e.http_body.inspect }
-	raise
-      end
-    rescue RestClient::ResourceNotFound => e
-      logger.error { "RID: #{rid} ---> No Record present " }
-      ActiveOrient::Model.remove_rid rid      #  remove rid from cache
-      nil
-    rescue Exception => e
-      logger.error { "Something went wrong" }
-      logger.error { "RID: #{rid} - #{e.message}" }
-      raise
-    end
-  end
-  alias get_document get_record
+	def get_record rid
+		begin
+			logger.progname = 'RestRead#GetRecord'
+			if rid.rid?
+				response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
+				raw_data = JSON.parse(response.body) 
+				#	ActiveOrient::Model.use_or_allocate( raw_data['@rid'] ) do 
+				the_object=   ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
+				ActiveOrient::Base.store_rid( the_object )   # update cache
+			else
+				logger.error { "Wrong parameter #{rid.inspect}. " }
+				nil
+			end
+		rescue RestClient::InternalServerError => e
+			if e.http_body.split(':').last =~ /was not found|does not exist in database/
+				nil
+			else
+				logger.error { "Something went wrong" }
+				logger.error { e.http_body.inspect }
+				raise
+			end
+		rescue RestClient::ResourceNotFound => e
+			logger.error { "RID: #{rid} ---> No Record present " }
+			ActiveOrient::Model.remove_rid rid      #  remove rid from cache
+			nil
+		rescue Exception => e
+			logger.error { "Something went wrong" }
+			logger.error { "RID: #{rid} - #{e.message}" }
+			raise
+		end
+	end
+	alias get_document get_record
 
 =begin
 Retrieves Records from a query

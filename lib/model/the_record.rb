@@ -100,117 +100,7 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
   def increment_version # :nodoc: 
     @metadata[:version] += 1
   end
-  ########### UPDATE PROPERTY ############
 
-=begin
-  Convient method for populating embedded- or linkset-properties
-  In both cases an array/a collection is stored in the database.
-  Its called via
-    model.add_item_to_property(linkset- or embedded property, Object_to_be_linked_to\)
-  or
-    mode.add_items_to_property( linkset- or embedded property ) do
-      Array_of_Objects_to_be_linked_to
-      #(actually, the objects must inherent from ActiveOrient::Model, Numeric, String)
-    end
-  
-  The method is aliased by "<<" i.e
-    model.array << new_item
-=end
-
-#  def update_item_property method, array, *item = nil, &ba # :nodoc:
-# #   begin
-#      logger.progname = 'ActiveOrient::Model#UpdateItemToProperty'
-#      self.attributes[array] = Array.new unless attributes[array].present?
-#
-#      items = if item.present?
-#		item.is_a?(Array)? item : [item]  
-#	      elsif block_given?
-#		yield
-#	      end
-#      db.manipulate_relation self, method, array, items   #  only java!
-#    end
-=begin
-Add Items to a linked or embedded class
-
-Parameter:
-
-[array] the name of the property to work on
-[item ]  what to add (optional)
-[block]  has to provide an array of elements to add to the property
-
-Example: add 10 elements to the property
-
-   add_item_to_property :second_list do
-       (0 .. 9).map do | s |
-               SecondList.create label: s
-       end  
-   end
-
-
-The method returns the model record itself. Thus nested initialisations are possible:
-   
-       ORD.create_class(:base, :first_list, :second_list ){ V }
-       ORD.create_property :base, :first_list,  type: :linklist, linkedClass: :first_list
-       ORD.create_property :base, :label, index: :unique
-       ORD.create_property :first_list,  :second_list , type: :linklist, linkedClass: :second_list
-       ORD.create_vertex_class :log
-       (0 .. 9).each do | b |
-          base= Base.create label: b, first_list: []
-          base.add_item_to_property :first_list do
-             (0 .. 9).map do | f |
-                first = FirstList.create label: f, second_list: []
-	         base.add_item_to_property :first_list , first
-	         first.add_item_to_property :second_list do
-	           (0 .. 9).map{| s |  SecondList.create label: s }
-	         end    # add item  second_list
-	      end      # 0..9 -> f
-	   end        # add item  first_list
-	end        # 0..9 -> b
-
-
-Record#AddItemToProperty shines with its feature to specify records to insert in a block.
-
-If only single Items are to  be inserted, use
-  model_record.linklist << item 
-
-=end
-
-  def add_item_to_property array, *item
-       item =  yield if block_given?
-#	  item.each{|x| self.attributes[array].push x.to_orient }
-#	  update
-#	else
-			 puts attributes.keys
-			 if attributes.keys.include? array.to_sym
-				 send array.to_sym, :<<, item
-				 reload!
-			 else
-				nil 
-			 end
-
-    #undefined method `<<' for nil:NilClass
-
-  end
-
-
-  def set_item_to_property array, *item  # :nodoc:
-      update  array.to_s => item
-  end
-
-  def remove_position_from_property array, *pos  # :nodoc:
-      if attributes[array].is_a? Array
-        pos.each{|x| self.attributes[array].delete_at( x )}
-	update
-      end
-  end
-  def remove_item_from_property array, *item 
-      if attributes[array].is_a? Array
-        item.each{|x| self.attributes[array].delete( x.to_orient )}
-	update
-      else
-	logger.error  "Wrong attribute: #{attributes[array]}"
-      end
-  end
 
   ############# DELETE ###########
 
@@ -265,6 +155,9 @@ is identical
 
   end
 
+	def remove query_string
+			transfer_content from: 	 query( "update #{rrid} remove  #{ query_string }  return after @this" )&.first
+	end
 # mocking active record  
   def update_attribute the_attribute, the_value # :nodoc:
     update { " #{the_attribute} = #{the_value.to_or} " }
