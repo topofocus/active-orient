@@ -22,7 +22,7 @@ This connects to the Test-Database.
 The database is almost empty. "E" and "V" are base classes for Edges and Vertices.
 "a,b,c" are Vertex-Classes. 
 ```ruby
-ORD.create_class( [ :a, :b, :c ] ){ V } 
+ORD.create_class( :a, :b, :c  ){ V } 
 ```
 creates them with a single statement. They are mapped to Ruby-classes "A","B" and "C". 
 
