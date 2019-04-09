@@ -21,11 +21,8 @@ cd bin
 ```
 
 #### Other Documents
-- [Experiments with Joins / Linkmaps ](./linkmap.md)
 
 - [Experiments with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
-
-- [Namespace Support](./namespace.md)
 
 - [TimeGraph Implementation](examples/time_graph.md)
 
