@@ -20,8 +20,8 @@ datasets.
 
 - [Rails 5-Integration](./rails.md)
 
-You need a ruby 2.3, 2.4  or a jruby 9.1x Installation and a working OrientDB-Instance (Version 2.2 prefered).
-The jruby-part is experimental.
+You need a ruby 2.5/2.6  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
+
 
 ### Quick Start
 

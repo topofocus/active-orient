@@ -8,25 +8,25 @@ module RestCreate
   Returns the name of the working-database
 =end
 
-  def create_database type: 'plocal', database: 
-    logger.progname = 'RestCreate#CreateDatabase'
-    old_d = ActiveOrient.database
-    ActiveOrient.database_classes = {} 
-    ActiveOrient.database = database 
-    begin
-      response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
-      if response.code == 200
-	logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
-      else
-	logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
-	ActiveOrient.database = old_d
-      end
-    rescue RestClient::InternalServerError => e
-      logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
-      ActiveOrient.database = old_d
-    end
-    ActiveOrient.database  # return_value
-  end
+	def create_database type: 'plocal', database: 
+		logger.progname = 'RestCreate#CreateDatabase'
+		old_d = ActiveOrient.database
+		ActiveOrient.database_classes = {} 
+		ActiveOrient.database = database 
+		begin
+			response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
+			if response.code == 200
+				logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
+			else
+				logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
+				ActiveOrient.database = old_d
+			end
+		rescue RestClient::InternalServerError => e
+			logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
+			ActiveOrient.database = old_d
+		end
+		ActiveOrient.database  # return_value
+	end
 
 
 
@@ -41,33 +41,36 @@ usually, only one classname is provided, however the method takes a row of class
 #todo reintegrate the ability to create abstract classes
 =end
 private
-  def create_this_class  *db_classname  #nodoc#
-     if block_given?
-	      additional_args =     yield
-		  superclass = additional_args[ :superclass ]
-		  abstract = additional_args[ :abstract ].presence || nil
-      else 
-	superclass = nil
-	abstract =  nil
-      end
-    #
-    command= db_classname.map do | database_class |
-      c = if superclass.present?
-	    "CREATE CLASS #{database_class} EXTENDS #{superclass}" 
-	  else
-	    "CREATE CLASS #{database_class} "
-	  end
-      c << " ABSTRACT" if abstract.present?
-      { type: "cmd", language: 'sql', command: c }  # return value 4 command
-    end
+def create_this_class  *db_classname  #nodoc#
+	if block_given?
+		additional_args =     yield
+		superclass = additional_args[ :superclass ]
+		abstract = additional_args[ :abstract ].presence || nil
+	else 
+		superclass = nil
+		abstract =  nil
+	end
+	#
+	command= db_classname.map do | database_class |
+		c = if superclass.present?
+					"CREATE CLASS #{database_class} EXTENDS #{superclass}" 
+				else
+					"CREATE CLASS #{database_class} "
+				end
+		c << " ABSTRACT" if abstract.present?
+	#	{ type: "cmd", language: 'sql', command: c }  # return value 4 command
+	c	
+	end
     # execute anything as batch, don't roll back in case of an error
 
-   execute transaction: false, tolerated_error_code: /already exists in current database/ do
+   execute transaction: false, tolerated_error_code: /already exists/ do
       command
     end
    
   rescue ArgumentError => e
     logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+	rescue ActiveOrient::Error::ServerError
+		# do nothing
   end
 
 
@@ -124,12 +127,12 @@ Puts the database-response into the cache by default
   alias create_document create_record
 
 # UPDATE <class>|CLUSTER:<cluster>|<recordID>
-  #   [SET|INCREMENT|ADD|REMOVE|PUT <field-name> = <field-value>[,]*]|[CONTENT|MERGE <JSON>]
-  #     [UPSERT]
-  #       [RETURN <returning> [<returning-expression>]]
-  #         [WHERE <conditions>]
-  #           [LOCK default|record]
-  #             [LIMIT <max-records>] [TIMEOUT <timeout>]
+#   [SET|INCREMENT|ADD|REMOVE|PUT <field-name> = <field-value>[,]*]|[CONTENT|MERGE <JSON>]
+#     [UPSERT]
+#       [RETURN <returning> [<returning-expression>]]
+#         [WHERE <conditions>]
+#           [LOCK default|record]
+#             [LIMIT <max-records>] [TIMEOUT <timeout>]
 
 =begin
 update or insert one record is implemented as upsert.
@@ -148,45 +151,15 @@ The method returns the included or the updated dataset
 # end
 # returns nil if no insert and no update was made, ie. the dataset is identical to the given attributes
 =end
-  def upsert o_class, set: {}, where: {}   #    use Model#Upsert instead
-    logger.progname = 'RestCreate#Upsert'
-    if where.blank?
-      new_record = create_record(o_class, attributes: set)
-      yield new_record if block_given?	  # in case if insert execute optional block
-      new_record			  # return_value
-    else
-      specify_return_value =  block_given? ? "" : "return after @this"
-      set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
-      command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
-    #    puts "COMMAND: #{command} "
-      result = execute  tolerated_error_code: /found duplicated key/, raw: true do # To execute commands
-	[ { type: "cmd", language: 'sql', command: command}]
-      end 
-      result =result.pop if result.is_a? Array
-      if result.is_a? Hash 
-	if result.has_key?('@class')
-	  the_object = ActiveOrient::Model.orientdb_class(name: result['@class']).new  result
-	   ActiveOrient::Base.store_rid( the_object )   # update cache
-	elsif result.has_key?('value')
-	  the_record=  get_records(from: o_class, where: where, limit: 1).pop
-	  ## process Code if a new dataset is inserted
-	  if  result['value'].to_i == 1
-	    yield the_record 	if block_given?
-	    logger.info{ "Dataset updated" }
-	  elsif result['value'].to_i == 0
-	    logger.info{ "Dataset inserted"}
-	  end
-	  the_record  # return_value
-
-	else
-	  logger.error{ "Unexpected result form Query \n  #{command} \n Result: #{result}" }
-	  raise ArgumentError
+	def upsert o_class, set: , where:    #    use Model#Upsert instead
+		logger.progname = 'RestCreate#Upsert'
+		specify_return_value =  "return after @rid"
+		#			set.merge! where if where.is_a?( Hash ) # copy where attributes to set 
+		command = "Update #{classname(o_class)} set #{generate_sql_list( set ){','}} upsert #{specify_return_value}  #{compose_where where}" 
+		result = execute( tolerated_error_code: /found duplicated key/){ command }	
+	#	puts "result #{result.inspect}"
+		result =result.pop if result.is_a? Array
 	end
-      else
-	logger.debug{ "No Insert or Update nessesary \n #{command} " }
-    end
-    end
-  end
   ############### PROPERTIES #############
 
 =begin
@@ -213,39 +186,41 @@ A composite index
   		end
 =end
 
-  def create_properties o_class, all_properties, &b
-    logger.progname = 'RestCreate#CreateProperties'
-    all_properties_in_a_hash = HashWithIndifferentAccess.new
-    all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
-    count=0
-    begin
-      if all_properties_in_a_hash.is_a?(Hash)
-	response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
-	# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
-	count= response.body.to_f.to_i if response.code == 201
-      end
-    rescue RestClient::InternalServerError => e
-      logger.progname = 'RestCreate#CreateProperties'
-      response = JSON.parse(e.response)['errors'].pop
-      error_message = response['content'].split(':').last
-      logger.error{"Properties in #{classname(o_class)} were NOT created"}
-      logger.error{"The Error was: #{response['content'].split(':').last}"}
-      nil
-    end
-        ### index
-    if block_given?# && count == all_properties_in_a_hash.size
-      index = yield
-      if index.is_a?(Hash)
-	if index.size == 1
-	  create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
-	else
-	  index_hash =  HashWithIndifferentAccess.new(type: :unique, on: all_properties_in_a_hash.keys).merge index
-	  create_index o_class,  name: index_hash[:name], on: index_hash[:on], type: index_hash[:type]
+	def create_properties o_class, all_properties, &b
+		logger.progname = 'RestCreate#CreateProperties'
+		all_properties_in_a_hash = Hash.new  #WithIndifferentAccess.new
+		all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
+		count=0
+#		puts "all_properties_in_a_hash #{all_properties_in_a_hash.to_json}"
+		begin
+			if all_properties_in_a_hash.is_a?(Hash)
+				response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
+#				puts response.inspect
+				# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
+				count= response.body.to_f.to_i if response.code == 201
+			end
+		rescue RestClient::InternalServerError => e
+			logger.progname = 'RestCreate#CreateProperties'
+			response = JSON.parse(e.response)['errors'].pop
+			error_message = response['content'].split(':').last
+			logger.error{"Properties in #{classname(o_class)} were NOT created"}
+			logger.error{"The Error was: #{response['content'].split(':').last}"}
+			nil
+		end
+		### index
+		if block_given?# && count == all_properties_in_a_hash.size
+			index = yield
+			if index.is_a?(Hash)
+				if index.size == 1
+					create_index o_class, name: index.keys.first, on: all_properties_in_a_hash.keys, type: index.values.first
+				else
+					index_hash =  {type: :unique, on: all_properties_in_a_hash.keys}.merge index
+					create_index o_class,  name: index_hash[:name], on: index_hash[:on], type: index_hash[:type]
+				end
+			end
+		end
+		count  # return_value
 	end
-      end
-    end
-    count  # return_value
-  end
 
 =begin
 Create a single property.
@@ -263,7 +238,7 @@ If an index is to be specified, it's defined in the optional block
 
   def create_property o_class, field, index: nil, **args, &b
     logger.progname = 'RestCreate#CreateProperty'
-    args= { type: :integer} if args.blank?  # the default case
+    args= { type: :string} if args.blank?  # the default case
     c = create_properties o_class, {field => args}
     if index.nil? && block_given?
       index = yield
@@ -284,28 +259,21 @@ If an index is to be specified, it's defined in the optional block
 
   def create_index o_class, name:, on: :automatic, type: :unique
     logger.progname = 'RestCreate#CreateIndex'
-    begin
       c = classname o_class
-      execute transaction: false do
-    	  command = if on == :automatic
-    		  "CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
-    		elsif on.is_a? Array
-    		  "CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
-    		else
-    		  "CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
-    		  #nil
-    		end
-	  #puts "command: #{command}"
-    	  {type: "cmd", language: 'sql', command: command} if command.present?
-      end
-      logger.info{"Index on #{c} based on #{name} created."}
-    rescue RestClient::InternalServerError => e
-      response = JSON.parse(e.response)['errors'].pop
-  	  error_message = response['content'].split(':').last
-      logger.error{"Index not created."}
-      logger.error{"Error-code #{response['code']} --> #{response['content'].split(':').last }"}
-      nil
-    end
-  end
+			if  execute( transaction: false, tolerated_error_code: /found duplicated key/) do
+				if on == :automatic
+					"CREATE INDEX #{c}.#{name} #{type.to_s.upcase}"
+				elsif on.is_a? Array
+					"CREATE INDEX #{name} ON #{c}(#{on.join(', ')}) #{type.to_s.upcase}"
+				else
+					"CREATE INDEX #{name} ON #{c}(#{on.to_s}) #{type.to_s.upcase}"
+				end
+			end
+
+			logger.info{"Index on #{c} based on #{name} created."}
+			else
+				logger.error {"index #{name}.#{type} on  #{c}  NOT created"}
+			end
+	end
 
 end

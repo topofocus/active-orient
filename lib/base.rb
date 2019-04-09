@@ -4,6 +4,7 @@ module  ActiveOrient
 # Base class for tableless IB data Models, extends ActiveModel API
 
   class Base
+#		include OrientSupport::Logging 
     extend ActiveModel::Naming
     extend ActiveModel::Callbacks
     include ActiveModel::Validations
@@ -13,11 +14,11 @@ module  ActiveOrient
     include OrientDB
     include Conversions   # mocking ActiveModel::Conversions
 
-    define_model_callbacks :initialize
+		mattr_accessor :logger 
 
+    define_model_callbacks :initialize
 # ActiveRecord::Base callback API mocks
     define_model_callbacks :initialize, :only => :after
-    mattr_accessor :logger
 
 # Used to read the metadata
     attr_reader :metadata
@@ -87,99 +88,108 @@ If a opts hash is given, keys are taken as attribute names, values as data.
 The model instance fields are then set automatically from the opts Hash.
 =end
 
-    def initialize attributes = {}, opts = {}
-      logger.progname = "ActiveOrient::Base#initialize"
-      @metadata = HashWithIndifferentAccess.new
-      @d =  nil
-      run_callbacks :initialize do
-	if RUBY_PLATFORM == 'java' && attributes.is_a?( Document )
-	  @d = attributes
-	  attributes =  @d.values
-	  @metadata[:class]      = @d.class_name
-	  @metadata[:version]    = @d.version
-	  @metadata[:cluster], @metadata[:record] = @d.rid[1,@d.rid.size].split(':')
-	end
-	attributes.keys.each do |att|
-	  unless att[0] == "@" # @ identifies Metadata-attributes
-	    att = att.to_sym if att.is_a?(String)
-	    unless self.class.instance_methods.detect{|x| x == att}
-	      self.class.define_property att, nil
-	    else
-	      #logger.info{"Property #{att.to_s} NOT assigned"}
-	    end
-	  end
-	end
+		def initialize attributes = {}, opts = {}
+			logger.progname = "ActiveOrient::Base#initialize"
+			@metadata = Hash.new # HashWithIndifferentAccess.new
+			@d =  nil
+			run_callbacks :initialize do
+				if RUBY_PLATFORM == 'java' && attributes.is_a?( Document )
+					@d = attributes
+					attributes =  @d.values
+					@metadata[:class]      = @d.class_name
+					@metadata[:version]    = @d.version
+					@metadata[:cluster], @metadata[:record] = @d.rid[1,@d.rid.size].split(':')
+					puts "Metadata:  #{@metadata}"
+				end
 
-	if attributes['@type'] == 'd'  # document via REST
-	  @metadata[:type]       = attributes.delete '@type'
-	  @metadata[:class]      = attributes.delete '@class'
-	  @metadata[:version]    = attributes.delete '@version'
-	  @metadata[:fieldTypes] = attributes.delete '@fieldTypes'
-	  if attributes.has_key?('@rid')
-	    rid = attributes.delete '@rid'
-	    cluster, record = rid[1 .. -1].split(':')
-	    @metadata[:cluster] = cluster.to_i
-	    @metadata[:record]  = record.to_i
-	  end
+				# transform $current to :current and $current.mgr to :mgr
+				 transformers = attributes.keys.map{|x|  [x, x[1..-1].split(".").last.to_sym] if x[0] == '$'}.compact
+				 # transformers:  [ [original key, modified key] , [] ]
+				 transformers.each do |a|
+					 attributes[a.last] = attributes[a.first]
+					 attributes.delete a.first
+				 end
 
-	  if @metadata[:fieldTypes ].present? && (@metadata[:fieldTypes] =~ /=g/)
-	    @metadata[:edges] = { :in => [], :out => [] }
-	    edges = @metadata['fieldTypes'].split(',').find_all{|x| x=~/=g/}.map{|x| x.split('=').first}
-	  #  puts "Detected EDGES: #{edges.inspect}"
-	    edges.each do |edge|
-	      operator, *base_edge = edge.split('_')
-	      base_edge = base_edge.join('_')
-	      @metadata[:edges][operator.to_sym] << base_edge
-	    end
-	  #    unless self.class.instance_methods.detect{|x| x == base_edge}
-	  #      ## define two methods: out_{Edge}/in_{Edge} -> edge.
-	  #      self.class.define_property base_edge, nil
-	  #      allocate_edge_method = -> (edge)  do
-	  #        unless (ee=db.get_db_superclass(edge)) == "E"
-	  #          allocate_edge_method[ee]
-	  #          self.class.send :alias_method, base_edge.underscore, edge
-	  #      ## define inherented classes, tooa
-	  #      
+				attributes.keys.each do |att|
+					unless att[0] == "@" # @ identifies Metadata-attributes
+						unless self.class.instance_methods.detect{|x| x == att.to_sym}
+							self.class.define_property att.to_sym, nil
+						else
+							#logger.info{"Property #{att.to_s} NOT assigned"}
+						end
+					end
+				end
+				if attributes['@type'] == 'd'  # document via REST
+					@metadata[:type]       = attributes.delete '@type'
+					@metadata[:class]      = attributes.delete '@class'
+					@metadata[:version]    = attributes.delete '@version'
+					@metadata[:fieldTypes] = attributes.delete '@fieldTypes'
+					
+					if attributes.has_key?('@rid')
+						rid = attributes.delete '@rid'
+						cluster, record = rid[1 .. -1].split(':')
+						@metadata[:cluster] = cluster.to_i
+						@metadata[:record]  = record.to_i
+					end
 
-	  #    end
-	  #  end
-	  end
-	end
-	self.attributes = attributes # set_attribute_defaults is now after_init callback
-      end
-      #      puts "Storing #{self.rid} to rid-store"
-#      ActiveOrient::Base.store_rid( self ) do | cache_obj|
-#	 cache_obj.reload! self
-#      end
-    end
+					if @metadata[:fieldTypes ].present? && (@metadata[:fieldTypes] =~ /=g/)
+						@metadata[:edges] = { :in => [], :out => [] }
+						edges = @metadata[:fieldTypes].split(',').find_all{|x| x=~/=g/}.map{|x| x.split('=').first}
+						#  puts "Detected EDGES: #{edges.inspect}"
+						edges.each do |edge|
+							operator, *base_edge = edge.split('_')
+							base_edge = base_edge.join('_')
+							@metadata[:edges][operator.to_sym] << base_edge
+						end
+						#    unless self.class.instance_methods.detect{|x| x == base_edge}
+						#      ## define two methods: out_{Edge}/in_{Edge} -> edge.
+						#      self.class.define_property base_edge, nil
+						#      allocate_edge_method = -> (edge)  do
+						#        unless (ee=db.get_db_superclass(edge)) == "E"
+						#          allocate_edge_method[ee]
+						#          self.class.send :alias_method, base_edge.underscore, edge
+						#      ## define inherented classes, tooa
+						#      
+
+						#    end
+						#  end
+					end
+				end
+				self.attributes = attributes # set_attribute_defaults is now after_init callback
+			end
+			#      puts "Storing #{self.rid} to rid-store"
+			#      ActiveOrient::Base.store_rid( self ) do | cache_obj|
+			#	 cache_obj.reload! self
+			#      end
+		end
 
 # ActiveModel API (for serialization)
 
     def included_links
-      meta= Hash[ @metadata['fieldTypes'].split(',').map{|x| x.split '='} ]
+      meta= Hash[ @metadata[:fieldTypes].split(',').map{|x| x.split '='} ]
       meta.map{|x,y| x if y=='x'}.compact
     end
 
     def attributes
-      @attributes ||= HashWithIndifferentAccess.new
+      @attributes ||= Hash.new # WithIndifferentAccess.new
     end
 
     def attributes= attrs
       attrs.keys.each{|key| self.send("#{key}=", attrs[key])}
     end
 
-    def my_metadata key: nil, symbol: nil
-      if @metadata[:fieldTypes].present?  
-	meta= Hash[ @metadata['fieldTypes'].split(',').map{|x| x.split '='} ]
-	if key.present?
-	  meta[key.to_s]
-	elsif symbol.present?
-	  meta.map{|x,y| x if y == symbol.to_s }.compact
-	else
-	  meta
-	end
-      end
-    end
+		def my_metadata key: nil, symbol: nil
+			if @metadata[:fieldTypes].present?  
+				meta= Hash[ @metadata[:fieldTypes].split(',').map{|x| x.split '='} ]
+				if key.present?
+					meta[key.to_s]
+				elsif symbol.present?
+					meta.map{|x,y| x if y == symbol.to_s }.compact
+				else
+					meta
+				end
+			end
+		end
 
 =begin
   ActiveModel-style read/write_attribute accessors
@@ -187,46 +197,50 @@ The model instance fields are then set automatically from the opts Hash.
   Autoload mechanism and data conversion are defined in the method "from_orient" of each class
 =end
 
-    def [] key
-      iv = attributes[key.to_sym]
-       if my_metadata( key: key) == "t"
-	iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
-      elsif my_metadata( key: key) == "x"
-	iv = ActiveOrient::Model.autoload_object iv
-      elsif iv.is_a? Array
-	  OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
-     elsif iv.is_a? Hash
-	  OrientSupport::Hash.new( self, iv){ key.to_sym }
-#     elsif iv.is_a? RecordMap 
- #      iv
-#       puts "RecordSet detected"
-      else
-	iv.from_orient
-      end
-    end
+		def [] key
 
-    def []= key, val
-      val = val.rid if val.is_a?( ActiveOrient::Model ) && val.rid.rid?
-      attributes[key.to_sym] = case val
-			       when Array
-				 if val.first.is_a?(Hash)
-				   v = val.map do |x|
-				     if x.is_a?(Hash)
-				       HashWithIndifferentAccess.new(x)
-				     else
-				       x
-				     end
-				   end
-				   OrientSupport::Array.new(work_on: self, work_with: v )
-				 else
-				   OrientSupport::Array.new(work_on: self, work_with: val )
-				 end
-			       when Hash
-				 HashWithIndifferentAccess.new(val)
-			       else
-				 val
-			       end
-    end
+			iv = attributes[key]
+			if my_metadata( key: key) == "t"
+				iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
+			elsif my_metadata( key: key) == "x"
+				iv = ActiveOrient::Model.autoload_object iv
+			elsif iv.is_a? Array
+				OrientSupport::Array.new( work_on: self, work_with: iv.from_orient){ key.to_sym }
+			elsif iv.is_a? Hash
+#				if iv.keys.include?("@class" )
+#				ActiveOrient::Model.orientdb_class( name: iv["@class"] ).new iv
+#				else
+#					iv
+				OrientSupport::Hash.new( self, iv.from_orient){ key.to_sym }
+	#			end
+				#     elsif iv.is_a? RecordMap 
+				#      iv
+				#       puts "RecordSet detected"
+			else
+				iv.from_orient
+			end
+		end
+
+		def []= key, val
+			val = val.rid if val.is_a?( ActiveOrient::Model ) && val.rid.rid?
+			attributes[key.to_sym] = case val
+															 when Array
+																 if val.first.is_a?(Hash)
+																	 v = val.map{ |x| x }
+																	 OrientSupport::Array.new(work_on: self, work_with: v )
+																 else
+																	 OrientSupport::Array.new(work_on: self, work_with: val )
+																 end
+															 when Hash
+																 if val.keys.include?("@class" )
+																	 OrientSupport::Array.new( work_on: self, work_with: val.from_orient){ key.to_sym }
+																 else
+																	 OrientSupport::Hash.new( self, val  )
+																 end
+															 else
+																 val
+															 end
+		end
 
     def update_attribute key, value
       @attributes[key] = value

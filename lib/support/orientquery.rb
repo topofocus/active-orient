@@ -194,33 +194,34 @@ end
       @aliases = []
       @match_statements = []
       @class =  nil
+			@return = nil
       @kind  = 'select'
       args.each do |k, v|
         case k
-        when :projection
-          @projection << v
-        when :let
-          @let << v
-        when :order
-          @order << v
-        when :where
-          @where << v
-        when :kind
-          @kind = v
-	when :start
-	  @match_statements[0] = MatchStatement.new **v
-#  @match_statements[1] = MatchConnection.new
-	when :connection
-	  @match_statements[1] = MatchConnection.new **v
-	when :return
-	  @aliases << v
-        else
-          self.send k, v
-        end
-      end
-    end
+				when :projection
+					@projection << v
+				when :let
+					@let << v
+				when :order
+					@order << v
+				when :where
+					@where << v
+				when :kind
+					@kind = v
+				when :start
+					@match_statements[0] = MatchStatement.new **v
+					#  @match_statements[1] = MatchConnection.new
+				when :connection
+					@match_statements[1] = MatchConnection.new **v
+				when :return
+					@aliases << v
+				else
+					self.send k, v
+				end
+			end
+		end
 
-    def method_missing method, *arg, &b
+		def method_missing method, *arg, &b
       @misc << method.to_s << " " << arg.map(&:to_s).join(' ')
     end
 
@@ -288,42 +289,45 @@ end
   If the query is submitted via the REST-Interface (as get-command), the limit parameter is extracted.
 =end
 
-    def compose(destination: :batch)
-      if @kind == :match
-	unless @match_statements.empty?
-	match_query =  @kind.to_s.upcase + " "+ @match_statements[0].compose_simple 
-	match_query << @match_statements[1..-1].map( &:compose ).join
-	match_query << " RETURN "<< (@match_statements.map( &:as ).compact | @aliases).join(', ')
+def compose(destination: :batch)
+	if @kind == :match
+		unless @match_statements.empty?
+			match_query =  @kind.to_s.upcase + " "+ @match_statements[0].compose_simple 
+			match_query << @match_statements[1..-1].map( &:compose ).join
+			match_query << " RETURN "<< (@match_statements.map( &:as ).compact | @aliases).join(', ')
+		end
+	elsif @kind.to_sym == :update
+		return_statement = "return after " + ( @aliases.empty? ?  "$current" : @aliases.first.to_s)
+		[ @kind, @database, misc, where_s, return_statement ].compact.join(' ')
+	elsif destination == :rest
+		[@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, unwind, skip].compact.join(' ')
+	else
+		[@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, limit, unwind, skip].compact.join(' ')
 	end
-      elsif destination == :rest
-        [@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, unwind, skip].compact.join(' ')
-      else
-        [@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, limit, unwind, skip].compact.join(' ')
-      end
-    end
-    alias :to_s :compose
+end
+alias :to_s :compose
 
 =begin
   from can either be a Databaseclass to operate on or a Subquery providing data to query further
 =end
 
 
-    def from arg = nil
-      if arg.present?
-	@database = case arg
-		    when ActiveOrient::Model   # a single record
-		      arg.rrid
-		    when OrientQuery	      # result of a query
-		      ' ( '+ arg.to_s + ' ) '
-		    when Class
-		      arg.ref_name
-		    else
-		      if arg.to_s.rid?	  # a string with "#ab:cd"
-			arg
-		      else		  # a databas-class-name
-			arg.to_s  
-		      end
-		    end
+def from arg = nil
+	if arg.present?
+		@database = case arg
+								when ActiveOrient::Model   # a single record
+									arg.rrid
+								when OrientQuery	      # result of a query
+									' ( '+ arg.to_s + ' ) '
+								when Class
+									arg.ref_name
+								else
+									if arg.to_s.rid?	  # a string with "#ab:cd"
+										arg
+									else		  # a database-class-name
+										arg.to_s  
+									end
+								end
 	compose  # return the complete query
       else # read from
 	"from #{@database}" unless @database.nil?

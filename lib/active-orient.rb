@@ -28,11 +28,12 @@ module OrientDB
 end  # module OrientDB
 require 'active_model'
 #require 'active_model/serializers'
-require_relative "support.rb"
-require_relative "conversions.rb"
+require_relative "support/orientquery.rb"
+require_relative "support/conversions.rb"
+#require_relative "support/logging.rb"
 require_relative "base.rb"
 require_relative "base_properties.rb"
-require_relative "orient.rb"
+require_relative "support/orient.rb"
 #require_relative "query.rb"
 if OrientDB::UsingJava
   require_relative 'java-api.rb'

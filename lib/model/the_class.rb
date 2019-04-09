@@ -1,5 +1,8 @@
 module ModelClass
 require 'stringio'
+include OrientSupport::Support
+
+
   ########### CLASS FUNCTIONS ######### SELF ####
 
 
@@ -13,7 +16,7 @@ It can be overwritten to provide different conventions for different classes, eg
 and to introduce distinct naming-conventions in differrent namespaces
 
 To overwrite use 
-  class Model < ActiveOrient::Model[:: ...]
+  class Model # < ActiveOrient::Model[:: ...]
     def self.naming_convention
     ( conversion code )
     end
@@ -26,6 +29,8 @@ To overwrite use
      else
        nc.camelize
      end
+	rescue
+		nil
   end
 
 =begin
@@ -79,42 +84,42 @@ Example:
   searched directory: 'lib/model/hc'
 
 =end
-def require_model_file  the_directory=nil
-  logger.progname = 'ModelClass#RequireModelFile'
-  the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir)   # the_directory is a Pathname
-  if File.exists?( the_directory )
-    model= self.to_s.underscore + ".rb"
-    filename =   the_directory +  model
-    if  File.exists?(filename )
-      if load filename
-	logger.info{ "#{filename} sucessfully loaded"  }
-	self #return_value
-      else
-	logger.error{ "#{filename} load error" }
-	nil #return_value
-      end
-    else
-      logger.info{ "model-file not present: #{filename}" }
-      nil #return_value
-    end
-  else
-    logger.info{ "Directory #{ dir  } not present " }
-    nil  #return_value
-  end
-rescue TypeError => e
-     puts "TypeError:  #{e.message}" 
-     puts "Working on #{self.to_s} -> #{self.superclass}"
-     puts "Class_hierarchy: #{orientdb.class_hierarchy.inspect}."
-     print e.backtrace.join("\n") 
-     raise
-  #
-end
+	def require_model_file  the_directory=nil
+		logger.progname = 'ModelClass#RequireModelFile'
+		the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir)   # the_directory is a Pathname
+		if File.exists?( the_directory )
+			model= self.to_s.underscore + ".rb"
+			filename =   the_directory +  model
+			if  File.exists?(filename )
+				if load filename
+					logger.info{ "#{filename} sucessfully loaded"  }
+					self #return_value
+				else
+					logger.error{ "#{filename} load error" }
+					nil #return_value
+				end
+			else
+				logger.info{ "model-file not present: #{filename}" }
+				nil #return_value
+			end
+		else
+			logger.info{ "Directory #{ dir  } not present " }
+			nil  #return_value
+		end
+	rescue TypeError => e
+		puts "TypeError:  #{e.message}" 
+		puts "Working on #{self.to_s} -> #{self.superclass}"
+		puts "Class_hierarchy: #{orientdb.class_hierarchy.inspect}."
+		print e.backtrace.join("\n") 
+		raise
+		#
+	end
 
   ########## CREATE ############
 
 =begin
 Universal method to create a new record. 
-It's overloaded to create specific kinds, eg. edges 
+It's overloaded to create specific kinds, eg. edge and vertex  and is called only for abstract classes
 
 Example:
   ORD.create_class :test
@@ -124,8 +129,15 @@ Example:
 =end
   def create **attributes
     attributes.merge :created_at => DateTime.new
-    db.create_record self, attributes: attributes 
-  end
+		result = db.create_record self, attributes: attributes
+		if result.nil
+			logger.error('Model::Class'){ "Table #{refname}:  create failed:  #{attributes.inspect}" }
+		elsif block_given?
+			yield result
+		else
+			result  # return value
+		end
+	end
 
 =begin 
 Creates or updates a record.
@@ -134,24 +146,13 @@ Parameter:
 - where: A string or hash as condition which should return just one record.
 
 The where-part should be covered with an unique-index.
-If :where is omitted, #Upsert becomes #Create, attributes are taken from :set.
 
 returns the affected record
 =end
-  def upsert set: {}, where: {}, &b
-    db.upsert self, set: set, where: where, &b
+  def upsert set: nil, where: 
+		set = where if set.nil?
+    db.upsert self, set: set, where: where
   end
-=begin
-Create a new Instance of the Class with the applied attributes if does not exists, 
-otherwise update it. It returns the freshly instantiated Objects
-=end
-
-  def update_or_create_records set: {}, where: {}, **args, &b
-    db.update_or_create_records self, set: set, where: where, **args, &b
-  end
-
-  alias update_or_create_documents update_or_create_records
-
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
 
@@ -175,24 +176,87 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
   end
 
 =begin
-Create a Property in the Schema of the Class
+Create a Property in the Schema of the Class and optionaly create an automatic index
 
 Examples:
 
       create_property  :customer_id, type: integer, index: :unique
-      create_property  :name, type: :string, index: :not_unique
-      create_property  :in,  type: :link, linked_class: :V    (used by edges)
+      create_property(  :name, type: :string ) {  :unique  }
+      create_property  :in,  type: :link, linked_class: V    (used by edges)
 
 :call-seq:  create_property(field (required), 
-			    type: 'a_string',
-			    linked_class: nil, index: nil) do
-    	index
-    end
-=end
+			    type: :a_supported_type',
+			    linked_class: nil
 
-  def create_property field, **keyword_arguments, &b
-    orientdb.create_property self, field, **keyword_arguments, &b
-  end
+supported types: 
+	:bool         :double       :datetime     :float        :decimal      
+	:embedded_list = :list      :embedded_map = :map        :embedded_set = :set          
+	:int          :integer      :link_list    :link_map     :link_set     
+
+If  `:list`, `:map`, `:set`, `:link`, `:link_list`, `:link_map` or `:link_set` is specified
+a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Constant
+=end
+  def create_property field, type: :integer, index: nil,  **args
+		arguments =  args.values.map do |y| 
+			if y.is_a?(Class)  && ActiveOrient.database_classes.values.include?(y) 
+				y.ref_name 
+			elsif  ActiveOrient.database_classes.keys.include?(y.to_s) 
+				y 
+			else
+				puts ActiveOrient.database_classes.inspect
+				puts "YY : #{y.to_s} #{y.class}"
+				raise ArgumentError , "database class #{y.to_s} not allocated"
+			end
+		end.compact.join(',')
+
+		supported_types = {
+			:bool          => "BOOLEAN",
+			:double        => "BYTE",
+			:datetime      => "DATE",
+			:float         => "FLOAT",
+			:decimal       => "DECIMAL",
+			:embedded_list => "EMBEDDEDLIST",
+			:list          => "EMBEDDEDLIST",
+			:embedded_map  => "EMBEDDEDMAP",
+			:map           => "EMBEDDEDMAP",
+			:embedded_set  => "EMBEDDEDSET",
+			:set           => "EMBEDDEDSET",
+			:string        => "STRING",
+			:int           => "INTEGER",
+			:integer       => "INTEGER",
+			:link          => "LINK",
+			:link_list     => "LINKLIST",
+			:link_map      => "LINKMAP",
+			:link_set      => "LINKSET",
+		}
+
+		## if the »type« argument is a string, it is used unchanged
+		type =  supported_types[type] if type.is_a?(Symbol)
+
+		raise ArgumentError , "unsupported type" if type.nil?
+	s= " CREATE PROPERTY #{ref_name}.#{field} #{type} #{arguments}" 
+	puts s
+	db.execute {  s }
+
+	i =  block_given? ? yield : index
+	## supported format of block:  index: { name: 'something' , on: :automatic, type: :unique } 
+	## or                                 { name: 'something' , on: :automatic, type: :unique }  # 
+	## or                                 {                                some_name: :unique }  # manual index
+	## or                                 {                                           :unique }  # automatic index
+	if i.is_a? Hash  
+		att=  i.key( :index ) ?   i.values.first : i
+		name, on, type = if  att.size == 1  && att[:type].nil? 
+											 [att.keys.first,  field,  att.values.first ]
+										 else  
+											 [ att[:name] || field , att[:on] || field , att[:type] || :unique ]
+										 end
+		create_index( name , on: on, type: type)
+	elsif i.is_a?(Symbol)  || i.is_a?(String)
+		create_index field, type: i
+	end
+
+	# orientdb.create_property self, field, **keyword_arguments, &b
+	end
 
 # Create more Properties in the Schema of the Class
 
@@ -206,6 +270,10 @@ Examples:
     orientdb.create_index self, name: name, **attributes
   end
 
+# list all Indexes
+	def indexes
+		properties[:indexes]
+	end
   ########## GET ###############
 
   def classname  # :nodoc: #
@@ -247,15 +315,16 @@ Examples:
 
 # Get the properties of the class
 
-  def get_properties
+  def properties
     object = orientdb.get_class_properties self
-    HashWithIndifferentAccess.new :properties => object['properties'], :indexes => object['indexes']
+    #HashWithIndifferentAccess.new :properties => object['properties'], :indexes => object['indexes']
+    {:properties => object['properties'], :indexes => object['indexes']}
   end
-  alias get_class_properties get_properties
+  alias get_class_properties properties
 
 # Print the properties of the class
 
-  def print_class_properties
+  def print_properties
     orientdb.print_class_properties self
   end
 
@@ -356,14 +425,12 @@ instead of links.
   def where *attributes 
     query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
     query.match_statements[0].where =  attributes unless attributes.empty?
-    result = query_database(query, set_from: false){| record | record[ self.classname.pluralize ] }
-#    result.self.classname.pluralize
-#    q= if block_given?
-#      "select from #{self.ref_name} #{ orientdb.compose_where attributes, &b} "
-#       else
-#      OrientSupport::OrientQuery.new( from: self, where: attributes) 
-#       end
-#    query_database q
+		# the block contains a result-record : 
+		#<ActiveOrient::Model:0x0000000003972e00 
+		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
+		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
+		#		             ^...........° -> classname.pluralize
+    query_database( query, set_from: false){| record | record.is_a?(ActiveOrient::Model) ? record : record.send( self.classnamepluralize.to_sym ) }
   end
 =begin
 Performs a Match-Query
@@ -387,7 +454,7 @@ These connections are defined in the Block
 
   var = Industry.match do | query |
     query.connect :in, count: 2, as: 'Subcategories'
-    puts query.to_s  # print the query send to the database
+    puts query.to_s  # print the query before sending it to the database
     query            # important: block has to return the query 
   end
   => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
@@ -436,7 +503,7 @@ query_database is used on model-level and submits
     query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     result = db.execute do
-      sql_cmd[query.to_s]
+    query.to_s #  sql_cmd[query.to_s]
     end
     if block_given?
       result.is_a?(Array)? result.map{|x| yield x } : yield(result)

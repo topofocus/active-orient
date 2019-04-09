@@ -18,24 +18,24 @@ Example:
 
 The rid_store is updated!
 
-_To_do:_ fetch for version in the db and load the object  only if a change is detected
+_Todo:_ fetch for version in the db and load the object  only if a change is detected
 
 _Note:_ This function is not located in ModelClass since it needs to use @@rid_store
 =end
 
-    def self.autoload_object rid
-      rid = rid[1..-1] if rid[0]=='#'
-      if rid.rid?
-	if  @@rid_store[rid].present?
-	  @@rid_store[rid]  # return_value
-	else
-	   get(rid)
-	end
-      else
-        logger.progname = "ActiveOrient::Model#AutoloadObject"
-        logger.info{"#{rid} is not a valid rid."}
-      end
-    end
+		def self.autoload_object rid
+			rid = rid[1..-1] if rid[0]=='#'
+			if rid.rid?
+				if  @@rid_store[rid].present?
+					@@rid_store[rid]  # return_value
+				else
+					get(rid)
+				end
+			else
+				logger.progname = "ActiveOrient::Model#AutoloadObject"
+				logger.info{"#{rid} is not a valid rid."}
+			end
+		end
 
     ## used for active-model-compatibility
     def persisted?
@@ -55,14 +55,14 @@ i.e.
 
 =end
   
-    def self.use_or_allocate rid
-      cached_obj =  get_rid( rid ) 
-      if cached_obj.present? 
-	cached_obj
-      else
-	yield
-      end
-    end
+		def self.use_or_allocate rid
+			cached_obj =  get_rid( rid ) 
+			if cached_obj.present? 
+				cached_obj
+			else
+				yield
+			end
+		end
 
 
    def self._to_partial_path #:nodoc:
@@ -84,23 +84,23 @@ i.e.
 =begin
 Deletes the database class and removes the ruby-class 
 =end
-    def self.delete_class what= :all
-      orientdb.delete_class(  self ) if what == :all  # remove the database-class
-      ## namespace is defined in config/boot
-      ns =  namespace.to_s == 'Object' ? "" : namespace.to_s
-      ns_found = -> ( a_class ) do
-	to_compare = a_class.to_s.split(':')
-	if ns == "" && to_compare.size == 1 
-	  true
-	elsif to_compare.first == ns
-	  true
-	else
-	  false
-	end
-      end
-      self.allocated_classes.delete_if{|x,y| x == self.ref_name && ns_found[y]}  if allocated_classes.is_a?(Hash)
-      namespace.send(:remove_const, naming_convention.to_sym) if namespace.send( :const_defined?, naming_convention)
-    end
+		def self.delete_class what= :all
+			orientdb.delete_class(  self ) if what == :all  # remove the database-class
+			## namespace is defined in config/boot
+			ns =  namespace.to_s == 'Object' ? "" : namespace.to_s
+			ns_found = -> ( a_class ) do
+				to_compare = a_class.to_s.split(':')
+				if ns == "" && to_compare.size == 1 
+					true
+				elsif to_compare.first == ns
+					true
+				else
+					false
+				end
+			end
+			self.allocated_classes.delete_if{|x,y| x == self.ref_name && ns_found[y]}  if allocated_classes.is_a?(Hash)
+			namespace.send(:remove_const, naming_convention.to_sym) if namespace &.send( :const_defined?, naming_convention)
+		end
 
     # provides an unique accessor on the Class
     # works with a class-variable, its unique through all Subclasses
@@ -119,7 +119,7 @@ Deletes the database class and removes the ruby-class
     attr_reader :metadata
 
     # provides an accessor at class level 
-    # its unique on all instances 
+    # (unique on all instances)
       class << self
 	    attr_accessor :ref_name
 	    attr_accessor :abstract

@@ -1,5 +1,5 @@
 class E  < ActiveOrient::Model
-  ## link to the library-class
+  ## class methods
   class << self
 =begin
 Establish constrains on Edges
@@ -17,16 +17,15 @@ Creates individual indices for child-classes if applied to the class itself.
 =begin
  Instantiate a new Edge between two Vertices 
 
-  The parameters »from« _or_ »to« can take a list of model-records. Then subsequent edges are created.
-
-  :call-seq:
-  create( from:, to:,  attributes:{} )
 =end
-  def create( **keyword_arguments )
-    new_edge = db.create_edge self, **keyword_arguments
-    new_edge =  new_edge.pop if new_edge.is_a?( Array) && new_edge.size == 1
+  def create from:, to: , attributes: {}, transaction:  false
+		return nil if from.blank? || to.blank?
+		statement = "CREATE EDGE #{ref_name} from #{from.to_orient} to #{to.to_orient}"
+		transaction = true if [:fire, :complete, :run].include?(transaction)
+		db.execute( transaction: transaction ){ statement  }
 
-    new_edge # returns the created edge (or an array of created edges)
+	rescue ArgumentError => e
+		logger.error{ "wrong parameters  #{keyword_arguments} \n\t\t required: from: , to: , attributes:\n\t\t Edge is NOT created"}
   end
 
 =begin
@@ -46,7 +45,10 @@ The rid-cache is resetted
 
   end
   
-  end 
+	end   # class methods
+
+	###  instance methods  ###
+
 =begin
 Removes the actual ActiveOrient::Model-Edge-Object
 
@@ -56,4 +58,7 @@ This method overloads the unspecified ActiveOrient::Model#remove-Method
   # remove works on record-level
     db.delete_edge self
   end
+
+
+
 end

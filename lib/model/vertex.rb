@@ -4,11 +4,16 @@ class V   < ActiveOrient::Model
 =begin
 specialized creation of vertices, overloads model#create
 =end
-  def self.create( **keyword_arguments )
-    new_vert = db.create_vertex self, attributes: keyword_arguments
-    new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
-
-    new_vert # returns the created vertex (or an array of created vertices)
+	def self.create( **keyword_arguments )
+		new_vert = db.create_vertex self, attributes: keyword_arguments
+		new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
+		if new_vert.nil?
+			logger.error('Vertex'){ "Table #{ref_name} ->>  create failed:  #{keyword_arguments.inspect}" } 
+		elsif block_given?
+			yield new_vert
+		else
+			new_vert # returns the created vertex (or an array of created vertices)
+		end
   end
 =begin
 Vertex#delete fires a "delete vertex" command to the database.
@@ -39,6 +44,7 @@ The rid-cache is reseted, too
   end
 =begin
 »in« and »out« provide the main access to edges.
+»in» is a reserved keyword. Therfore its only an alias to `in_e`.
 
 If called without a parameter, all connected edges  are retrieved.
 
@@ -47,10 +53,12 @@ edges are retrieved.
 
 =end
 
-  def in edge_name= nil
+  def in_e edge_name= nil
     detect_inherent_edge :in, edge_name
   end
 	
+	alias_method :in, :in_e
+
   def out edge_name =  nil
     detect_inherent_edge :out, edge_name
   end
@@ -140,6 +148,35 @@ is a walkaround, but using in_- and out_edges is more  elegant.
 
   def remove
     db.delete_vertex self
-  end
+	end
+=begin
+Human readable represantation of Vertices
 
+Format: < Classname : Edges, Attributes >
+=end
+	def to_human
+		count_and_display_classes = ->(array){array.map(&:class)&.group_by(&:itself)&.transform_values(&:count)} 
+
+		the_ins =    count_and_display_classes[ in_e] 
+		the_outs =  count_and_display_classes[ out]
+
+		in_and_out = in_edges.empty? ? "" : "in: #{the_ins}, " 
+		in_and_out += out_edges.empty? ? "" : "out: #{the_outs}, " 
+ 
+
+		#Default presentation of ActiveOrient::Model-Objects
+
+		"<#{self.class.to_s.demodulize}: " + in_and_out  + content_attributes.map do |attr, value|
+			v= case value
+				 when ActiveOrient::Model
+					 "< #{self.class.to_.demodulize} : #{value.rrid} >"
+				 when OrientSupport::Array
+					 value.to_s
+#					 value.rrid #.to_human #.map(&:to_human).join("::")
+				 else
+					 value.from_orient
+				 end
+			"%s : %s" % [ attr, v]  unless v.nil?
+		end.compact.sort.join(', ') + ">".gsub('"' , ' ')
+	end
 end

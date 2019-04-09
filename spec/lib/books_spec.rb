@@ -82,12 +82,12 @@ describe OrientSupport::OrientQuery do
    
     # we test the lambda "fill database"
     it "apply test-content"  do
-      fill_database = ->(sentence, this_book ) do
-      nw = Array.new
-      ## duplicates are not created, a log-entry is created
-      word_records =  sentence.split(' ').map{ |x| Word.create item: x  }.compact 
-      HC.create :from => this_book, :to => word_records  # return value for the iteration
-      end
+			fill_database = ->(sentence, this_book ) do
+				nw = Array.new
+				## duplicates are not created, a log-entry is created
+				word_records =  sentence.split(' ').map{ |x| Word.create item: x  }.compact 
+				HC.create :from => this_book, :to => word_records  # return value for the iteration
+			end
       words = 'Die Geschäfte in der Industrie im wichtigen US-Bundesstaat New York sind im August so schlecht gelaufen wie seit mehr als sechs Jahren nicht mehr Der entsprechende Empire-State-Index fiel überraschend von plus  Punkten im Juli auf minus 14,92 Zähler Dies teilte die New Yorker Notenbank Fed heut mit Bei Werten im positiven Bereich signalisiert das Barometer ein Wachstum Ökonomen hatten eigentlich mit einem Anstieg auf 5,0 Punkte gerechnet'
       this_book =  Book.create title: 'first'
       fill_database[ words, this_book ]
@@ -104,7 +104,7 @@ describe OrientSupport::OrientQuery do
       expect( result).to be_a Array
       expect( result).to have_at_least(1).item
       queried_book =  result.first
-#      puts queried_book.inspect
+      puts "queriede book #{queried_book.inspect}"
       expect( queried_book ).to be_a Book
       expect( queried_book.title ).to eq 'second'
 

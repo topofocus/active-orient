@@ -3,6 +3,7 @@ require_relative "create.rb" # manage create
 require_relative "change.rb" # manage update
 require_relative "operations.rb" # manage count, functions and execute
 require_relative "delete.rb" # manage delete
+require_relative "../support/logging"
 require 'cgi'
 require 'rest-client'
 
@@ -12,27 +13,13 @@ module ActiveOrient
 OrientDB points to an OrientDB-Database.
 The communication is based on the OrientDB-REST-API.
 
-The OrientDB-Server is specified in *config/connect.yml*
-
-A Sample:
- :orientdb:
-   :server: localhost
-     :port: 2480
-   :database: working-database
-   :admin:
-     :user: admin-user
-     :pass: admin-password
-
-The connection is then established through
-  ActiveOrient::OrientDB.new
-
-
-By default, _config/boot.rb_  handles the connection. There this is mapped to the constant ORD. 
+Its usually initialised through ActiveOrient::Init.connect
 
 =end
 
   class OrientDB
     include OrientSupport::Support
+    include OrientSupport::Logging
     include OrientDbPrivate
     include DatabaseUtils
     include ClassUtils
@@ -42,55 +29,54 @@ By default, _config/boot.rb_  handles the connection. There this is mapped to th
     include RestOperations
     include RestDelete
 
-    mattr_accessor :logger # borrowed from active_support
 
     #### INITIALIZATION ####
 
 =begin
 OrientDB is conventionally initialized.
 
-Several instances share ActiveOrient.database and ActiveOrient.database_classes.
 
-A simple
-   xyz =  ActiveOrient::OrientDB.new
+The first call initialises database-name and -classes, server-adress and user-credentials.
 
-uses the database specified in the yaml-file »config/connect.yml« and connects
+Subsequent initialisations are made to initialise namespaced database classes, ie.
 
-   zxy = ActiveOrient::OrientDB.new database: my_fency_database
+	ORD =  ActiveOrient.init.connect  database: 'temp'
+																server:  'localhost',
+																port:    2480,
+																user:   root, 
+																password: root 
+	module HC; end
+	ActiveOrient::Init.define_namespace { HC }
+	ActiveOrient::OrientDB.new  preallocate: true 
 
-accesses the database »my_fency_database«. The database is created if its not existing.
 
-*USECASE*
-   xyz =  ActiveOrient::Model.orientdb = ActiveOrient::OrientDB.new
 
-initialises the Database-Connection and publishes the Instance to any ActiveOrient::Model-Object
+
+
 =end
 
-    def initialize database: nil, connect: true, preallocate: true, model_dir: nil
-      self.logger = Logger.new('/dev/stdout') unless logger.present?
-    #  self.default_server = {
-    #    :server => 'localhost',
-    #    :port => 2480,
-    #    :protocol => 'http',
-    #    :user => 'root',
-    #    :password => 'root',
-    #    :database => 'temp'
-    #  }.merge default_server.presence || {}
-    #  @res = get_resource
-      ActiveOrient.database ||= database
-      ActiveOrient.database_classes ||=   HashWithIndifferentAccess.new
-      @res = get_resource
-      connect() if connect
+    def initialize database: nil, preallocate: true, model_dir: nil, **defaults
+      ActiveOrient.database ||= database || 'temp'
+      ActiveOrient.database_classes ||=   Hash.new
+
+			ActiveOrient.default_server ||= { :server => defaults[:server] || 'localhost' ,
+																				:port   => defaults[:port] ||= 2480,
+																				:user   => defaults[:user].to_s ,
+																				:password => defaults[:password].to_s }
+
+      @res = get_resource 
+      connect() 
       database_classes # initialize @classes-array and ActiveOrient.database_classes 
+			ActiveOrient::Base.logger =  logger
       ActiveOrient::Model.orientdb = self 
       ActiveOrient::Model.db = self 
       ActiveOrient::Model.keep_models_without_file ||= nil
-      preallocate_classes(model_dir)  if preallocate
+      preallocate_classes( model_dir )  if preallocate
 
     end
 
     def get_resource
-      login = [ActiveOrient.default_server[:user].to_s , ActiveOrient.default_server[:password].to_s]
+      login = [ActiveOrient.default_server[:user] , ActiveOrient.default_server[:password]]
       server_adress = "http://#{ActiveOrient.default_server[:server]}:#{ActiveOrient.default_server[:port]}"
       RestClient::Resource.new(server_adress, *login)
     end
@@ -100,7 +86,7 @@ initialises the Database-Connection and publishes the Instance to any ActiveOrie
     def connect
       first_tentative = true
       begin
-	database =  ActiveOrient.database
+				database =  ActiveOrient.database
         logger.progname = 'OrientDB#Connect'
         r = @res["/connect/#{database}"].get
         if r.code == 204

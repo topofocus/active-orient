@@ -1,14 +1,16 @@
 require 'spec_helper'
 require 'rest_helper'
+require 'model_helper'
 
 describe OrientSupport::OrientQuery do
-  before( :all ) do
-    reset_database
-    ORD.create_class "test_query"
-    ORD.create_class 'Openinterest'
-    ORD.create_class "match_query"
-  end # before
+#  before( :all ) do
+#    @db = connect database: 'temp'
+#    @db.create_class "test_query"
+#    @db.create_class 'Openinterest'
+#    @db.create_class "match_query"
+#  end # before
 
+#	after(:all){ @db.delete_database database: 'temp' }
   context "Initialize the QueryClass" do
     it "simple Initialisation" do
       q =  OrientSupport::OrientQuery.new from: TestQuery

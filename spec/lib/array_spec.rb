@@ -1,17 +1,20 @@
 require 'spec_helper'
-require 'rest_helper'
+require 'model_helper'
+require 'connect_helper'
+#require 'rest_helper'
 ## works well with rest-api
 describe OrientSupport::Array do
   before( :all ) do
-    reset_database
+    @db = connect database: 'temp'
 
-    ORD.create_class "test_model"
-    ORD.create_class 'link_class'
-    ORD.create_class 'base_class'
+    @db.create_class "test_model"
+    @db.create_class 'link_class'
+    @db.create_class 'base_class'
   end
+	after(:all){ @db.delete_database database: 'temp' }
 
   let( :testrecord ){ TestModel.create }
-  context "check isolated"  do
+  context "check isolated" do
     let( :basic ) { OrientSupport::Array.new work_on: testrecord, work_with: [ 'test', 6, 5 ]  }
     it { expect( basic ).to be_a OrientSupport::Array }
 
@@ -26,81 +29,66 @@ describe OrientSupport::Array do
 
 
 
-  context "add and populate an Array" do
-    before(:each){ testrecord.update set: { ll:  ['test','test_2', 5, 8 , 7988, "uzg"] } }
+  context "add and populate an Array"  do
+#    before(:each){ testrecord.update set: { ll:  ['test','test_2', 5, 8 , 7988, "uzg"] } }
 
-    it "initialize the Object"  do
-      expect( testrecord.ll ).to be_a OrientSupport::Array
-      expect( testrecord.ll.first ).to eq "test"
-      expect( testrecord.ll[2] ).to eq 5
-      expect( testrecord.version ).to be 2
-    end
+		 subject { TestModel.create ll:  ['test','test_2', 5, 8 , 7988, "uzg"]  }
+		 it_behaves_like 'a new record'
+     its( :ll ) { is_expected.to  be_a Array }
+     it{  expect( subject.ll.first ).to eq "test" }
+     it{  expect( subject.ll[2] ).to eq 5 }
+
     it "modify the Object"  do
-      puts "Testrecord.ll #{testrecord.ll}"
-      expect{ testrecord.add_item_to_property( :ll, 't')  }.to change { testrecord.version }.by 1
-      expect{ testrecord.ll << 78 }.to change { testrecord.ll.size }.by 1
-      expect{ testrecord.ll << 79 }.to change { testrecord.version }.by 1
+      expect{ subject.ll << 78 }.to change { subject.ll.size }.by 1
+      expect{ subject.ll << 79 }.to change { subject.version }.by 1
 
-      expect{ testrecord.remove_item_from_property :ll, 'test' }.to change { testrecord.ll.size }.by -1
-      expect{ testrecord.ll.remove 'test_2' }.to change { testrecord.ll.size }.by -1
-      expect{ testrecord.ll.remove_at(2) }.to change { testrecord.ll.size }.by -1
-      # multible deletions result in only one version increment
+      expect{ subject.ll.remove 'test_2' }.to change { subject.ll.size }.by -1
       expect do
-        expect{ testrecord.ll.remove 7988, 'uzg', 788, 79  }.to change { testrecord.ll.size }.by( -2 )
+        expect{ subject.ll.remove 7988, 'uzg', 788, 79  }.to change { subject.ll.size }.by( -3 )
 #	puts testrecord.ll.inspect
 #	puts testrecord.version
 #	testrecord.reload!
-      end.to change{  testrecord.version }.by 1
+      end.to change{  subject.version }.by 3
     end
 
     it "append to the array"   do
-      testrecord.update set: { new_array: [24,25,26] }
-      expect( testrecord.new_array ).to eq [24,25,26]
+      subject.update set: { new_array: [24,25,26] }
+      expect( subject.new_array ).to eq [24,25,26]
       
-      expect{ testrecord.new_array << "rt" }.to change { testrecord.new_array.size }.by 1
+      expect{ subject.new_array << "rt" }.to change { subject.new_array.size }.by 1
 
-      expect( testrecord.new_array ).to eq [24,25,26,'rt']
+      expect( subject.new_array ).to eq [24,25,26,'rt']
 
 
     end
     it "update the object"  do
-      expect{ testrecord.ll[0]  =  "a new Value " }.to change{ testrecord.version }
-      expect( testrecord.ll ).to eq [ "a new Value ", "test_2", 5, 8 , 7988, 'uzg']
+      expect{ subject.ll[0]  =  "a new Value " }.to change{ subject.version }
+      expect( subject.ll ).to eq [ "a new Value ", "test_2", 5, 8 , 7988, 'uzg']
 
     end
 
 
-    context "Work with arrays containing links" do
-#      before(:all) do
-#	begin
-#        @new_record = TestModel.create ll: [ ]
-#	(1..9).each{|i| @new_record.ll << i ; @new_record.ll << LinkClass.create( att: "#{i} attribute" ) }
-#	rescue TypeError
-#	  puts "error handled"
-#	end
-#      end
+    context "Work with arrays containing links" , focus: true do
 #
-      it "verify the datastructure" do
-        new_record = TestModel.create ll: [ ]
-	lk = LinkClass.create att: "{i} attribute" 
-	(1..9).each{|i| new_record.ll << i ; new_record.ll <<  lk } # LinkClass.create( att: "#{i} attribute" ) }
-        expect( new_record.ll ).to have(18).items
-        expect( new_record.ll.first).to eq 1
-        expect( new_record.ll.at(1)).to eq LinkClass.first
-        #      puts @new_record.ll.map{|y| y.is_a?( REST::Model )? y.att : y }.join(' ; ')
-      end
+		  subject do	
+				new_record = TestModel.create ll: [ ]
+				lk = -> (z){ LinkClass.create att: "#{z} attribute" }
+				(1..9).each{|i| new_record.ll << i ; new_record.ll <<  lk[i] } # LinkClass.create( att: "#{i} attribute" ) }			
+				new_record.ll  # the subject
+			end
+				its(:size){ is_expected.to eq 18 }
+				its(:first){ is_expected.to eq 1 }
+				its(:last){ is_expected.to be_a LinkClass }
+				
 
       it "add and remove records" do
-      pending( "test for adding an existing link to the array: mixed arrays are not supported in 2.2" )
-        new_record = TestModel.create ll: [ ]
-        expect{ new_record.ll << LinkClass.create( new: "Neu" ) }.to change { new_record.ll.size }.by 1
-        expect{ new_record.ll.remove  LinkClass.last }.to change { new_record.ll.size }.by -1
-        expect{ new_record.ll.remove  9 }.to change { new_record.ll.size }.by -1
-        expect{ new_record.ll.remove 19 }.not_to change { new_record.ll.size }
-        expect{ new_record.ll.remove  1,8 }.to change { new_record.ll.size }.by -2
-        expect{ new_record.ll.delete_if{|x| x.is_a?(Numeric)}}.to change {new_record.ll.size }.by -6
-        expect{ new_record.ll.delete_if{|x| x.is_a?(ActiveOrient::Model) && x.att.to_i == 3}}.to change {new_record.ll.size }.by -1
-        expect{ new_record.ll.delete_if{|x| x == LinkClass.first.rid}}.to change {new_record.ll.size }.by -1
+#        new_record = subject << 9,1,8 
+        expect{ subject << LinkClass.new( new: "Neu" ) }.to change { subject.size }.by 1
+
+#        expect{ new_record.ll.remove  *LinkClass.where( new: 'Neu' ) }.to change { new_record.ll.size }.by -1
+ #       expect{ new_record.ll.remove  9 }.to change { new_record.ll.size }.by -1
+  #      expect{ new_record.ll.remove 19 }.not_to change { new_record.ll.size }
+   #     expect{ new_record.ll.remove  1,8 }.to change { new_record.ll.size }.by -2
       end
     end
   end
@@ -193,8 +181,8 @@ describe OrientSupport::Array do
 
 #  context 'create an array and save it to a linkmap' do
 #    before( :all ) do
-#      AC= ORD.create_class  'array_class'
-#      TLC= ORD.create_class  'this_link_class'
+#      AC= @db.create_class  'array_class'
+#      TLC= @db.create_class  'this_link_class'
 #      TLC.create_linkset 'this_set', AC
 #      @item =  TLC.create this_set: [] 
 #

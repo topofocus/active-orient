@@ -1,6 +1,6 @@
 ---
 :orientdb:
- :server: localhost # 172.28.50.109 # localhost   #mailout.halfgarten-capital.de
+ :server: 172.28.50.25 # localhost # 172.28.50.109 # localhost   #mailout.halfgarten-capital.de
  :port: 2480
  :logger: stdout           # 'file' or 'stdout'
  :database: 
