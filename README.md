@@ -17,9 +17,8 @@ datasets. **OrientDB Version 3 is required**
  - and start an irb-session by calling  
 ```
 cd bin
-./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
-`
-
+./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.ym
+```
 
 #### Other Documents
 - [Experiments with Joins / Linkmaps ](./linkmap.md)
