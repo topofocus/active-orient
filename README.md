@@ -31,7 +31,7 @@ cd bin
 You need a ruby 2.5/2.6  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
 
 
-### Philosphy
+### Philosophy
 
 
 OrientDB is basicly an Object-Database, shares the concept of Inheritance with OO-Languages, like Ruby. 
