@@ -1,5 +1,7 @@
 ## Minimal Setup 
 
+**file adresses the Setup for OrientDB 2.2**
+
 The gem may be used without object-mappings and external configuration
 
 This is the minimal configuration:
