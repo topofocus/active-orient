@@ -1,13 +1,25 @@
 # ActiveOrient
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
-datasets.
+datasets. **OrientDB Version 3 is required**
 
-**NOTE**
->Update to OrientDB Version 3 in progress
+### Quick Start
 
->Most Specs are passing 
+- clone the project, 
+ - run bundle install ; bundle update, 
+ - update config/connect.yml,
+ - create the documentation:
+ ```
+   sdoc . -w2 -x spec -x example
+   ```
+   and point the browser to ~/active-orient/doc/index.htm
+   
+-  read the [Wiki](./../../wiki/Initialisation)
+ - and start an irb-session by calling  
+```
+cd bin
+./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
+`
 
->Checkout Branch "ver_3" 
 
 #### Other Documents
 - [Experiments with Joins / Linkmaps ](./linkmap.md)
@@ -25,19 +37,7 @@ You need a ruby 2.5/2.6  Installation and a working OrientDB-Instance (Version 3
 
 ### Quick Start
 
- - clone the project, 
- - run bundle install ; bundle update, 
- - update config/connect.yml,
- - create the documentation:
- ```
-   sdoc . -x spec -x example
-   ```
-   and point the browser to ~/active-orient/doc/index.htm
- - start an irb-session by calling  
-```
-cd bin
-./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.yml
-```
+ ``
 
 «ORD» or «DB» is the Database-Instance itself. If the Database noticed in the config-file is not present, it is created on startup.
 A simple SQL-Query is submitted by providing a Block to »execute«
@@ -131,8 +131,8 @@ The schemaless mode has many limitations. ActiveOrient offers a Ruby way to defi
  ORD.create_class  :M  
  M.create_property :symbol 			# the default-case: type: :string, no index
  M.create_property :con_id,   type: :integer
- M.create_property :details,  type: :link, other_class: 'Contracts'
- M.create_property :items,    type: :linklist, :linklist: Item
+ M.create_property :details,  type: :link, linked_class: Contracts
+ M.create_property :items,    type: :link_list, linked_class: Item
  M.create_property :name,    index: :unique	# or  M.create_property( 'name' ){ :unique }
  ```
 
