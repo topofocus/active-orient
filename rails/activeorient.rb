@@ -23,10 +23,6 @@ ActiveOrient::Init.connect
 ActiveOrient::Model.keep_models_without_file = true
 
 ActiveOrient::OrientDB.new  preallocate:  true
-  # require model-files for edge and vertex after initialisation of the db
-  basedir =  `bundle show active-orient`[0..-2]
-  require "#{basedir}/lib/model/edge.rb"
-  require "#{basedir}/lib/model/vertex.rb"
 
 
 
