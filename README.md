@@ -5,6 +5,8 @@ datasets. **OrientDB Version 3 is required**
 For changes from Version OrientDB 2.2 -> [Wiki](../..//wiki/Changes-2.2--to------3.0)
 ### Quick Start
 
+You need a ruby 2.5/2.6  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
+
 - clone the project, 
  - run bundle install ; bundle update, 
  - update config/connect.yml,
@@ -18,19 +20,8 @@ For changes from Version OrientDB 2.2 -> [Wiki](../..//wiki/Changes-2.2--to-----
  - and start an irb-session by calling  
 ```
 cd bin
-./active-orient-console test   # or d)develpoment, p)roduction environment as defined in config/connect.ym
+./active-orient-console t)est   # or d)develpoment, p)roduction environment as defined in config/connect.ym
 ```
-
-#### Other Documents
-
-- [Experiments with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
-
-- [TimeGraph Implementation](examples/time_graph.md)
-
-- [Rails 5-Integration](./rails.md)
-
-You need a ruby 2.5/2.6  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
-
 
 ### Philosophy
 
@@ -114,6 +105,14 @@ Graph-support:
 It connects the vertices and assigns the attributes to the edge.
 
 To query a graph,  SQL-like-Queries and Match-statements can be used (see below). 
+
+#### Other Documents
+
+- [Experiments with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
+
+- [TimeGraph Implementation](examples/time_graph.md)
+
+- [Rails 5-Integration](./rails.md)
 
 
 
