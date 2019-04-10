@@ -26,12 +26,11 @@ cd bin
 ### Philosophy
 
 
-OrientDB is basicly an Object-Database, shares the concept of Inheritance with OO-Languages, like Ruby. 
-Contrary to SQL-Databases, the database itself defines the Relations. A separate schema is not neccessary. 
-Upon initialisation `ActiveOrient`reads the complete structure of the database, creates corresponding ruby-classes
-and then loads user defined methods from the `Model Directory`.
+OrientDB is basicly an Object-Database. It shares the concept of Inheritance with OO-Languages, like Ruby. 
+ 
+Upon initialisation `ActiveOrient`reads the complete structure of the database, creates corresponding ruby-classes (including inheritance) and then loads user defined methods from the `Model Directory`. A separate schema definition is not neccessary. 
 
-`ActiveOrient`queries the OrientDB-Database, provides a Cache to speed things up and provides handy methods to simplify the work with OrientDB. Like Active-Record it represents the "M" Part of the MCV-Design-Pattern. Unlike Active-Record there is explicit Namespace support. Its philosophie resembles the [Hanami Project](https://github.com/hanami/hanami). 
+`ActiveOrient`queries the OrientDB-Database, provides a cache to speed things up and provides handy methods to simplify the work with OrientDB. Like Active-Record it represents the "M" Part of the MCV-Design-Pattern. There is explicit Namespace support. Its philosophie resembles the [Hanami Project](https://github.com/hanami/hanami). 
 
 
 
