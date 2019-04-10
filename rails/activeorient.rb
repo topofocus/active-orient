@@ -19,6 +19,7 @@
 # end
 #
 # At the end: include everything which is not yet allocated to some namespaced model
+ActiveOrient::Init.connect 
 ActiveOrient::Model.keep_models_without_file = true
 
 ActiveOrient::OrientDB.new  preallocate:  true
