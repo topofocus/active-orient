@@ -6,12 +6,12 @@
  :database: 
    :development: GratefulDeadConcerts
    :production: hcn_data
-   :test:  tempera
+   :test:  temp
  :admin:
-   :user: hctw
-   :pass: hc
+   :user: root
+   :pass: root
  :auth:
-   :user: topo
-   :pass: focus
+   :user: root
+   :pass: root
 
 # hfx: 101
