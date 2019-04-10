@@ -15,7 +15,7 @@ DB.create_class( :stock, :option, :bond ){ :asset }
 ```
 The Asset-Class needs a property »base« which should carry an index. 
 ```ruby
-Asset.create:property :base, type: link, index: :uniq
+Asset.create:property :base, type: :link, index: :uniq
 ```
 Both classes are initialized/assigned in a single statement
 ```ruby
