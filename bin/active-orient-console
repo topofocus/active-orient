@@ -6,12 +6,46 @@
 ##	       production (p)
 ##	       development (d)  [default]
 ##	       test (t)
+require 'bundler/setup'
+require 'yaml'
 require 'logger'
-LogLevel = Logger::INFO
-require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
+require 'active-orient'
+config_file =  File.expand_path('../../config/connect.yml', __FILE__) 
+connectyml = if File.exist?(config_file)
+							 YAML.load_file( config_file )[:orientdb]
+						 else
+							 puts "config/connect.yml not found "
+							 puts "using defaults"
+							 {  server: 'localhost', port: 2480, 
+									database: {  development: 'GratefulDeadConcerts',
+															 production: 'hcn_data',
+															 test:  'temp'},
+								  admin:	{	user: 'root', pass: 'root' } } 
+						end
 
- require 'orientdb' if RUBY_PLATFORM == 'java'
- require 'yaml'
+e=  ARGV.present? ? ARGV.last.downcase : 'development'
+env =  if e =~ /^p/
+				 :production
+			 elsif e =~ /^t/
+				 :test
+			 else
+				 :development
+			 end
+begin
+	ORD = ActiveOrient::Init.connect database: connectyml[:database][env].to_s,
+		user: connectyml[:admin][:user].to_s,
+		password: connectyml[:admin][:pass].to_s,
+		server: connectyml[:server].to_s
+	ActiveOrient::Base.logger.level = Logger::INFO
+	ActiveOrient::Model.keep_models_without_file = true
+	ActiveOrient::OrientDB.new  model_dir: 'lib/model'
+rescue RestClient::Unauthorized
+	puts "Cannot connect to the server. Wrong credentials"
+	Kernel.exit
+rescue Errno::ECONNREFUSED
+	puts "Database Server is not running on  #{connectyml[:server]} "
+	Kernel.exit
+end
 
  class Array
 	 # Method missing enables fancy stuff like
@@ -19,17 +53,17 @@ require File.expand_path(File.dirname(__FILE__) + "/../config/boot")
 	 #
 	 # its included only in the console, for inspection purposes
 
-	 def method_missing(method, *key)
-		 unless method == :to_hash || method == :to_str #|| method == :to_int
-			 return self.map{|x| x.public_send(method, *key)}
-		 end
+#	 def method_missing(method, *key)
+#		 unless method == :to_hash || method == :to_str #|| method == :to_int
+#			 return self.map{|x| x.public_send(method, *key)}
+#		 end
 
-	 end
+#	 end
  end # Array
 
 
 puts "ORD points to the REST-Instance, Database: #{ActiveOrient.database}"
-puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
+#puts "DB is the API-Instance of the database, DB.db gets the DB-Api-base " if RUBY_PLATFORM == 'java'
 
 puts '-'* 45
 ns= case ActiveOrient::Model.namespace 

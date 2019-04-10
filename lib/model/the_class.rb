@@ -76,7 +76,7 @@ custom methods declared in the model files are present.
 
 Required modelfiles are gone, if the class is destroyed. 
 
-The directory specified is expanded by the namespace. The directory specified as parameter is the base-dir.
+The directory specified is expanded by the namespace. The  parameter itself is the base-dir.
 
 Example:
   Namespace:  HC
@@ -84,9 +84,10 @@ Example:
   searched directory: 'lib/model/hc'
 
 =end
-	def require_model_file  the_directory=nil
+	def require_model_file  the_directory = ActiveOrient::Model.model_dir
 		logger.progname = 'ModelClass#RequireModelFile'
-		the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir)   # the_directory is a Pathname
+		the_directory = Pathname( the_directory ) rescue nil  # the_directory is a Pathname
+		return nil if the_directory.nil?
 		if File.exists?( the_directory )
 			model= self.to_s.underscore + ".rb"
 			filename =   the_directory +  model
@@ -103,7 +104,7 @@ Example:
 				nil #return_value
 			end
 		else
-			logger.info{ "Directory #{ dir  } not present " }
+			logger.info{ "Directory #{ the_directory  } not present " }
 			nil  #return_value
 		end
 	rescue TypeError => e

@@ -54,9 +54,9 @@ i.e.
   ActiveOrient.Init.define_namespace yml: configyml 
   #or
   ActiveOrient.Init.define_namespace namespace: :self | :object | :active_orient
-  #or
-  module IB # first declare the Module-Const
-  end	    # then assign to the namespace
+	#or
+	module IBi; end # first declare the Module-Const
+  # then assign to the namespace
   ActiveOrient.Init.define_namespace { IB } 
 		
 =end
