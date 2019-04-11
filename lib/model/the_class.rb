@@ -33,6 +33,7 @@ To overwrite use
 		nil
   end
 
+
 =begin
 Set the namespace_prefix for database-classes.
 
@@ -66,6 +67,22 @@ Override to change its behavior
   end
 
 
+=begin
+	setter method to initialise a dummy ActiveOrient::Model class to enable multi-level 
+	access to links and linklists
+=end
+
+def link_list *property
+	property.each do |p|
+		
+		the_dummy_class = orientdb.allocate_class_in_ruby("dummy_"+p.to_s)
+		the_dummy_class.ref_name =  ref_name + "." +  p.to_s
+		singleton_class.send :define_method, p do
+			the_dummy_class
+		end
+	end
+
+end
 
 =begin
 requires the file specified in the model-dir
@@ -84,9 +101,9 @@ Example:
   searched directory: 'lib/model/hc'
 
 =end
-	def require_model_file  the_directory = ActiveOrient::Model.model_dir
+	def require_model_file  the_directory = nil
 		logger.progname = 'ModelClass#RequireModelFile'
-		the_directory = Pathname( the_directory ) rescue nil  # the_directory is a Pathname
+		the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir ) rescue nil  # the_directory is a Pathname
 		return nil if the_directory.nil?
 		if File.exists?( the_directory )
 			model= self.to_s.underscore + ".rb"
