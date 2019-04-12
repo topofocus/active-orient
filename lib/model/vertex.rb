@@ -166,7 +166,7 @@ Format: < Classname : Edges, Attributes >
 
 		#Default presentation of ActiveOrient::Model-Objects
 
-		"<#{self.class.to_s.demodulize}: " + in_and_out  + content_attributes.map do |attr, value|
+		"<#{self.class.to_s.demodulize}[#{rrid}]: " + in_and_out  + content_attributes.map do |attr, value|
 			v= case value
 				 when ActiveOrient::Model
 					 "< #{self.class.to_.demodulize} : #{value.rrid} >"

@@ -74,7 +74,7 @@ The change is immediately transmitted to the database.
 =end
 		def   append *arg
 
-			@orient.update { "#{@name.to_s} = #{@name} || [ #{arg.map(&:to_or).join(', ')} ] "}[@name]
+			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or} "}[@name]
 		end
 
 		alias  << append 

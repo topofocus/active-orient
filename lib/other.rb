@@ -6,7 +6,7 @@ class Array
   end
 
   def to_or
-    map( &:to_or) # .join(',')
+    "["+ map( &:to_or).join(', ')+"]"
   end
 
   def from_orient

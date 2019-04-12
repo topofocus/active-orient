@@ -14,8 +14,8 @@ describe ActiveOrient::OrientDB do
 		(0 .. 9).each do | b |
 			base_record = Base.create( label: b, first_list: [])
 			(0..9 ).each do | c |
-					list_record = FirstList.create( label: c , second_list: [])  
-					list_record.second_list << (0..9).map{|n| SecondList.new( label: n ) }
+					list_record = FirstList.create( rubel: c , second_list: [])  
+					list_record.second_list << (0..9).map{|n| SecondList.new( zobel: n ) }
 				base_record.first_list <<  list_record
 			end
 			end  #c
@@ -60,7 +60,7 @@ describe ActiveOrient::OrientDB do
 				(0..9).each do | d |
 						  puts "Second_List: #{b.first_list[c].second_list.to_human}"
 					  puts "c: #{c} ; d: #{d}"
-					expect( b.first_list[c].second_list[d][:label] ).to eq d
+					expect( b.first_list[c].second_list[d][:zobel] ).to eq d
 				end
 			end
 			end

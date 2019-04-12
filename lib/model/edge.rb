@@ -20,10 +20,13 @@ Creates individual indices for child-classes if applied to the class itself.
 =end
   def create from:, to: , attributes: {}, transaction:  false
 		return nil if from.blank? || to.blank?
-		statement = "CREATE EDGE #{ref_name} from #{from.to_orient} to #{to.to_orient}"
+		statement = "CREATE EDGE #{ref_name} from #{from.to_or} to #{to.to_or}"
 		transaction = true if [:fire, :complete, :run].include?(transaction)
-		db.execute( transaction: transaction ){ statement  }
-
+		ir= db.execute( transaction: transaction ){ statement  }
+		from.reload! # get last version 
+		to.is_a?(Array)? to.each( &:reload! )  : to.reload!
+		ir
+		
 	rescue ArgumentError => e
 		logger.error{ "wrong parameters  #{keyword_arguments} \n\t\t required: from: , to: , attributes:\n\t\t Edge is NOT created"}
   end

@@ -1,10 +1,14 @@
+#### sample boot file ####
+
+
+
 require 'bundler/setup'
 require 'yaml'
 if RUBY_VERSION == 'java'
 	require 'orientdb'
 end
+require "active-orient"
 project_root = File.expand_path('../..', __FILE__)
-require "#{project_root}/lib/active-orient.rb"
 begin
 	connect_file = File.expand_path('../../config/connect.yml', __FILE__)
 	config_file = File.expand_path('../../config/config.yml', __FILE__)
@@ -26,7 +30,7 @@ env =  if e =~ /^p/
 			 end
 puts "Using #{env}-environment"
 
-log_file =   if config_file.present?
+log_file =   if File.exist?(config_file)
 							 dev = YAML.load_file( connect_file )[:orientdb][:logger]
 							 if dev.blank? || dev== 'stdout'
 								 '/dev/stdout'
