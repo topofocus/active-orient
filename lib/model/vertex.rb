@@ -146,9 +146,9 @@ is a walkaround, but using in_- and out_edges is more  elegant.
     edges :out
   end
 
-  def remove
-    db.delete_vertex self
-	end
+ # def remove
+ #   db.delete_vertex self
+#	end
 =begin
 Human readable represantation of Vertices
 

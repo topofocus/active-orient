@@ -138,15 +138,17 @@ is identical
     logger.progname = 'ActiveOrient::Model#Update'
 
 		if block_given?			# calling vs. a block is used internally
-			transfer_content from: 	 query( "update #{rrid} set  #{ yield }  return after @this" )&.first
+			# to remove an Item from lists and sets call update(remove: true){ query }
+			set_or_remove =  args[:remove].present? ? "remove" : "set"
+			transfer_content from: 	 query( "update #{rrid} #{set_or_remove} #{ yield }  return after @this" )&.first
 		 else
 			set.merge! args
-			set.merge updated_at: DateTime.now
+		#	set.merge updated_at: DateTime.now
 
 			if rid.rid?
 				transfer_content from:  db.update( self, set, version )
 				# if the updated dataset changed, drop the changes made siently
-				self # return value
+		#		self # return value
 			else  # new record
 				@attributes.merge! set
 				save
@@ -155,9 +157,6 @@ is identical
 
   end
 
-	def remove query_string
-			transfer_content from: 	 query( "update #{rrid} remove  #{ query_string }  return after @this" )&.first
-	end
 # mocking active record  
   def update_attribute the_attribute, the_value # :nodoc:
     update { " #{the_attribute} = #{the_value.to_or} " }

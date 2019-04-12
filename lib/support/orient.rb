@@ -139,35 +139,35 @@ The change is immediately transmitted to the database.
 			 @orient.update { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }
 		end
 
-	
-		def << **arg
-#			@orient.attributes[@name][k] = v
-#			self.merge! key => value 
-#			super key, value
-			#	r = (@orient.query  "update #{@orient.rid} put #{@name} = #{key.to_orient}, #{value.to_orient} RETURN AFTER @this").pop
-			result = arg.map do | k, v |
-				o = OrientSupport::OrientQuery.new from: @orient, 
-																				kind: 'update', 
-																				set: "#{@name}.#{k.to_s} = #{v.to_or}",
-																				return: "$current.#{@name}"
-			 	@orient.db.execute{ o.to_s }.first.send( @name )  # extracts the modified array (from DB)  from the result
-			end.last
-			@orient.reload!
-			@orient.send @name  # return value
+# Inserts the provided Hash to the (possibly emty) list-property and returns a hash	
+		def append arg
+			# the argument is simply provided as JSON-parameter to »update«
+			# generated query: update {rrid} set { @name } = { arg.to_json } return after @this
+			# todo : consider returning a OrientSuport::Hash
+			@orient.update { "#{@name.to_s} = "+ arg.to_json }[@name]
 		end
 
-		def delete *key
+		alias  << append 
 
-			key.each do | k |
-				o = OrientSupport::OrientQuery.new from: @orient, 
-																						kind: 'update', 
-																						set: "#{@name}.#{k.to_s}",
-																					return: "$current.#{@name}"
-			@orient.db.execute{  o.to_s.gsub( 'set ', 'remove ' ) }.first.send( @name )  # extracts the modified array (from DB)  from the result
-			end
-			@orient.reload!
-			@orient.send @name  # return value
-	end
+# removes a key-value entry from the hash. 
+# 
+# parameter: list of key's (duplicate values are removed)
+		def remove *k
+			# todo combine queries in a transaction
+			k.map{ |key| @orient.update( remove: true ) { "#{@name.to_s}.#{key} " } }.last
+		end
+	#	def delete *key
+#
+#			key.each do | k |
+#				o = OrientSupport::OrientQuery.new from: @orient, 
+#																						kind: 'update', 
+#																						set: "#{@name}.#{k.to_s}",
+#																					return: "$current.#{@name}"
+#			@orient.db.execute{  o.to_s.gsub( 'set ', 'remove ' ) }.first.send( @name )  # extracts the modified array (from DB)  from the result
+#			end
+#			@orient.reload!
+#			@orient.send @name  # return value
+#	end
 
 		def delete_if &b
 			super &b

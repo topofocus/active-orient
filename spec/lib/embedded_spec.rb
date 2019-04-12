@@ -36,6 +36,7 @@ describe ActiveOrient::OrientDB do
       ### query for :home => something 
 		end
 
+
 #    it "update and extend the map " do
 #      qr=  Base.custom_where(  "a_set.currency containskey 'EUR'" )
 #			qr.update set a_set: 
@@ -50,8 +51,40 @@ describe ActiveOrient::OrientDB do
   end
 
 
-	context " embedd list records" do
-		it ""
+	context " embedd  records,"  do
+		before(:all) do
+
+			the_structure = [{ :key=>"WarrantValue", :value=>"8789", :currency=>"HKD"},
+										{	:key=>"WhatIfPMEnabled", :value=>"true", :currency=>""},
+										{ :key=>"TBillValue", :value=>"0", :currency=>"HKD" } ]
+
+
+			@b =  Base.create( a_set: {}) 
+			@c=			@b.a_set << Hash[  the_structure.map{|x| [x[:key] , [x[:value], x[:currency] ] ] } ] 
+		end
+		context "the default embedded set" do
+			subject { @b.a_set }
+
+			its(:size){ is_expected.to eq 3 }
+			its(:keys){ is_expected.to include :WhatIfPMEnabled  }
+			its(:values){ is_expected.to include ["8789","HKD"]  }
+			it "can be accessed by key" do
+				expect( subject[:WarrantValue].first ).to eq "8789"
+			end
+		end
+		context "simple operations" do
+			it " remove an entry " do
+				expect{   @b.a_set.remove :WarrantValue}.to change{ @b.a_set.size }.by -1
+				expect{   @b.a_set.remove :SomeThingStrange}.not_to change{ @b.a_set.size }
+#				puts "removed_item: #{removed_item}"
+#				@b.reload!
+#				expect(@b.a_set.size).to eq 2
+
+			end
+		
+
+
+		end
 	end
 end
 
