@@ -46,7 +46,7 @@ The rid-cache is reseted, too
 # v.detect_inherent_edge( :in, /e/).to_human
 # => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
 #
-  def detect_inherent_edge kind,  edge_name  # :nodoc:
+  def detect_edges kind = :in,  edge_name = nil # :nodoc:
     ## returns a list of inherented classes
     get_superclass = ->(e) do
       n = orientdb.get_db_superclass(e)
@@ -69,10 +69,12 @@ The rid-cache is reseted, too
 															 edge_name.to_i.to_s
 														 end
 							 end
-	    the_edge = @metadata[:edges][kind].detect{|y| get_superclass[y].split(',').detect{|x| x =~ e_name } }
+	    the_edges = @metadata[:edges][kind].find_all{|y| get_superclass[y].split(',').detect{|x| x =~ e_name } }
     
+			the_edges.map do | the_edge|
 		  candidate= attributes["#{kind.to_s}_#{the_edge}".to_sym]
-			candidate.present?  ? candidate.map( &:expand ) : []
+			candidate.present?  ? candidate.map( &:expand ).first  : nil 
+			end
     end
   end
 
@@ -95,13 +97,13 @@ edges are retrieved.
 =end
 
   def in_e edge_name= nil
-    detect_inherent_edge :in, edge_name
+    detect_edges :in, edge_name
   end
 	
 	alias_method :in, :in_e
 
   def out edge_name =  nil
-    detect_inherent_edge :out, edge_name
+    detect_edges :out, edge_name
   end
 =begin
 Retrieves  connected edges
