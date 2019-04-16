@@ -26,22 +26,63 @@ The rid-cache is reseted, too
     reset_rid_store
   end
 
+#Present Classes (Hierarchy) 
+#---
+#- - E
+#  - - - e1
+#      - - e2
+#        - e3
+#- - V
+#  - - - v1
+#      - - v2
+
+#v.to_human
+# => "<V2[#36:0]: in: {E2=>1}, node : 4>" 
+#
+# v.detect_inherent_edge( :in, 2).to_human
+# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
+# v.detect_inherent_edge( :in, E1).to_human
+# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
+# v.detect_inherent_edge( :in, /e/).to_human
+# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
+#
   def detect_inherent_edge kind,  edge_name  # :nodoc:
     ## returns a list of inherented classes
     get_superclass = ->(e) do
       n = orientdb.get_db_superclass(e)
       n =='E' ? e : e + ',' + get_superclass[n]
     end
-    if edge_name.present?
-    e_name =  edge_name.is_a?( Class) ? edge_name.ref_name : edge_name.to_s
-    the_edge = @metadata[:edges][kind].detect{|y| get_superclass[y].split(',').detect{|x| x == edge_name } }
+		if edge_name.nil?
+      edges(kind).map &:expand
+		else
+			e_name = if edge_name.is_a?(Regexp)
+								 edge_name
+							 else
+								 Regexp.new  case  edge_name
+														 when  Class
+															 edge_name.ref_name 
+														 when String
+															 edge_name
+														 when Symbol
+															 edge_name.to_s 
+														 when Numeric
+															 edge_name.to_i.to_s
+														 end
+							 end
+	    the_edge = @metadata[:edges][kind].detect{|y| get_superclass[y].split(',').detect{|x| x =~ e_name } }
     
-    candidate= attributes["#{kind.to_s}_#{the_edge}"]
-    candidate.present?  ? candidate.map( &:from_orient ) : []
-    else
-      edges(kind).map &:from_orient
+		  candidate= attributes["#{kind.to_s}_#{the_edge}".to_sym]
+			candidate.present?  ? candidate.map( &:expand ) : []
     end
   end
+
+
+  def outE type=nil, condition=nil
+		query( "select out" )
+	end
+
+
+  
 =begin
 »in« and »out« provide the main access to edges.
 »in» is a reserved keyword. Therfore its only an alias to `in_e`.
@@ -166,10 +207,10 @@ Format: < Classname : Edges, Attributes >
 
 		#Default presentation of ActiveOrient::Model-Objects
 
-		"<#{self.class.to_s.demodulize}[#{rrid}]: " + in_and_out  + content_attributes.map do |attr, value|
+		"<#{self.class.to_s.demodulize}[#{rid}]: " + in_and_out  + content_attributes.map do |attr, value|
 			v= case value
 				 when ActiveOrient::Model
-					 "< #{self.class.to_.demodulize} : #{value.rrid} >"
+					 "< #{self.class.to_s.demodulize} : #{value.rid} >"
 				 when OrientSupport::Array
 					 value.to_s
 #					 value.rrid #.to_human #.map(&:to_human).join("::")

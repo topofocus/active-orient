@@ -13,6 +13,9 @@ class Array
     map &:from_orient
   end
 
+	def to_human
+		map &:to_human
+	end
   # used to enable 
   # def abc *key
   # where key is a Range, an comma separated List or an item
@@ -150,6 +153,8 @@ class String
 	    self
 	  end
   end
+
+	alias expand from_orient
 # if the string contains "#xx:yy" omit quotes
   def to_orient
      rid? ? "#"+rid : self   # return the string (not the quoted string. this is to_or)
@@ -199,6 +204,9 @@ class String
 	 nil	
 	end
 
+	def to_human
+		self
+	end
 end
 
 class Hash #WithIndifferentAccess
