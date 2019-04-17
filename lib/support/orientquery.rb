@@ -19,14 +19,7 @@ _Usecase:_
     def compose_where *arg , &b
       arg = arg.flatten
       return "" if arg.blank? || arg.size == 1 && arg.first.blank?
-      "where " + arg.map do |issue|
-        case issue
-        when String
-	        issue
-         else
-	        generate_sql_list issue , &b
-        end
-      end.join(' and ')
+      "where " + generate_sql_list( arg , &b)
     end
 
 =begin
@@ -36,27 +29,34 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
    ORD.generate_sql_list(  con_id: 25 , symbol: :G) { ',' } 
     => "con_id = 25 , symbol = 'G'"
 =end
-    def generate_sql_list attributes = {}
-      fill = block_given? ? yield : 'and'
-      attributes.map do |key, value|
-	      case value
-	      when ActiveOrient::Model
-		"#{key} = #{value.rrid}"
-	      when Numeric
-          "#{key} = #{value}"
-	      when ::Array
-		"#{key} in [#{value.to_orient}]"
-	      when Range
-		"#{key} between #{value.first} and #{value.last} " 
-	      when DateTime
-		"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
-	      when Date
-		"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
-	      else #  String, Symbol, Time, Trueclass, Falseclass ...
-          "#{key} = \'#{value.to_s}\'"
-	      end
-      end.join(" #{fill} ")
-    end
+		def generate_sql_list attributes = {}, &b
+			fill = block_given? ? yield : 'and'
+			a=	case attributes 
+					when ::Hash
+						attributes.map do |key, value|
+							case value
+							when ActiveOrient::Model
+								"#{key} = #{value.rrid}"
+							when Numeric
+								"#{key} = #{value}"
+							when ::Array
+								"#{key} in [#{value.to_orient}]"
+							when Range
+								"#{key} between #{value.first} and #{value.last} " 
+							when DateTime
+								"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
+							when Date
+								"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
+							else #  String, Symbol, Time, Trueclass, Falseclass ...
+								"#{key} = \'#{value.to_s}\'"
+							end
+						end.join(" #{fill} ")
+					when ::Array
+						attributes.map{|y| generate_sql_list y, &b }.join( " #{fill} " )
+					when String
+						attributes
+					end		
+		end
   end
 
 
@@ -143,7 +143,7 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
     end
 
     def method_missing method, *arg, &b
-      @misc << method.to_s << " " << arg.map(&:to_s).join(' ')
+      @misc << method.to_s <<  generate_sql_list(arg) 
     end
 
     def misc
@@ -170,19 +170,12 @@ end
   class OrientQuery
     include Support
 
-=begin
-  Call where without a parameter to request the saved where-string
-  To create the where-part of the query a string, a hash or an Array is supported
-
-  where: "r > 9"                          --> where r > 9
-  where: {a: 9, b: 's'}                   --> where a = 9 and b = 's'
-  where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
-=end
 
     attr_accessor :where
     attr_accessor :let
     attr_accessor :projection
     attr_accessor :order
+    attr_accessor :db
     attr_accessor :match_statements
 
     def initialize  **args
@@ -195,6 +188,7 @@ end
       @match_statements = []
       @class =  nil
 			@return = nil
+			@db = nil
       @kind  = 'select'
       args.each do |k, v|
         case k
@@ -221,15 +215,24 @@ end
 			end
 		end
 
-		def method_missing method, *arg, &b
-      @misc << method.to_s << " " << arg.map(&:to_s).join(' ')
+
+=begin
+  where: "r > 9"                          --> where r > 9
+  where: {a: 9, b: 's'}                   --> where a = 9 and b = 's'
+  where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
+=end
+		def method_missing method, *arg, &b   # :nodoc: 
+      @misc << method.to_s <<  generate_sql_list(arg) 
+			self.to_s  # return compiled result
     end
 
-    def misc
+
+    def misc   # :nodoc:
       @misc.join(' ') unless @misc.empty?
+			self.to_s  # return compiled result
     end
 
-    def subquery
+    def subquery  # :nodoc: 
       nil
     end
 
@@ -256,11 +259,11 @@ The method returns the OrientSupport::MatchConnection object, which can be modif
 It is compiled by calling compose
 =end
 
-def connect direction, edge_class: nil, count: 1, as: nil
-  direction= :both unless [ :in, :out].include? direction
-  match_statements << m = OrientSupport::MatchConnection.new( direction: direction, count: count, as: as)
-  m
-end
+		def connect direction, edge_class: nil, count: 1, as: nil
+			direction= :both unless [ :in, :out].include? direction
+			match_statements << m = OrientSupport::MatchConnection.new( direction: direction, count: count, as: as)
+			m
+		end
 
 =begin
 (only if kind == :match): statement
@@ -279,63 +282,63 @@ Parameter (all optional)
  Class: classname, :where: {}, while: {}, as: string, maxdepth: >0 , 
 
 =end
-def statement match_class= nil, **args
-  match_statements << s = OrientSupport::MatchStatement.new( mattch_class, args )
-  s
-end
+	def statement match_class= nil, **args
+		match_statements << s = OrientSupport::MatchStatement.new( mattch_class, args )
+		s
+	end
 =begin
   Output the compiled query
   Parameter: destination (rest, batch )
   If the query is submitted via the REST-Interface (as get-command), the limit parameter is extracted.
 =end
 
-def compose(destination: :batch)
-	if @kind == :match
-		unless @match_statements.empty?
-			match_query =  @kind.to_s.upcase + " "+ @match_statements[0].compose_simple 
-			match_query << @match_statements[1..-1].map( &:compose ).join
-			match_query << " RETURN "<< (@match_statements.map( &:as ).compact | @aliases).join(', ')
+	def compose(destination: :batch)
+		if @kind == :match
+			unless @match_statements.empty?
+				match_query =  @kind.to_s.upcase + " "+ @match_statements[0].compose_simple 
+				match_query << @match_statements[1..-1].map( &:compose ).join
+				match_query << " RETURN "<< (@match_statements.map( &:as ).compact | @aliases).join(', ')
+			end
+		elsif @kind.to_sym == :update
+			return_statement = "return after " + ( @aliases.empty? ?  "$this" : @aliases.first.to_s)
+			[ @kind, @database, misc, where_s, return_statement ].compact.join(' ')
+		elsif destination == :rest
+			[@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, unwind, skip].compact.join(' ')
+		else
+			[@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, limit, unwind, skip].compact.join(' ')
 		end
-	elsif @kind.to_sym == :update
-		return_statement = "return after " + ( @aliases.empty? ?  "$current" : @aliases.first.to_s)
-		[ @kind, @database, misc, where_s, return_statement ].compact.join(' ')
-	elsif destination == :rest
-		[@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, unwind, skip].compact.join(' ')
-	else
-		[@kind, projection_s, from, let_s, where_s, subquery, misc, order_s, group_by, limit, unwind, skip].compact.join(' ')
 	end
-end
-alias :to_s :compose
+	alias :to_s :compose
 
 =begin
   from can either be a Databaseclass to operate on or a Subquery providing data to query further
 =end
 
 
-def from arg = nil
-	if arg.present?
-		@database = case arg
-								when ActiveOrient::Model   # a single record
-									arg.rrid
-								when OrientQuery	      # result of a query
-									' ( '+ arg.to_s + ' ) '
-								when Class
-									arg.ref_name
-								else
-									if arg.to_s.rid?	  # a string with "#ab:cd"
-										arg
-									else		  # a database-class-name
-										arg.to_s  
+	def from arg = nil
+		if arg.present?
+			@database = case arg
+									when ActiveOrient::Model   # a single record
+										arg.rrid
+									when OrientQuery	      # result of a query
+										' ( '+ arg.to_s + ' ) '
+									when Class
+										arg.ref_name
+									else
+										if arg.to_s.rid?	  # a string with "#ab:cd"
+											arg
+										else		  # a database-class-name
+											arg.to_s  
+										end
 									end
-								end
-	compose  # return the complete query
-      else # read from
-	"from #{@database}" unless @database.nil?
-      end
-    end
-    alias :from= :from
+			compose  # return the complete query
+		else # read from
+			"from #{@database}" unless @database.nil?
+		end
+	end
+	alias :from= :from
 
-    def database_class
+    def database_class            # :nodoc:
   	  if @database.present?
   	    @database
   	  elsif @from.is_a? OrientQuery
@@ -345,18 +348,18 @@ def from arg = nil
   	  end
     end
 
-    def database_class= arg
+    def database_class= arg   # :nodoc:
   	  @database = arg if @database.present?
   	  if @from.is_a? OrientQuery
   	    @from.database_class= arg
   	  end
     end
 
-    def where_s
+    def where_s        # :nodoc:
   	  compose_where @where
     end
 
-    def let_s
+    def let_s           # :nodoc:
   	  unless @let.empty?
   	    "let " << @let.map do |s|
   	      case s
@@ -375,16 +378,16 @@ def from arg = nil
     def distinct d
   	  @projection <<  case d
   		when String, Symbol
-  		  "distinct( #{d.to_s} )"
+  		  "distinct #{d.to_s} "
 		else
 		  dd= d.to_a.flatten
-  		  "distinct( #{dd.first.to_s} ) as #{dd.last}"
+  		  "distinct  #{dd.first.to_s}  as #{dd.last}"
   		end
   	  compose  # return the hole query
     end
     alias :distinct= :distinct
 
-    def projection_s
+    def projection_s   # :nodoc:
   	  @projection.map do | s |
   		  case s
   			when Array
@@ -404,9 +407,20 @@ def from arg = nil
     end
     alias :limit= :limit
 
-    def get_limit
+    def get_limit  # :nodoc: 
     	@limit.nil? ? -1 : @limit.split(' ').last.to_i
     end
+
+		def expand item
+			@projection =[ " expand ( #{item.to_s} )" ]
+			compose
+    end
+
+
+		def nodes in_or_out = :out, edge_class = nil, condition: ''
+			 condition =  "[ #{generate_sql_list(condition)} ]" unless condition.blank?
+			 expand " #{in_or_out}E(#{edge_class.to_or if edge_class.present?}).in#{condition} "
+		end
 
     def group_by g = nil
      	@group = "group by #{g.to_s}" if g.present?
@@ -425,7 +439,7 @@ def from arg = nil
   	  "skip #{@skip}" if @skip.present?
     end
 
-    def order_s
+    def order_s    # :nodoc:
       unless @order.empty?
 	# the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
 	"order by " << [@order].flatten.map do |o|
