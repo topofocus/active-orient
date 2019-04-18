@@ -62,6 +62,9 @@ This method overloads the unspecified ActiveOrient::Model#remove-Method
     db.delete_edge self
   end
 
-
+	def to_human
+		displayed_attributes =  content_attributes.reject{|k,_| [:in, :out].include?(k) }
+		"<#{self.class.to_s.demodulize}[#{rrid}] -i-> ##{ attributes[:in].rid} #{displayed_attributes.to_human} -o-> #{out.rrid}>"
+	end
 
 end

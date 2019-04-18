@@ -123,6 +123,12 @@ Deletes the database class and removes the ruby-class
       class << self
 	    attr_accessor :ref_name
 	    attr_accessor :abstract
+
+			def to_or
+				ref_name.to_or
+			end
+
+
       end
   end
 end
