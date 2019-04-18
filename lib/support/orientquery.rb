@@ -229,7 +229,7 @@ end
 
     def misc   # :nodoc:
       @misc.join(' ') unless @misc.empty?
-			self.to_s  # return compiled result
+	#		self.to_s  # return compiled result
     end
 
     def subquery  # :nodoc: 
@@ -376,14 +376,14 @@ Parameter (all optional)
     end
 
     def distinct d
-  	  @projection <<  case d
-  		when String, Symbol
-  		  "distinct #{d.to_s} "
-		else
-		  dd= d.to_a.flatten
-  		  "distinct  #{dd.first.to_s}  as #{dd.last}"
-  		end
-  	  compose  # return the hole query
+			@projection <<  case d
+			when String, Symbol
+				"distinct #{d.to_s} "
+			else
+				dd= d.to_a.flatten
+				"distinct  #{dd.first.to_s}  as #{dd.last}"
+			end
+			compose
     end
     alias :distinct= :distinct
 
@@ -403,7 +403,7 @@ Parameter (all optional)
     def limit l=nil
   	  @limit = "limit #{l.to_s}" if l.present?
   	# only a string is allowed
-  	  @limit  # return_value
+  	  @limit
     end
     alias :limit= :limit
 
@@ -417,21 +417,30 @@ Parameter (all optional)
     end
 
 
-		def nodes in_or_out = :out, edge_class = nil, condition: ''
-			 condition =  "[ #{generate_sql_list(condition)} ]" unless condition.blank?
-			 expand " #{in_or_out}E(#{edge_class.to_or if edge_class.present?}).in#{condition} "
+		def nodes in_or_out = :out, via:  nil, where: nil, expand: true
+			 condition = where.present? ?  "[ #{generate_sql_list(where)} ]" : ""
+			 start =  in_or_out 
+			 the_end =  in_or_out == :in ? :out : :in
+			 argument = " #{start}E(#{via.to_or if via.present?}).#{the_end}#{condition} "
+
+			 if expand.present?
+				 send :expand, argument
+			 else
+			 @projection  << argument 
+			 end
+			 compose
 		end
 
     def group_by g = nil
      	@group = "group by #{g.to_s}" if g.present?
   	# only a string is allowed
-  	  @group  # return_value
+  	   @group
     end
 
     def unwind u = nil
   	  @unwind = "unwind #{u.to_s}" if u.present?
   	# only a string is allowed
-  	  @unwind  # return_value
+  	  @unwind
     end
 
     def skip n = nil

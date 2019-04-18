@@ -86,7 +86,13 @@ RSpec.describe OrientSupport::OrientQuery do
  #     q.limit = 15
   #    expect( q.get_limit).to eq 15
 
-    end
+    end	
+
+		context "applying nodes" do
+			# todo: applying node based envrionment
+
+		end
+
 		context " old stuff,  but still working" do 
     it "subsequent Initialisation"  do
       q =  OrientSupport::OrientQuery.new
