@@ -107,32 +107,6 @@ To query a graph,  SQL-like-Queries and Match-statements can be used (see below)
 
 #### Other Documents
 
-- [Experiments with the GratefulDeadConcerts Sample Database](./gratefuldeadconcerts.md)
-
-- [TimeGraph Implementation](examples/time_graph.md)
-
 - [Rails 5-Integration](./rails.md)
 
 
-
-
-
-
-
-
-
-
-
-
-
-  deactivated behavior: to turn it on, some work on base.rb is required
-``` 
-  start.the_edge  # --> Array of "TheEdge"-instances connected to the vertex
-  start.the_edge.where transform_to: 'good'     # ->  empty array
-  start.the_edge.where transform_to: 'very bad' #-->  previously connectd edge
-  start.something     # 'nice'
-  end.something	      # 'not_nice'
-  start.the_edge.where( transform_to: 'very bad').in.something  # => ["not_nice"] 
-  (...)
-  the_edge.delete # To delete the edge
-```
