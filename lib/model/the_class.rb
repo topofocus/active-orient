@@ -489,8 +489,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
     if block_given?
       query_database yield(query), set_from: false
     else
-      logger.progname = 'ActiveOrient::Model#Match'
-      logger.error{ "Query-Details have to be specified in a Block" }
+      send :where, where
     end
 
   end
@@ -528,6 +527,11 @@ query_database is used on model-level and submits
     else
       result
     end
+    if result.is_a? Array  
+      OrientSupport::Array.new work_on: self, work_with: result
+    else
+      result
+    end  # return value
   end
 
   ########### DELETE ###############

@@ -39,11 +39,11 @@ The rid-cache is reseted, too
 #v.to_human
 # => "<V2[#36:0]: in: {E2=>1}, node : 4>" 
 #
-# v.detect_inherent_edge( :in, 2).to_human
+# v.detect_edges( :in, 2).to_human
 # => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
-# v.detect_inherent_edge( :in, E1).to_human
+# v.detect_edges( :in, E1).to_human
 # => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
-# v.detect_inherent_edge( :in, /e/).to_human
+# v.detect_edges( :in, /e/).to_human
 # => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
 #
   def detect_edges kind = :in,  edge_name = nil # :nodoc:
@@ -78,9 +78,20 @@ The rid-cache is reseted, too
     end
   end
 
-
-  def outE type=nil, condition=nil
-		query( "select out" )
+	# Lists all connected Vertices
+	#
+	# The Edge-classes can be specified via Classname or a regular expression. 
+	#
+	# If a regular expression is used, the database-names are searched.
+	def nodes in_or_out = :out, via:  nil, where: nil, expand:  false
+		if via.present?
+			edges = detect_edges( in_or_out, via )
+			detected_nodes = edges.map do |e|
+				q = OrientSupport::OrientQuery.new 
+				q.nodes in_or_out, via: e.class, where: where, expand: expand
+				query( q )
+			end.first
+		end
 	end
 
 
