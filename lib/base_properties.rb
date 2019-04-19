@@ -65,7 +65,8 @@ module ActiveOrient
 # Default attributes support
 
     def default_attributes
-      {:created_at => DateTime.now }
+			{}
+      #{:created_at => DateTime.now }
     end
 
     def set_attribute_defaults # :nodoc:
