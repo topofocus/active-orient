@@ -103,7 +103,7 @@ Graph-support:
 ```
 It connects the vertices and assigns the attributes to the edge.
 
-To query a graph,  SQL-like-Queries and Match-statements can be used (see below). 
+To query a graph,  SQL-like-Queries and Match-statements can be used (details in the [wiki](https://github.com/topofocus/active-orient/wiki)). 
 
 #### Other Documents
 
