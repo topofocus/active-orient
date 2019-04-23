@@ -284,6 +284,25 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 
 
 # Add an Index
+	#
+	# Parameters:  
+	#							name (string / symbol), 
+	#             [ on: :automatic / single Column, Array of Columns,
+	#             [ type: :unique, :nonunique, :dictionary,:fulltext, {other supported index-types} ]]
+	#
+	# Default:
+	#							on: :automatic
+	#							type: :unique
+	#
+	# Example
+	#   
+	#   ORD.create_vertex_class :pagination
+  #  	Pagination.create_property :col1 , type: :string
+	#		Pagination.create_property :col2, type: :integer
+	#		Pagination.create_property :col3, type: :string
+	#		Pagination.create_property :col4, type: :integer
+	#		Pagination.create_index :composite,  :on => [:col1, :col2, :col3], type: 'dictionary'
+
   def create_index name, **attributes
     orientdb.create_index self, name: name, **attributes
   end

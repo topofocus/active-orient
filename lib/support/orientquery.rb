@@ -261,8 +261,8 @@ It is compiled by calling compose
 
 		def connect direction, edge_class: nil, count: 1, as: nil
 			direction= :both unless [ :in, :out].include? direction
-			match_statements << m = OrientSupport::MatchConnection.new( direction: direction, count: count, as: as)
-			m
+			match_statements <<  OrientSupport::MatchConnection.new( direction: direction, count: count, as: as)
+			self  #  return the object
 		end
 
 =begin
@@ -283,8 +283,9 @@ Parameter (all optional)
 
 =end
 	def statement match_class= nil, **args
-		match_statements << s = OrientSupport::MatchStatement.new( mattch_class, args )
-		s
+		match_statements <<  OrientSupport::MatchStatement.new( mattch_class, args )
+		self  #  return the object
+		
 	end
 =begin
   Output the compiled query

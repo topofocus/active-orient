@@ -44,7 +44,7 @@ class Symbol
   "'"+self.to_orient+"'"
   end
 	
-	# inserted to prevent error message while initialising a model-recorda
+	# inserted to prevent error message while initializing a model-recorda
 =begin
 2.6.1 :008 > ii.first.attributes
  => {:zwoebelkuchen=>[7, 9, 9, 7, 8, 8, 3, 6, 9, ":zt:", ":zt:", ":zg:", ":zg:", ":tzu:", ":grotte:"], :created_at=>Wed, 27 Mar 2019 14:59:45 +0000} 

@@ -57,7 +57,7 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
 
   def query query
     
-    query.from = rrid if query.is_a? OrientSupport::OrientQuery
+    query.from = rrid if query.is_a?( OrientSupport::OrientQuery) && query.from.nil?
     result = orientdb.execute do
       query.to_s
     end
