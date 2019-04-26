@@ -133,6 +133,12 @@ Example:
 		#
 	end
 
+
+  # creates an inherented class
+	def create_class *c
+		orientdb.create_class( *c ){ self }
+	end
+
   ########## CREATE ############
 
 =begin

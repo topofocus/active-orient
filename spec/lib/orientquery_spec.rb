@@ -148,23 +148,5 @@ RSpec.describe OrientSupport::OrientQuery do
       end
     end
 
-  #  context 'Match -syntax'  do
-  #    let( :subject){ OrientSupport::OrientQuery.new( kind: :match, start:{ class: 'match_query', 
-	#								    where: {a: 9, b: 's'}   } ) }
-	#it{ expect( subject.to_s).to match /match/ }
-	#it "accepts a valid class statement" do
-	#  subject.match_class =  MatchQuery
-	#  expect( subject.compose ).to eq  "MATCH {class: match_query, as: match_queries, where:( a = 9 and b = 's')} RETURN match_queries"
-	#  subject.match_statements[0].where << {c: 9} 
-	#  expect( subject.compose ).to eq  "MATCH {class: match_query, as: match_queries, where:( a = 9 and b = 's' and c = 9)} RETURN match_queries"
-
-	#  subject.match_statements[0].where =  {a: 9, b: 'O'} 
-	#  expect( subject.compose ).to eq  "MATCH {class: match_query, as: match_queries, where:( a = 9 and b = 'O')} RETURN match_queries"
-	#end
-  #    end
-
-  #   # it 'generates match statement' do
-#	expect(  OrientSupport::OrientQuery.new( kind: :match, class: MatchQuery   ).to_s ).to match /match/
- #     end
   end
 end  # describe

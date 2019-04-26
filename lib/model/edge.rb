@@ -56,11 +56,13 @@ The rid-cache is resetted
 Removes the actual ActiveOrient::Model-Edge-Object
 
 This method overloads the unspecified ActiveOrient::Model#remove-Method
+
+suspended in favour of  edge.delete
 =end
-  def remove
+#  def remove
   # remove works on record-level
-    db.delete_edge self
-  end
+#    db.delete_edge self
+#  end
 
 	def to_human
 		displayed_attributes =  content_attributes.reject{|k,_| [:in, :out].include?(k) }
