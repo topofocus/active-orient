@@ -95,8 +95,8 @@ To update several records, a class-method »update_all« is defined.
 Graph-support:
 
 ```ruby
-  ORD.create_vertex_class :the_vertex
-  ORD.create_edge_class :the_edge
+  V.create_class :the_vertex
+  E.create_class :the_edge
   vertex_1 = TheVertex.create  color: "blue"
   vertex_2 = TheVertex.create  flower: "rose"
   TheEdge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
