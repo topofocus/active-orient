@@ -84,7 +84,7 @@ describe ActiveOrient::Model do
 
 			it "fringe update" do
 				x= @db.execute { "update #{@the_record.rrid} set a_string =  'test5' "}
-				expect( x).to eq [1]
+				expect( x).to eq [count: 1]
 
 				expect( @the_record.a_string ).to eq "test2"
 				expect( @the_record.version ).to eq 2

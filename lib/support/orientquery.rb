@@ -18,7 +18,7 @@ _Usecase:_
     #
     def compose_where *arg , &b
       arg = arg.flatten
-      return "" if arg.blank? || arg.size == 1 && arg.first.blank?
+      return "" if arg.blank? 
       "where " + generate_sql_list( arg , &b)
     end
 
@@ -31,33 +31,35 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 =end
 		def generate_sql_list attributes = {}, &b
 			fill = block_given? ? yield : 'and'
-			a=	case attributes 
-					when ::Hash
-						attributes.map do |key, value|
-							case value
-							when ActiveOrient::Model
-								"#{key} = #{value.rrid}"
-							when Numeric
-								"#{key} = #{value}"
-							when ::Array
-								"#{key} in [#{value.to_orient}]"
-							when Range
-								"#{key} between #{value.first} and #{value.last} " 
-							when DateTime
-								"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
-							when Date
-								"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
-							else #  String, Symbol, Time, Trueclass, Falseclass ...
-								"#{key} = \'#{value.to_s}\'"
-							end
-						end.join(" #{fill} ")
+			case attributes 
+			when ::Hash
+				attributes.map do |key, value|
+					case value
+					when ActiveOrient::Model
+						"#{key} = #{value.rrid}"
+					when Numeric
+						"#{key} = #{value}"
 					when ::Array
-						attributes.map{|y| generate_sql_list y, &b }.join( " #{fill} " )
-					when String
-						attributes
-					end		
+						"#{key} in [#{value.to_orient}]"
+					when Range
+						"#{key} between #{value.first} and #{value.last} " 
+					when DateTime
+						"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
+					when Date
+						"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
+					else #  String, Symbol, Time, Trueclass, Falseclass ...
+						"#{key} = \'#{value.to_s}\'"
+					end
+				end.join(" #{fill} ")
+			when ::Array
+				attributes.map{|y| generate_sql_list y, &b }.join( " #{fill} " )
+			when String
+				attributes
+			when Symbol, Numeric
+				attributes.to_s
+			end		
 		end
-  end
+	end  # module 
 
 
   class MatchConnection
@@ -74,18 +76,18 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
     end
 
 
-    def direction
-      fillup =  @edge.present? ? @edge : ''
-      case @direction
-      when :both
-	" -#{fillup}- "
-      when :in
-	" <-#{fillup}- "
-      when :out
-	" -#{fillup}-> "
-      end
+		def direction
+			fillup =  @edge.present? ? @edge : ''
+			case @direction
+			when :both
+				" -#{fillup}- "
+			when :in
+				" <-#{fillup}- "
+			when :out
+				" -#{fillup}-> "
+			end
 
-    end
+		end
 
     def compose
       ministatement = @as.present? ? "{ as: #{@as} } " : "" 
@@ -93,15 +95,13 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 
     end
     
-  end
+  end  # class
 
   class MatchStatement
     include Support
     attr_accessor :as
-    attr_accessor :where
     def initialize match_class=nil, **args
-			reduce_class = ->(c){ c.is_a?(Class) ? c.ref_name : c.to_s 
-}
+			reduce_class = ->(c){ c.is_a?(Class) ? c.ref_name : c.to_s }
       @misc  = []
       @where = []
       @while = []
@@ -130,48 +130,57 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 			end
 		end
     
-        def while_s
-  	  compose_where( @while ).gsub( /where/, 'while:(' )<< ")" unless @while.blank?
-    end
 
-    def match_alias
-      "as: #{@as }"
-    end
-    def where_s
-  	  compose_where( @where ).gsub( /where/, 'where:(' )<< ")"  unless @where.blank?
-    end
-  
-    def maxdepth=x
-      @maxdepth = x
-    end
+		def match_alias
+			"as: #{@as }"
+		end
+		def while_s  value=nil
+				if value.present?
+					@while << value
+					self
+				elsif @while.present?
+					"while: ( #{ generate_sql_list( @where ) }) "
+				end
+		end
 
-    def method_missing method, *arg, &b
-      @misc << method.to_s <<  generate_sql_list(arg) 
-    end
+#		alias while while_s
+		
+		def where  value=nil
+				if value.present?
+					@where << value
+					self
+				elsif @where.present?
+					"where: ( #{ generate_sql_list( @where ) }) "
+				end
+		end
 
-    def misc
-      @misc.join(' ') unless @misc.empty?
-    end
-    # used for the first compose-statement of a compose-query
-    def compose_simple
-   '{'+ [ "class: #{@match_class}", 
-	       "as: #{@as}" , 
-	       where_s ].compact.join(', ') + '}'
-    end
+		def maxdepth=x
+			@maxdepth = x
+		end
 
-    def compose
+		def method_missing method, *arg, &b
+			@misc << method.to_s <<  generate_sql_list(arg) 
+		end
 
-        '{'+ [ "class: #{@match_class}", 
-	       "as: #{@as}" , 
-	       where_s, 
-	      while_s, 
-	      @maxdepth >0 ? "maxdepth: #{maxdepth}": nil  ].compact.join(', ')+'}'
-    end
-    alias :to_s :compose
-end
+		def misc
+			@misc.join(' ') unless @misc.empty?
+		end
+		# used for the first compose-statement of a compose-query
+		def compose_simple
+			'{'+ [ "class: #{@match_class}", "as: #{@as}" , where ].compact.join(', ') + '}'
+		end
+
+		def compose
+
+			'{'+ [ "class: #{@match_class}", 
+					"as: #{@as}" , where, while_s, 
+						@maxdepth >0 ? "maxdepth: #{maxdepth}": nil  ].compact.join(', ')+'}'
+		end
+		alias :to_s :compose
+	end  # class
 
 
-	QueryAttributes =  Struct.new( :kind, :projection, :where, :lett, :order, :while, :misc, 
+	QueryAttributes =  Struct.new( :kind, :projection, :where, :let, :order, :while, :misc, 
 																:match_statements, :class, :return,  :aliases, :database, 
 																:group, :skip, :limit, :unwind  )
 	
@@ -179,12 +188,6 @@ end
     include Support
 
 
-#    attr_accessor :where
-#    attr_accessor :let
-#    attr_accessor :projection
-#    attr_accessor :order
-#    attr_accessor :db
-#    attr_accessor :match_statements
 #
     def initialize  **args
 			@q =  QueryAttributes.new args[:kind] ||	'select' ,
@@ -197,58 +200,16 @@ end
 								[],  # match_statements
 								'',  # class
 								'',  #  return
-								'',   # aliases
+								[],   # aliases
 								''  # database
 			  args.each{|k,v| send k, v}
-#				start( args[:start] ) if args[:start].present?
-
-		end
-#      @projection = []
-#      @misc  = []
-#      @let   = []
-#      @where = []
-#      @order = []
-#      @aliases = []
-#      @match_statements = []
-#      @class =  nil
-#			@return = nil
-#			@db = nil
-#      @kind  = 'select'
-#
-#			modify args
-#
-#			end
-
-		def modify args
-      args.each do |k, v|
-        case k
-				when :projection
-					@q[:projection] << v
-				when :let
-					@q[:let] << v
-				when :order
-					@q[:order] << v
-				when :where
-					@q[:where] << v
-				when :kind
-					@q[:kind] = v
-				when :start
-					start(v)
-				when :connect
-					@q[:match_statements] << MatchConnection.new( **v )
-				when :return
-					@q[:aliases] << v
-				else
-					self.send k, v
-				end
-			end
 		end
 		
 		def start value
 					@q[:kind] = :match
-					@q[:match_statements] = [ MatchStatement.new( **v) ]
+					@q[:match_statements] = [ MatchStatement.new( value) ]
 					#  @match_statements[1] = MatchConnection.new
-
+					self
 		end
 
 =begin
@@ -258,25 +219,26 @@ end
 =end
 		def method_missing method, *arg, &b   # :nodoc: 
       @q[:misc] << method.to_s <<  generate_sql_list(arg) 
+			self
     end
 
-
-    def misc   # :nodoc:
-      @q[:misc].join(' ') unless @q[:misc].empty?
-    end
+		def misc   # :nodoc:
+			@q[:misc].join(' ') unless @q[:misc].empty?
+		end
 
     def subquery  # :nodoc: 
       nil
     end
 
-	 def kind value=nil
-		 if value.present?
-			 @q[:kind] =  value
-		 else
-			 @q[:kind]
-		 end
-	 end
-
+	
+		def kind value=nil
+			if value.present?
+				@q[:kind] = value
+				self
+			else
+			@q[:kind]
+			end
+		end
 =begin
 (only if kind == :match): connect
 
@@ -334,17 +296,17 @@ Parameter (all optional)
 		def compose(destination: :batch)
 			if kind.to_sym == :match
 				unless @q[:match_statements].empty?
-					match_query =  kind.to_s.upcase + " "+ @q[:match_statements[0]].compose_simple 
-					match_query << @q[:match_statements[1..-1]].map( &:compose ).join
+					match_query =  kind.to_s.upcase + " "+ @q[:match_statements][0].compose 
+					match_query << @q[:match_statements][1..-1].map( &:compose ).join
 					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
 				end
 			elsif kind.to_sym == :update
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$this" : @q[:aliases].first.to_s)
 				[ kind, @q[:database], misc, where, return_statement ].compact.join(' ')
 			elsif destination == :rest
-				[ kind, projection, from, let, where, subquery, misc, order, group_by, unwind, skip].compact.join(' ')
+				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
 			else
-				[ kind, projection, from, let, where, subquery, misc, order, group_by, limit, unwind, skip].compact.join(' ')
+				[ kind, projection, from, let, where, subquery,  misc, order, group_by, limit, unwind, skip].compact.join(' ')
 			end
 		end
 		alias :to_s :compose
@@ -356,8 +318,8 @@ Parameter (all optional)
 
 		def from arg = nil
 			if arg.present?
-			@q[:database] = case arg
-											when ActiveOrient::Model   # a single record
+				@q[:database] = case arg
+												when ActiveOrient::Model   # a single record
 													arg.rrid
 												when OrientQuery	      # result of a query
 													' ( '+ arg.to_s + ' ) '
@@ -370,10 +332,31 @@ Parameter (all optional)
 														arg.to_s  
 													end
 												end
+				self
 			elsif  @q[:database].present? # read from
 				"from #{@q[:database]}" 
 			end
 		end
+
+
+		def order  value = nil
+			if value.present?
+				@q[:order] << value
+			elsif @q[:order].present?
+
+				"order by " << @q[:order].compact.flatten.map do |o|
+					case o
+					when String, Symbol, Array
+						o.to_s
+					else
+						o.map{|x,y| "#{x} #{y}"}.join(" ")
+					end  # case
+				end.join(', ')
+			else
+				''
+			end # unless
+		end	  # def
+
 
     def database_class            # :nodoc:
   	    @q[:database]
@@ -387,16 +370,36 @@ Parameter (all optional)
 			if value.present?
 				@q[:where] << value
 				self
-			else
-				compose_where @q[:where]
+			elsif @q[:where].present?
+				"where #{ generate_sql_list( @q[:where] ) }"
 			end
 		end
+		def distinct d
+			@q[:projection] << "distinct " +  generate_sql_list( d ){ ' as ' }
+			self
+		end
 
-    def let       value = nil
+class << self
+		def mk_simple_setter *m
+			m.each do |def_m|
+				define_method( def_m ) do | value=nil |
+						if value.present?
+							@q[def_m]  = value
+						elsif @q[def_m].present?
+						 "#{def_m.to_s}  #{generate_sql_list(@q[def_m]){' ,'}}"
+						end
+				end
+			end
+		end
+end # class << self
+
+
+		def let       value = nil
 			if value.present?
-				@q[:lett] << value
-			elsif @q[:lett].present?
-				"let " << @q[:lett].map do |s|
+				@q[:let] << value
+				self
+			elsif @q[:let].present?
+				"let " << @q[:let].map do |s|
 					case s
 					when String
 						s
@@ -408,17 +411,6 @@ Parameter (all optional)
 					end
 				end.join(', ')
 			end
-		end
-
-		def distinct d
-			@q[:projection] <<  case d
-													when String, Symbol
-														"distinct #{d.to_s} "
-													else
-														dd= d.to_a.flatten
-														"distinct  #{dd.first.to_s}  as #{dd.last}"
-													end
-			self
 		end
 
 		def projection value= nil  # :nodoc:
@@ -438,21 +430,28 @@ Parameter (all optional)
 			end
 		end
 
-    def limit l=nil
-			if l.present?
-  	  @q[:limit] = "limit #{l.to_s}"
-			elsif  @q[:limit].present?
-				@q[:limit]
+			
+		
+		mk_simple_setter :limit, :skip, :unwind 
+	  def group value = nil
+			if value.present?
+     	@q[:group] << value
+			self
+			elsif @q[:group].present?
+			 "group by #{@q[:group].join(', ')}"
 			end
-  	# only a string is allowed
     end
-
-    def get_limit  # :nodoc: 
-    	@q[:limit].nil? ? -1 : @limit.split(' ').last.to_i
+ 
+		alias order_by order 
+		alias group_by group
+		
+		def get_limit  # :nodoc: 
+    	@q[:limit].nil? ? -1 : @q[:limit].to_i
     end
 
 		def expand item
 			@q[:projection] =[ " expand ( #{item.to_s} )" ]
+			self
     end
 
 		# connects by adding {in_or_out}('edgeClass')
@@ -472,46 +471,12 @@ Parameter (all optional)
 			 if expand.present?
 				 send :expand, argument
 			 else
-			 @q[:projection]  << argument 
+				 @q[:projection]  << argument 
 			 end
-			 compose
+			 self
 		end
 
-    def group_by g = nil
-     	@q[:group] = "group by #{g.to_s}" if g.present?
-    end
-
-    def unwind u = nil
-  	  @q[:unwind] = "unwind #{u.to_s}" if u.present?
-    end
-
-    def skip n = nil
-			if n.present?
-  	  @q[:skip] = n if n.present?
-			elsif @q[:skip].present?
-				"skip #{@q[:skip]}"
-			end
-    end
-
-		def order  value = nil
-			if value.present?
-				@q[:order] << value
-			elsif @q[:order].present?
-				
-				# the [@order] is nessesary to enable query.order= "..." oder query.order= { a: :b }
-				"order by " << @q[:order].compact.flatten.map do |o|
-					case o
-					when String, Symbol, Array
-						o.to_s
-					else
-						o.map{|x,y| "#{x} #{y}"}.join(" ")
-					end  # case
-				end.join(', ')
-			else
-				''
-			end # unless
-			end	  # def
-		end # class
+	end # class
 
 
 end # module

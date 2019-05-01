@@ -72,8 +72,8 @@ The change is immediately transmitted to the database.
 
 
 =end
-		def   append *arg
-
+		def   append arg
+			
 			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or} "}[@name]
 		end
 
@@ -82,7 +82,7 @@ The change is immediately transmitted to the database.
 		def remove *k
 			# todo combine queries in a transaction
 			puts "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"
-			k.each{|item| @orient.remove( " #{@name} = #{item.to_or}")[@name] }
+			k.each{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
 		end
 
 
@@ -108,6 +108,9 @@ The change is immediately transmitted to the database.
 		end
 
 		def method_missing *args
+			if @orient.is_a? V
+
+			end
 
 			self.map{|x| x.send *args }
 		rescue NoMethodError => e

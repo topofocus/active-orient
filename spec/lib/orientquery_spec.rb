@@ -13,7 +13,7 @@ RSpec.describe OrientSupport::OrientQuery do
   end # before
 
 #	after(:all){ @db.delete_database database: 'temp' }
-  context "Initialize the QueryClass", focus: true do
+  context "Initialize the QueryClass" do
     Given( :query ){  OrientSupport::OrientQuery.new from: TestQuery }
     Then { expect( query ).to be_a OrientSupport::OrientQuery }
 
@@ -48,11 +48,11 @@ RSpec.describe OrientSupport::OrientQuery do
 	
 		context " distinct results" do
      Given( :with_distinct ) { OrientSupport::OrientQuery.new from: TestQuery, distinct: 'name'  }
-     Then { expect( with_distinct.to_s ).to eq "select distinct name  from test_query  " }
+     Then { expect( with_distinct.to_s ).to eq "select distinct name from test_query " }
 
 		 it " distinct as method returns the compiled string " do
 			 q = OrientSupport::OrientQuery.new from: TestQuery
-			 expected_result =  "select distinct a  from test_query  "
+			 expected_result =  "select distinct a from test_query "
 			 expect( q.distinct 'a' ).to  be_a OrientSupport::OrientQuery
 			 expect( q.to_s ).to eq expected_result
 		 end
@@ -61,7 +61,7 @@ RSpec.describe OrientSupport::OrientQuery do
 		context " order results" do
 
      Given( :asc_and_skip ) { OrientSupport::OrientQuery.new from: TestQuery, order: {name: :asc}, skip: 30 }
-     Then {  expect( asc_and_skip.to_s ).to eq "select from test_query  order by name asc skip 30" }
+     Then {  expect( asc_and_skip.to_s ).to eq "select from test_query order by name asc skip  30" }
 
 		end
 
@@ -71,13 +71,12 @@ RSpec.describe OrientSupport::OrientQuery do
 						OrientSupport::OrientQuery.new from: TestQuery, 
 							projection: { "eval( 'amount * 120 / 100 - discount' )"=> 'finalPrice' } 
 			end
-      Then { expect(  eval_projection.to_s ).to eq  "select eval( 'amount * 120 / 100 - discount' ) as finalPrice from test_query  " }
-
+      Then { expect(  eval_projection.to_s ).to eq  "select eval( 'amount * 120 / 100 - discount' ) as finalPrice from test_query " }
 		end
 
     context "usage of limit"  do
       Given( :limit_query ) {  OrientSupport::OrientQuery.new  from: TestQuery, limit: 23 }
-      Then { expect( limit_query.to_s).to eq 'select from test_query   limit 23' }
+      Then { expect( limit_query.to_s).to eq 'select from test_query  limit  23' }
       
 		#	expect(q.compose( destination: :rest )).to eq 'select  from test_query  '
     #  expect( q.get_limit).to eq 23
@@ -105,8 +104,8 @@ RSpec.describe OrientSupport::OrientQuery do
       q.order  vorname: :asc 
       expect(q.order).to eq "order by name asc, vorname asc"
       q.projection   "eval( 'amount * 120 / 100 - discount' )"=> 'finalPrice' 
-      expect(q.projection).to eq "distinct name , eval( 'amount * 120 / 100 - discount' ) as finalPrice"
-      expect(q.compose). to eq "select distinct name , eval( 'amount * 120 / 100 - discount' ) as finalPrice from test_query where a = 2 and b > 3 and c = 'ufz' order by name asc, vorname asc"
+      expect(q.projection).to eq "distinct name, eval( 'amount * 120 / 100 - discount' ) as finalPrice"
+      expect(q.compose). to eq "select distinct name, eval( 'amount * 120 / 100 - discount' ) as finalPrice from test_query where a = 2 and b > 3 and c = 'ufz' order by name asc, vorname asc"
     end
 
 		end
@@ -123,8 +122,7 @@ RSpec.describe OrientSupport::OrientQuery do
         oi_query =  OrientSupport::OrientQuery.new from: 'Openinterest', limit: 10, projection: 'expand( contracts )'
 	#puts oi_query.to_s
         contracts_query = OrientSupport::OrientQuery.new from: oi_query, projection: 'expand( distinct(ORDid) )'
-        expect( contracts_query.to_s ).to eq 'select expand( distinct(ORDid) ) from  ( select expand( contracts ) from Openinterest   limit 10 )   '
-        expect( contracts_query.to_s ).to eq 'select expand( distinct(ORDid) ) from  ( select expand( contracts ) from Openinterest   limit 10 )   '
+        expect( contracts_query.to_s ).to eq 'select expand( distinct(ORDid) ) from  ( select expand( contracts ) from Openinterest  limit  10 )  '
 
       end
       it "subquery and subsequent unionall" do
@@ -134,15 +132,15 @@ RSpec.describe OrientSupport::OrientQuery do
         q.let   b:  OrientSupport::OrientQuery.new( from: '#5:1' ) 
         q.let  '$c= UNIONALL($a,$b) '
         q.projection  'expand( $c )'
-        expect( q.to_s ).to eq 'select expand( $c ) let $a = (select from #5:0  ), $b = (select from #5:1  ), $c= UNIONALL($a,$b)   '
+        expect( q.to_s ).to eq 'select expand( $c ) let $a = (select from #5:0 ), $b = (select from #5:1 ), $c= UNIONALL($a,$b)  '
       end
       it "Use a subquery" do
         q =  OrientSupport::OrientQuery.new from: TestQuery, where: { a: 2 , c: 'ufz' }
         r =  OrientSupport::OrientQuery.new from: q , kind: 'traverse', projection: :day
-        expect( r.to_s ).to eq "traverse day from  ( select from test_query where a = 2 and c = 'ufz'  )   "
+        expect( r.to_s ).to eq "traverse day from  ( select from test_query where a = 2 and c = 'ufz'  )  "
         s = OrientSupport::OrientQuery.new from: r, projection: 'unionall( logs ) AS logs '
         t = OrientSupport::OrientQuery.new from: s, projection: 'expand( logs ) '
-        expect( t.to_s ).to eq "select expand( logs )  from  ( select unionall( logs ) AS logs  from  ( traverse day from  ( select from test_query where a = 2 and c = 'ufz'  )    )    )   "
+        expect( t.to_s ).to eq "select expand( logs )  from  ( select unionall( logs ) AS logs  from  ( traverse day from  ( select from test_query where a = 2 and c = 'ufz'  )   )   )  "
 
       end
     end

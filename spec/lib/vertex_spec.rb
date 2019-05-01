@@ -36,7 +36,7 @@ RSpec.describe V do
 		Then { expect( the_edges).to be_a Array }
 		Then { the_edges.each{|e| expect( e.rid?).to be_truthy } }
 		
-		describe " named edges are Edge-Instances by default" do
+		describe "named edges are Edge-Instances by default" do
 			Given( :named_edge ){ the_vertex.in_e2 }
 			Then { expect(named_edge).to be_a Array  }
 			Then { named_edge.each{|e| expect( e).to be_a E } }

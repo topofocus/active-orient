@@ -49,34 +49,80 @@ The rid-cache is reseted, too
   def detect_edges kind = :in,  edge_name = nil # :nodoc:
     ## returns a list of inherented classes
     get_superclass = ->(e) do
+			if [ "e", "E", E ].include?(e)
+				"E"
+			else
       n = orientdb.get_db_superclass(e)
       n =='E' ? e : e + ',' + get_superclass[n]
-    end
-		if edge_name.nil?
-      edges(kind).map &:expand
-		else
-			e_name = if edge_name.is_a?(Regexp)
-								 edge_name
-							 else
-								 Regexp.new  case  edge_name
-														 when  Class
-															 edge_name.ref_name 
-														 when String
-															 edge_name
-														 when Symbol
-															 edge_name.to_s 
-														 when Numeric
-															 edge_name.to_i.to_s
-														 end
-							 end
-	    the_edges = @metadata[:edges][kind].find_all{|y| get_superclass[y].split(',').detect{|x| x =~ e_name } }
-    
-			the_edges.map do | the_edge|
-		  candidate= attributes["#{kind.to_s}_#{the_edge}".to_sym]
-			candidate.present?  ? candidate.map( &:expand ).first  : nil 
 			end
     end
-  end
+
+		result = if edge_name.nil?
+							 expression = case kind
+														when :in
+															/^in/ 
+														when :out
+															/^out/
+														else
+															/^in|^out/ 
+														end
+
+							 the_edges = attributes.keys.find_all{ |x| x =~  expression }
+							 the_edges.map{|x| attributes[x]}.flatten.map &:expand
+						 else
+							 e_name = if edge_name.is_a?(Regexp)
+													edge_name
+												else
+													Regexp.new  case  edge_name
+																			when  Class
+																				edge_name.ref_name 
+																			when String
+																				edge_name
+																			when Symbol
+																				edge_name.to_s 
+																			when Numeric
+																				edge_name.to_i.to_s
+																			end
+												 end
+								the_edges = @metadata[:edges][kind].find_all do |y| 
+									get_superclass[y].split(',').detect{|x| x =~ e_name } 
+								end
+								puts "the edges: #{the_edges.inspect}"
+
+								the_edges.map do | the_edge|
+									candidate= attributes["#{kind.to_s}_#{the_edge}".to_sym]
+									candidate.present?  ? candidate.map( &:expand ).first  : nil 
+								end
+							end
+		OrientSupport::Array.new work_on: self, work_with: result
+	end
+
+=begin
+List edges
+
+1. call without any parameter:  list all edges present
+2. call with :in or :out     :  list any incoming or outgoing edges
+3. call with /regexp/, Class, symbol or string: restrict to this edges, including inheritence
+   If a pattern, symbol string or class is provided, the default is to list outgoing edges
+
+  :call-seq:
+  edges in_or_out, pattern 
+=end
+	def edges *args
+		if args.empty?
+			kind = :both
+		else
+			kind =   [:in, :out, :both, :all].detect{|x|  args.include? x }
+			if kind.present?
+				args =  args -[ kind ]
+			else
+				kind = :out
+			end
+		detect_edges  kind, args.first
+
+		end
+
+	end
 
 	# Lists all connected Vertices
 	#
@@ -95,7 +141,57 @@ The rid-cache is reseted, too
 	end
 
 
-  
+	# Returns a collection of all vertices passed during the traversal 
+	#
+	# fires a query
+	#   
+	#    select  from  ( traverse  outE('#{via}').in  from #{vertex}  while $depth <= #{depth}   ) 
+	#            where $depth >= #{start_at} 
+	#
+	# If » excecute: false « is specified, the traverse-statement is returned (as Orient-Query object)
+	def traverse in_or_out = :out, via: nil,  depth: 1, execute: true, start_at: 1
+
+			edges = detect_edges( in_or_out, via )
+			the_query = OrientSupport::OrientQuery.new kind: 'traverse' 
+			the_query.while( "$depth <= #{depth} ")  unless depth <=0
+			the_query.from   self
+			edges.each{ |ec| the_query.nodes in_or_out, via: ec.class, expand: false }
+			outer_query = OrientSupport::OrientQuery.new from: the_query, where: "$depth >= #{start_at}"
+			if execute 
+				query( outer_query ) 
+				else
+		#			the_query.from self  #  complete the query by assigning self 
+					the_query            #  returns the OrientQuery  -traverse object
+				end
+		end
+
+
+
+=begin
+Assigns another Vertex via an EdgeClass. If specified, puts attributes on the edge.
+
+Wrapper for 
+  Edge.create in: self, out: a_vertex, attributes: { some_attributes on the edge }
+
+Reloads the vertex after the assignment and returns it.
+
+
+Example
+
+
+=end
+
+  def assign vertex: , via: E , attributes: {}
+
+    via.create from: self, to: vertex, attributes: attributes
+    
+		reload!
+  end
+
+
+
+
+
 =begin
 »in« and »out« provide the main access to edges.
 »in» is a reserved keyword. Therfore its only an alias to `in_e`.
@@ -143,7 +239,7 @@ Example:
   
 
 
-To fetch the associated records use the ActiveOrient::Model.autoload_object method
+To fetch the associated records use the expand method
   
   ActiveOrient::Model.autoload_object Industry.first.edges( :in).first	
   # or
@@ -152,25 +248,27 @@ To fetch the associated records use the ActiveOrient::Model.autoload_object meth
 
 =end
   
-  def edges kind=:all  # :all, :in, :out 
-    expression = case kind
-		 when :all
-		   /^in|^out/ 
-		 when :in
-		   /^in/ 
-		 when :out
-		   /^out/ 
-		 when String
-		   /#{kind}/
-		 when Regexp
-		   kind
-		 else
-		   return  []
-		 end
-
-    edges = attributes.keys.find_all{ |x| x =~  expression }
-    edges.map{|x| attributes[x]}.flatten
-  end
+#  def edges kind=:all  # :all, :in, :out 
+#    expression = case kind
+#		 when :all
+#		   /^in|^out/ 
+#		 when :in
+#		   /^in/ 
+#		 when :out
+#		   /^out/ 
+#		 when String
+#		   /#{kind}/
+#		 when Regexp
+#		   kind
+#		 when Class
+#			 /#{kind.ref_name}/
+#		 else
+#		   return  []
+#		 end
+#
+#    edges = attributes.keys.find_all{ |x| x =~  expression }
+#    edges.map{|x| attributes[x]}.flatten
+#  end
 
 =begin
 »in_edges« and »out_edges« are shortcuts to »edges :in« and »edges :out«

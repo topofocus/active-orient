@@ -19,7 +19,7 @@ module RestOperations
   def count **args
     logger.progname = 'RestOperations#CountRecords'
     query = OrientSupport::OrientQuery.new args
-    query.projection << 'COUNT(*)'
+    query.projection  'COUNT(*)'
     result = get_records raw: true, query: query
     result.first["COUNT(*)"] rescue  0  # return_value
   end
@@ -181,24 +181,11 @@ end
 			if response.code == 200
 				if response.body['result'].present?
 					result=JSON.parse(response.body)['result']
-					return result if raw.present?
-					result.map do |x|
-						if x.is_a? Hash
-							y = x.transform_keys{|y| y.delete('@').split('=').first.underscore.to_sym}
-							if y[:type] == 'd' #0.present?  #  == 'd'  # x.has_key?("@type")   && 
-								if y.has_key?(:class)
-									the_object = ActiveOrient::Model.orientdb_class( name: y[:class] ).new x
-									ActiveOrient::Base.store_rid( the_object )   # update cache
-								else   # create a dummy class and fill with attributes from result-set
-									ActiveOrient::Model.orientdb_class(name: 'query' ).new x
-								end
-							else
-  							 # return the result or the corresponding dataset
-								r= y.map{ | _,v | v.is_a?(String) && v.rid? ?  ActiveOrient::Model.get( v ): v }
-								y.size ==1 ? r.first : r   # return raw instead of array if only one value is present
-							end
-						end
-					end.compact # return_value
+					if raw.present? 
+						 result
+					else
+						y= result.from_orient
+					end
 				else
 					response.body
 				end

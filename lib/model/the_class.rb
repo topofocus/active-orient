@@ -466,14 +466,17 @@ instead of links.
 =end
 
   def where *attributes 
-    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
-    query.match_statements[0].where =  attributes unless attributes.empty?
+    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }.merge( where: attributes )
+#    query.match_statements[0].where   attributes unless attributes.empty?
 		# the block contains a result-record : 
 		#<ActiveOrient::Model:0x0000000003972e00 
 		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
 		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
 		#		             ^...........° -> classname.pluralize
-    query_database( query, set_from: false){| record | record.is_a?(ActiveOrient::Model) ? record : record.send( self.classnamepluralize.to_sym ) }
+    query_database( query) { | record | record[classname.pluralize.to_sym] }
+#			record.map do | key, value | 
+
+#			record.is_a?(ActiveOrient::Model) ? record : record.send( self.classname.pluralize.to_sym ) }
   end
 =begin
 Performs a Match-Query
@@ -509,7 +512,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 =end
 
   def match where: {}
-    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
+    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname } 
     query.match_statements[0].where =  where unless where.empty?
     if block_given?
       query_database yield(query), set_from: false
@@ -542,16 +545,16 @@ query_database is used on model-level and submits
 =end
 
   def query_database query, set_from: true
-    query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
+    query.from self if query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     result = db.execute do
     query.to_s #  sql_cmd[query.to_s]
     end
-    if block_given?
-      result.is_a?(Array)? result.map{|x| yield x } : yield(result)
-    else
-      result
-    end
+		result = if block_given?
+							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
+						 else
+							 result
+						 end
     if result.is_a? Array  
       OrientSupport::Array.new work_on: self, work_with: result
     else

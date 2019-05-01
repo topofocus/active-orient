@@ -135,12 +135,12 @@ describe ActiveOrient::OrientDB do
       b = Exchange.create :label => 'Berlin'
       s = Exchange.create :label => 'Stuttgart'
       ds =Property.create con_id: 12355
-      ds.add_item_to_property :exchange , f,b,s      #	  ds.add_item_to_property :exchanges, b
+      ds.update  exchange: [f,b,s]      #	  ds.add_item_to_property :exchanges, b
       #	  ds.add_item_to_property :exchanges, s
       expect( ds.exchange ).to have(3).items
       expect( Property.custom_where( "'Stuttgart' in exchange.label").first ).to eq ds
       expect( Property.custom_where( "'Hamburg' in exchange.label") ).to  be_empty
-      ds.remove_item_from_property :exchange, b,s 
+      ds.exchange.remove( b,s )
       expect( ds.exchange ).to have(1).items
     end
 

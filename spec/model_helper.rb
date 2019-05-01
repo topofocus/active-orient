@@ -1,3 +1,10 @@
+class String
+	def ex_rid
+		sub /#[0-9]*:[0-9]*/, '*'
+	end
+end
+
+
  shared_examples_for 'basic class properties' do |bez|
      
      it "class #{bez}: initialize and add a property " do 
@@ -13,7 +20,7 @@ puts "ref name: #{subject.ref_name}"
  end
 shared_examples_for 'a valid record' do
   it{ is_expected.to be_an ActiveOrient::Model }
-	its( :created_at ) { is_expected.to be_a DateTime }
+#	its( :created_at ) { is_expected.to be_a DateTime }
 	its( :metadata ) { is_expected.to be_a Hash }
 	its( :attributes ) { is_expected.to be_a Hash }
 	its( :rid ){ is_expected.to match /\A[#]{,1}[0-9]{1,}:[0-9]{1,}\z/ }
