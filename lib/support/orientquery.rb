@@ -16,10 +16,12 @@ _Usecase:_
 =end
 
     #
-    def compose_where *arg , &b
-      arg = arg.flatten
-      return "" if arg.blank? 
-      "where " + generate_sql_list( arg , &b)
+		def compose_where *arg , &b
+			arg = arg.flatten.compact
+			unless arg.blank? 
+				g= generate_sql_list( arg , &b)
+				"where #{g}" unless g.empty?
+			end
     end
 
 =begin
@@ -462,11 +464,11 @@ end # class << self
 		#  in_or_out:  :out --->  outE('edgeClass').in[where-condition] 
 		#              :in  --->  inE('edgeClass').out[where-condition]
 
-		def nodes in_or_out = :out, via:  nil, where: nil, expand: true
+		def nodes in_or_out = :out, via: nil, where: nil, expand: true
 			 condition = where.present? ?  "[ #{generate_sql_list(where)} ]" : ""
 			 start =  in_or_out 
 			 the_end =  in_or_out == :in ? :out : :in
-			 argument = " #{start}E(#{via.to_or if via.present?}).#{the_end}#{condition} "
+			 argument = " #{start}E(#{[via].flatten.map(&:to_or).join(',') if via.present?}).#{the_end}#{condition} "
 
 			 if expand.present?
 				 send :expand, argument

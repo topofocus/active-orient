@@ -175,7 +175,9 @@ returns the affected record
 =end
   def upsert set: nil, where: 
 		set = where if set.nil?
-    db.upsert self, set: set, where: where
+	# the result is a hash. We are intersted in the value only
+		# expected: {"@rid" => "#aa:bb"}
+    db.upsert( self, set: set, where: where) &.values.first.reload!
   end
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
@@ -190,14 +192,13 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
     if where.empty?
       set.merge! arg
     end
-    db.update_records  self, set: set, where: where
+	# the result is a hash. We are intersted in the value only
+		# expected: {"count" => n}
+    db.update_records( self, set: set, where: where).values.first
 
   end
-  #
-# removes a property from the collection (where given) or the entire class 
-  def remove attribute, where:{}
-    db.update_records self, remove: attribute, where: where
-  end
+
+	alias update updat_all
 
 =begin
 Create a Property in the Schema of the Class and optionaly create an automatic index
@@ -579,10 +580,17 @@ query_database is used on model-level and submits
 
 # Query the database and delete the records of the resultset
 
-  def delete_records where: {}
-    orientdb.delete_records self, where: where
-  end
-  alias delete_documents delete_records
+  def delete_records where: {} , **args
+		puts "ARGS:: #{args[:all]}"
+		if args[:all] == true 
+			where = {}
+		else
+			where.merge!(args)
+			return if where.empty?
+		end
+    orientdb.delete_records self, where: where   
+	end
+  alias delete delete_records
 
 
 

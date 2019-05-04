@@ -43,8 +43,13 @@ thus a string or a Model-Object is accepted
 =end
 
     def self.remove_rid obj
-      @@rid_store.delete obj.rid if obj.rid.present?
-    end
+			if obj &.rid.present?
+      @@rid_store.delete obj.rid     
+			else
+				logger.error "Cache entry not removed: #{obj} "
+
+			end
+		end
 
     def self.get_rid rid
       rid =  rid[1..-1] if rid[0]=='#'

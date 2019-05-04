@@ -57,12 +57,15 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
 
   def query query
     
-    query.from = rrid if query.is_a?( OrientSupport::OrientQuery) && query.from.nil?
-    result = orientdb.execute do
-      query.to_s
-    end
+    query.from  rrid if query.is_a?( OrientSupport::OrientQuery) && query.from.nil?
+    result = orientdb.execute{ query.to_s }
+		result = if block_given?
+							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
+						 else
+							 result
+						 end
     if result.is_a? Array  
-      OrientSupport::Array.new work_on: self, work_with: result
+      OrientSupport::Array.new work_on: self, work_with: result.orient_flatten
     else
       result
     end  # return value
@@ -108,30 +111,28 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
 #
 # It is overloaded in Vertex and Edge.
 
-def remove 
-  orientdb.delete_record self
-  ActiveOrient::Base.remove_rid self ##if is_edge? # removes the obj from the rid_store
+def delete 
+  orientdb.delete_record  self 
 end
 
-alias delete remove
 
 ########### UPDATE ############
 
 =begin
-Convient update of the dataset by calling sql-patch
+Convient update of the dataset 
 
 Previously changed attributes are saved to the database.
 
 Using the optional :set argument ad-hoc attributes can be defined
-
-    obj = ActiveOrient::Model::Contracts.first
+    V.create_class :contracts
+    obj = Contracts.first
     obj.name =  'new_name'
     obj.update set: { yesterdays_event: 35 }
 updates both, the »name« and the »yesterdays_event«-properties
 
 _note:_ The keyword »set« is optional, thus
     obj.update  yesterdays_event: 35 
-is identical
+is identical to the update statement above
 =end
 
   def update set:{}, add: nil, to: nil, **args
@@ -153,6 +154,7 @@ is identical
 				@attributes.merge! set
 				save
 			end
+		self
 		end
 
   end

@@ -18,14 +18,17 @@ Creates individual indices for child-classes if applied to the class itself.
  Instantiate a new Edge between two Vertices 
 
 =end
-  def create from:, to: , attributes: {}, transaction:  false
+  def create from:, to: , attributes: {}, transaction:  false, update_cache: false
 		return nil if from.blank? || to.blank?
 		statement = "CREATE EDGE #{ref_name} from #{from.to_or} to #{to.to_or}"
+		puts "Statement: #{statement}"
 		transaction = true if [:fire, :complete, :run].include?(transaction)
 		ir= db.execute( transaction: transaction ){ statement  }
-		from.reload! # get last version 
-		to.is_a?(Array)? to.each( &:reload! )  : to.reload!
-		ir
+		if update_cache
+			from.reload! # get last version 
+			to.is_a?(Array)? to.each( &:reload! )  : to.reload!
+		end
+		to.is_a?(Array)  ? ir : ir.first   # return the plain edge, if only one is created
 		
 	rescue ArgumentError => e
 		logger.error{ "wrong parameters  #{keyword_arguments} \n\t\t required: from: , to: , attributes:\n\t\t Edge is NOT created"}
@@ -64,6 +67,9 @@ suspended in favour of  edge.delete
 #    db.delete_edge self
 #  end
 
+	def delete
+		db.execute{ "delete edge #{ref_name} #{rrid}" }
+	end
 	def to_human
 		displayed_attributes =  content_attributes.reject{|k,_| [:in, :out].include?(k) }
 		"<#{self.class.to_s.demodulize}[#{rrid}] -i-> ##{ attributes[:in].rid} #{displayed_attributes.to_human} -o-> #{out.rrid}>"

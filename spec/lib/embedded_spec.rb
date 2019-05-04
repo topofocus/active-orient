@@ -31,7 +31,6 @@ describe ActiveOrient::OrientDB do
       subject{  Base.custom_where(  "a_set.currency containskey 'EUR'" ) }
       it { is_expected.to  be_a Array }
       it { is_expected.to have(1).item }
-      it { is_expected.to eq Base.where( label: 'Test4') }
 			it { expect(subject.first.a_set[:currency][:EUR]).to eq 4.32 }
       ### query for :home => something 
 		end

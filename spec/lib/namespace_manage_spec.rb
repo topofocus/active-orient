@@ -1,7 +1,8 @@
 
 require 'spec_helper' 
 require 'rest_helper'
-require 'active_support'
+require 'connect_helper'
+#require 'active_support'
 require 'pp'
 
 ## Anything is performed in ActiveOrient
@@ -10,11 +11,12 @@ require 'pp'
 ## and that proper database-class-names are generated
 describe ActiveOrient::OrientDB do
     before(:all) do 
+    @db = connect database: 'temp'
  #     initialize_database
       read_etl_data
-      ORD.create_class 'V','E'
     end
 
+#	after(:all){ @db.delete_database database: 'temp' }
     context "analyse initialized database" do
       it "classes array has the appropiate classes" do
 	expect( ORD.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
@@ -33,7 +35,7 @@ describe ActiveOrient::OrientDB do
 	module HY; end
       
       end
-     it "change namespace to HH and allocate classes", focus: true do
+     it "change namespace to HH and allocate classes" do
        # allocate Object-Spaced Classes
        ActiveOrient::OrientDB.new  preallocate: true 
        ActiveOrient::Init.define_namespace { HH }
