@@ -198,7 +198,7 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
 
   end
 
-	alias update updat_all
+	alias update update_all
 
 =begin
 Create a Property in the Schema of the Class and optionaly create an automatic index
@@ -374,7 +374,7 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 
 =begin
 »GetRecords« uses the REST-Interface to query the database. The alternative »QueryDatabase« submits 
-the query via Batch. 
+the query via Execute. 
 
 Both methods rely on OrientSupport::OrientQuery and its capacity to support complex query-builds.
 The method requires a hash of arguments. The following keys are supported:
@@ -527,15 +527,32 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 =begin
 QueryDatabase sends the Query directly to the database.
 
-The result is not nessessary an Object of the Class.
+The query returns a hash if a resultset is expected
+  select  {something} as {result} (...) 
+leads to
+  [ { :{result}  =>  {result of query} } ]
 
-The result can be modified further by passing a block.
-This is helpful, if a match-statement is used and the records should be autoloaded:
+It can be modified further by passing a block, ie
 
-  result = query_database(query, set_from: false){| record | record[ self.classname.pluralize ] }
+  	q =  OrientSupport::OrientQuery.new( from: :base )
+		                               .projection( 'first_list[5].second_list[9] as second_list' )
+		                               .where( label: 9 )
 
-This autoloads (fetches from the cache/ or database) the attribute self.classname.pluralize  (taken from method: where )
+    q.to_s  => 'select first_list[5].second_list[9] as second_list from base where label = 9 '
+
+		second_list = Base.query_database( q ){|x|  x[:second_list]}.first
+
+
+The query returns (a list of) documents of type ActiveOrient::Model if a document is queried i.e.
+
+	q =  OrientSupport::OrientQuery.new  from: :base
+	q.projection  'expand( first_list[5].second_list[9])'  #note: no 'as' statement
+	result2 = Base.query_database( q ).first
+	=> #<SecondList:0x000000000284e840 @metadata={}, @d=nil, @attributes={:zobel=>9, "@class"=>"second_list"}>
   
+
+
+
 
 query_database is used on model-level and submits
   select (...) from class
@@ -546,8 +563,9 @@ query_database is used on model-level and submits
 =end
 
   def query_database query, set_from: true
-    query.from self if query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
-    sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
+    # note: the parameter is not used anymore
+		query.from self if query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
+    #sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     result = db.execute do
     query.to_s #  sql_cmd[query.to_s]
     end
@@ -579,16 +597,16 @@ query_database is used on model-level and submits
   alias delete_document delete_record
 
 # Query the database and delete the records of the resultset
-
+# 
+# Returns the count of datasets effected
   def delete_records where: {} , **args
-		puts "ARGS:: #{args[:all]}"
 		if args[:all] == true 
 			where = {}
 		else
-			where.merge!(args)
-			return if where.empty?
+			where.merge!(args) if where.is_a?(Hash)
+			return 0 if where.empty?
 		end
-    orientdb.delete_records self, where: where   
+    orientdb.delete_records( self, where: where   ).count
 	end
   alias delete delete_records
 

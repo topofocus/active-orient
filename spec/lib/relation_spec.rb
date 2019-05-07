@@ -14,8 +14,8 @@ describe ActiveOrient::OrientDB do
 		(0 .. 9).each do | b |
 			base_record = Base.create( label: b, first_list: [])
 			(0..9 ).each do | c |
-					list_record = FirstList.create( rubel: c , second_list: [])  
-					list_record.second_list << (0..9).map{|n| SecondList.new( zobel: n ) }
+				list_record = FirstList.create( rubel: c , second_list: [])  
+				list_record.second_list << (0..9).map{|n| SecondList.new( zobel: n ) }
 				base_record.first_list <<  list_record
 			end
 			end  #c
@@ -38,10 +38,7 @@ describe ActiveOrient::OrientDB do
 
 		it "check base" do
 			(0..9).each do | b |
-				base =  Base.where( label: b )
-				expect( base ).to be_a Array
-				expect( base.size ).to eq 1
-				base= base.first
+				base =  Base.where( label: b ).first
 				if RUBY_PLATFORM == 'java'
 					expect( base.first_list ).to be_a OrientDB::RecordList
 				else
@@ -65,18 +62,17 @@ describe ActiveOrient::OrientDB do
 			end
 			end
 
-			q =  OrientSupport::OrientQuery.new  from: :base
-			q.projection  'first_list[5].second_list[9] as second_list'
-			q.where   label: 9 
-			expect( q.to_s ).to eq 'select first_list[5].second_list[9] as second_list from base where label = 9 '
+			q =  OrientSupport::OrientQuery.new.projection( 'first_list[5].second_list[9] as second_list')
+																		 .where   label: 9 
+			expect( q.to_s ).to eq 'select first_list[5].second_list[9] as second_list where label = 9 '
 			# two different query approaches
 			# the first attempt gets just the rid, the record is autoloaded (or taken from the cache)
-			result1 = Base.query_database( q ).first
-			expect( result1.second_list).to be_a SecondList
-			q =  OrientSupport::OrientQuery.new  from: :base
+			result1 = Base.query_database( q ){|x|  x[:second_list]}.first
+			expect( result1).to be_a SecondList
 			# the second attempt fetches the record directly
-			q.projection  'expand( first_list[5].second_list[9])'
+			q =  OrientSupport::OrientQuery.new.projection( 'expand( first_list[5].second_list[9])' )
 			result2 = Base.query_database( q ).first
+
 			expect( result2).to be_a SecondList
 
 		end

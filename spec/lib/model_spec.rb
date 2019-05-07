@@ -15,8 +15,7 @@ describe ActiveOrient::Model do
   before( :all ) do
     @db = connect database: 'temp'
 		@db.create_class :work 
-    V.create_class :test_model, :test_model2  # creates class TestModel, TestModel2
-		V.create_class :my_node 
+    V.create_class :test_model, :test_model2, :my_node  # creates class TestModel, TestModel2
 		E.create_class :my_edge 
   end
 	after(:all){ @db.delete_database database: 'temp' }
@@ -138,7 +137,7 @@ Work.delete all: true
 			puts "d: #{d.to_human}"
 			c = TestModel.count
       d.delete  
-			expect( TestModel.count ).to eq c-1
+			expect( TestModel.count ).to eq c - 1
     end
   end #context
 
@@ -150,17 +149,17 @@ Work.delete all: true
 			#@db.database_classes requery: true
 		end
 		it{  expect( TestModel.indexes.first['fields'] ).to eq ["test"] }
-    it "fetch all documents into an Array" do
-      all_documents = TestModel.all
-      expect( all_documents ).to be_a Array 
-      expect( all_documents ).to have_at_least(45).elements
-      all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }
+		context "fetch all documents into an Array" do
+      Given( :all_documents) { TestModel.all }
+      Then { expect( all_documents ).to be_a Array  }
+      Then { expect( all_documents ).to have_at_least(45).elements }
+      Then { all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }  }
     end
 
-    it "get a set of documents queried by where"  do
-      nr_23=  TestModel.where  test: 23
-      expect( nr_23 ).to have(1).element
-      expect( nr_23.first.test).to eq 23
+    context "get a set of documents queried by where"  do
+      Given( :nr_23 ) {  TestModel.where  test: 23 }
+      Then { expect( nr_23 ).to have(1).element }
+      Then { expect( nr_23.first.test).to eq 23 }
     end
     it "datasets are unique only  on update"  do
       expect{ TestModel.upsert(  :where => { test: 45 }) }. not_to change { TestModel.count }
@@ -178,49 +177,29 @@ Work.delete all: true
 
     it "specific datasets can be removed" do
       count= TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')
-      expect( TestModel.remove(  :new_ds , where: {test: 42})).to eq 1
+      expect( TestModel.delete(  where: {test: 42})).to eq 1
       expect( TestModel.where( new_ds: 45 ) ).to have( count -1 ).elements
     end
 
-    it "creates an edge between two vertices"  do
-      node_1 = TestModel.where( test: 45 ).first
-      node_2 = TestModel.where( test: 2 ).first
-      node_3 = TestModel.where( test: 16 ).first
+let( :node_1) { TestModel.where( test: 45 ).first }
+let( :node_2) { TestModel.where( test: 2 ).first }
+let( :node_3) { TestModel.where( test: 16 ).first }
+
+    it "creates an edge between two vertices"   do
       [ node_1, node_2 ].each{|y| expect( y ).to be_a V }
-      the_edge = MyEdge.create( attributes: { halbwertzeit: 655 },
-					  from: node_1,
-					    to: node_2  )
+      the_edge = MyEdge.create(  halbwertzeit: 655, from: node_1, to: node_2  )
       expect( the_edge ).to be_a E
       expect( the_edge.in ).to eq node_2
       expect( the_edge.out ).to eq node_1
+			puts "node_1:  #{node_1}"
 		end
 
-## this is omitted in favor of using contrains on the edge-class 
-      # creation of a second edge with the same properties leads to  reusing the existent edge
-#      the_edge2= E.create(
-#		    attributes: { halbwertzeit: 655 },
-#		    from: node_1,
-#		    to:   node_2  )
-#      expect( the_edge.rid ).to eq the_edge2.rid
-      #      the_edge2= @myedge.create_edge(
-      #			  attributes: { halbwertzeit: 46 },
-      #			  from: in_e,
-      #			  to:   in_e2  )
-#      expect( the_edge.out ).to eq node_1 ## hier wird ein Document zurück gegeben...
-#      expect( the_edge.in ).to eq node_2
-      #      expect( the_edge2.out ).to eq in_e
-      #      expect( the_edge2.in ).to eq in_e2
-#      out_e =  TestModel.where(  test: 23  ).first
-#      expect( out_e ).to eq node_1
-#      expect( out_e.attributes).to include 'out_Myedge'
-#      in_e = TestModel.where(  test: 15  ).first
-      #      puts "--------------------------------"
-      #      puts node_1.attributes.inspect
-      #      expect( in_e.attributes).to include 'in_Myedge'
-      #    expect( node_1.myedge).to have(1).item
-      #    expect( node_1.myedge[0][:out].test).to eq 23
-      #    expect( node_1.in_Myedge[0][:in].test).to eq  15
-#    end
+		it "create a second edge" do
+			the_edge =  MyEdge.where( halbwertzeit: 655 ).first
+      the_edge2= E.create( set: { halbwertzeit: 655 }, from: node_1, to:   node_2  )
+      expect( the_edge.rid ).not_to eq the_edge2.rid
+      expect( the_edge2.out ).to eq  node_1
+    end
 
     it "deletes an edge"  do
       the_edges =  E.all

@@ -142,7 +142,7 @@ The change is immediately transmitted to the database.
 			 @orient.update { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }
 		end
 
-# Inserts the provided Hash to the (possibly emty) list-property and returns a hash	
+# Inserts the provided Hash to the (possibly empty) list-property and returns a hash	
 		def append arg
 			# the argument is simply provided as JSON-parameter to »update«
 			# generated query: update {rrid} set { @name } = { arg.to_json } return after @this

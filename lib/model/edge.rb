@@ -17,19 +17,30 @@ Creates individual indices for child-classes if applied to the class itself.
 =begin
  Instantiate a new Edge between two Vertices 
 
+ Properties can be placed using the :set-directive or simply by adding key: value- parameter-pairs
+
+ if the creation of an edged is not possible, due to constrains (uniq_index), the already
+ connecting edge is returned 
 =end
-  def create from:, to: , attributes: {}, transaction:  false, update_cache: false
+  def create from:, to: , set: {}, transaction:  false, update_cache: false, **attributes
 		return nil if from.blank? || to.blank?
-		statement = "CREATE EDGE #{ref_name} from #{from.to_or} to #{to.to_or}"
-		puts "Statement: #{statement}"
+		set.merge!(attributes) 
+		content =  set.empty? ? "" : "content #{set.to_orient.to_json}" 
+		statement = "CREATE EDGE #{ref_name} from #{from.to_or} to #{to.to_or} #{content}"
 		transaction = true if [:fire, :complete, :run].include?(transaction)
-		ir= db.execute( transaction: transaction ){ statement  }
+		ir= db.execute( transaction: transaction, process_error: false ){ statement  }
 		if update_cache
 			from.reload! # get last version 
 			to.is_a?(Array)? to.each( &:reload! )  : to.reload!
 		end
 		to.is_a?(Array)  ? ir : ir.first   # return the plain edge, if only one is created
-		
+	rescue RestClient::InternalServerError => e
+		sentence=  JSON.parse( e.response)['errors'].last['content']
+		if sentence =~ /found duplicated key/
+			ref_rid =  sentence.split.last.expand  # return expanded rid
+		else
+			raise
+		end
 	rescue ArgumentError => e
 		logger.error{ "wrong parameters  #{keyword_arguments} \n\t\t required: from: , to: , attributes:\n\t\t Edge is NOT created"}
   end
@@ -40,6 +51,10 @@ Fires a "delete edge" command to the database.
 The where statement can be empty ( "" or {}"), then all edges are removed 
 
 The rid-cache is resetted
+
+
+to_do: Implement :all=> true directive
+       support from: , to: syntax
 
   :call-seq:
   delete where: 
@@ -56,16 +71,9 @@ The rid-cache is resetted
 	###  instance methods  ###
 
 =begin
-Removes the actual ActiveOrient::Model-Edge-Object
+Deletes the actual ActiveOrient::Model-Edge-Object
 
-This method overloads the unspecified ActiveOrient::Model#remove-Method
-
-suspended in favour of  edge.delete
 =end
-#  def remove
-  # remove works on record-level
-#    db.delete_edge self
-#  end
 
 	def delete
 		db.execute{ "delete edge #{ref_name} #{rrid}" }

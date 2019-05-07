@@ -1,6 +1,9 @@
 module ModelRecord
   ############### RECORD FUNCTIONS ###############
-
+ 
+	def to_s
+		to_human
+	end
   ############# GET #############
 
   def from_orient # :nodoc:
@@ -16,7 +19,7 @@ module ModelRecord
 flag whether a property exists on the Record-level
 =end
   def has_property? property
-    attributes.keys.include? property.to_s
+    attributes.keys.include? property.to_sym
   end
 
 	def properties 
@@ -95,7 +98,7 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
       @metadata[:version]
     end
   end
-
+private
   def version= version  # :nodoc:
     @metadata[:version] = version
   end
@@ -104,6 +107,7 @@ Returns the result-set, ie. a Query-Object which contains links to the addressed
     @metadata[:version] += 1
   end
 
+public
 
   ############# DELETE ###########
 
@@ -198,21 +202,6 @@ Saves the record  by calling update  or  creating the record
   end
 
 
-  def transfer_content  from:
-		# »from« can be either 
-		# a model record (in case of  create-record, get_record) or
-		# a hash containing {"@type"=>"d", "@rid"=>"#xx:yy", "@version"=>n, "@class"=>'a_classname'} 
-		# and a list of updated properties (in case of db.update). Then  update the version field and the 
-		# attributes.
-			if from.is_a? ActiveOrient::Model
-       @metadata = from.metadata
-       @attributes =  from.attributes
-			else
-				self.version =  from['@version']
-				# throw from["@..."] away and convert keys to symbols, merge that into attributes
-				@attributes.merge! Hash[ from.delete_if{|k,_| k =~ /^@/}.map{|k,v| [k.to_sym, v.from_orient]}]
-			end
-  end
   ########## CHECK PROPERTY ########
 
 =begin
@@ -240,6 +229,7 @@ Example:
   a.test	  # <--- attribute: 'test' --> fetch attributes[:test]
 
 Assignments are performed only in ruby-space.
+
 Automatic database-updates are deactivated for now
 =end
   def method_missing *args
@@ -264,5 +254,20 @@ Automatic database-updates are deactivated for now
   end
 #end
 
-
+#protected
+  def transfer_content  from:
+		# »from« can be either 
+		# a model record (in case of  create-record, get_record) or
+		# a hash containing {"@type"=>"d", "@rid"=>"#xx:yy", "@version"=>n, "@class"=>'a_classname'} 
+		# and a list of updated properties (in case of db.update). Then  update the version field and the 
+		# attributes.
+			if from.is_a? ActiveOrient::Model
+       @metadata = from.metadata
+       @attributes =  from.attributes
+			else
+				self.version =  from['@version']
+				# throw from["@..."] away and convert keys to symbols, merge that into attributes
+				@attributes.merge! Hash[ from.delete_if{|k,_| k =~ /^@/}.map{|k,v| [k.to_sym, v.from_orient]}]
+			end
+  end
 end

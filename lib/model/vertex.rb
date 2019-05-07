@@ -4,11 +4,15 @@ class V   < ActiveOrient::Model
 =begin
 specialized creation of vertices, overloads model#create
 =end
-	def self.create( **keyword_arguments )
-		new_vert = db.create_vertex self, attributes: keyword_arguments
+	def self.create set: {},  **attributes
+
+		new_vert = db.execute( transaction: false, tolerated_error_code: /found duplicated key/) do
+		 "CREATE VERTEX #{ref_name} CONTENT #{set.merge(attributes).to_orient.to_json}"
+		 end
+			 
 		new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
 		if new_vert.nil?
-			logger.error('Vertex'){ "Table #{ref_name} ->>  create failed:  #{keyword_arguments.inspect}" } 
+			logger.error('Vertex'){ "Table #{ref_name} ->>  create failed:  #{set.merge(attributes).inspect}" } 
 		elsif block_given?
 			yield new_vert
 		else
@@ -19,94 +23,21 @@ specialized creation of vertices, overloads model#create
 Vertex#delete fires a "delete vertex" command to the database.
 The where statement can be empty ( "" or {}"), then all vertices are removed 
 
-The rid-cache is reseted, too
+The rid-cache is reset, too
 =end
   def self.delete where: {} , **args
 		if args[:all] == true 
 			where = {}
 		else
-			where.merge!(args)
-			return if where.empty?
+			where.merge!(args) if where.is_a?(Hash)
+			return 0 if where.empty?
 		end
-    db.execute { "delete vertex #{ref_name} #{db.compose_where(where)}" }
+		# query returns [{count => n }]
+		count= db.execute { "delete vertex #{ref_name} #{db.compose_where(where)}" }.first[:count] rescue 0
     reset_rid_store
+		count #  return count of affected records
   end
 
-#Present Classes (Hierarchy) 
-#---
-#- - E
-#  - - - e1
-#      - - e2
-#        - e3
-#- - V
-#  - - - v1
-#      - - v2
-
-#v.to_human
-# => "<V2[#36:0]: in: {E2=>1}, node : 4>" 
-#
-# v.detect_edges( :in, 2).to_human
-# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
-# v.detect_edges( :in, E1).to_human
-# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
-# v.detect_edges( :in, /e/).to_human
-# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
-#
-	def detect_edges kind = :in,  edge_name = nil, expand: true  # :nodoc:
-		## returns a list of inherented classes
-		get_superclass = ->(e) do
-			if [ "e", "E", E ].include?(e)
-				"E"
-			else
-				n = orientdb.get_db_superclass(e)
-				n =='E' ? e : e + ',' + get_superclass[n]
-			end
-		end
-		expression = case kind
-								 when :in
-									 /^in_/ 
-								 when :out
-									 /^out_/
-								 else
-									 /^in_|^out_/ 
-								 end
-
-		result = the_edges = attributes.keys.find_all{ |x| x =~  expression }
-
-		if edge_name.present?
-			e_name = if edge_name.is_a?(Regexp)
-								 edge_name
-							 else
-								 Regexp.new  case  edge_name
-														 when  Class
-															 edge_name.ref_name 
-														 when String
-															 edge_name
-														 when Symbol
-															 edge_name.to_s 
-														 when Numeric
-															 edge_name.to_i.to_s
-														 end
-								end	
-
-			result = the_edges.map do |x|
-				e= 	x.to_s.gsub expression, ''
-				x if get_superclass[e].split(',').detect{|x| x =~ e_name } 
-			end.compact
-			puts result
-			puts the_edges
-		end
-	# if expand = false , return the orientdb-databasename of the edges
-	#   this is used by  Vertex#nodes 
-	#   it avoids communications with the database prior to submitting the nodes-query
-	# if expand = true (default) load the edges instead
-		if expand
-			result=	result.map{|x| attributes[x]}.flatten.map &:expand
-			OrientSupport::Array.new work_on: self, work_with: result
-		else
-			result.map{|x|	x.to_s.gsub expression, ''}
-		end
-	end
 
 =begin
 List edges
@@ -129,8 +60,6 @@ List edges
 			else
 				kind = :both
 			end
-			puts "kind #{kind}"
-			puts "arg: #{args.inspect}"
 		detect_edges  kind, args.first
 
 		end
@@ -148,7 +77,6 @@ List edges
 			return [] if edges.empty?
 			q = OrientSupport::OrientQuery.new 
 			edges = nil if via.nil?
-			puts "edges: #{edges.inspect}"
 			q.nodes in_or_out, via:  edges , where: where, expand: expand
 			detected_nodes=	query( q ){| record | record.is_a?(Hash)?  record.values.first : record  }
 	end
@@ -187,19 +115,18 @@ Assigns another Vertex via an EdgeClass. If specified, puts attributes on the ed
 Wrapper for 
   Edge.create in: self, out: a_vertex, attributes: { some_attributes on the edge }
 
-Reloads the vertex after the assignment and returns it.
+returns the assigned vertex, thus enableing to chain vertices through
 
-
-Example
-
-
+    Vertex.assign() via: E , vertex: VertexClass.create()).assign( via: E, ... )
+or
+	  (1..100).each{|n| vertex = vertex.assign(via: E2, vertext: V2.create(item: n))}
 =end
 
   def assign vertex: , via: E , attributes: {}
 
-    via.create from: self, to: vertex, attributes: attributes
+    via.create from: self, to: vertex, set: attributes
     
-		reload!
+		vertex
   end
 
 
@@ -303,5 +230,92 @@ Format: < Classname : Edges, Attributes >
 				 end
 			"%s : %s" % [ attr, v]  unless v.nil?
 		end.compact.sort.join(', ') + ">".gsub('"' , ' ')
+	end
+
+private
+#Present Classes (Hierarchy) 
+#---
+#- - E
+#  - - - e1
+#      - - e2
+#        - e3
+#- - V
+#  - - - v1
+#      - - v2
+
+# v.to_human
+# => "<V2[#36:0]: in: {E2=>1}, node : 4>" 
+#
+# v.detect_edges( :in, 2).to_human
+# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
+# v.detect_edges( :in, E1).to_human
+# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
+# v.detect_edges( :in, /e/).to_human
+# => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
+#
+	def detect_edges kind = :in,  edge_name = nil, expand: true  #:nodoc:
+		## returns a list of inherented classes
+		get_superclass = ->(e) do
+			if ["", "e", "E", E ].include?(e)
+				"E"
+			else
+				n = orientdb.get_db_superclass(e)
+				n =='E' ? e : e + ',' + get_superclass[n]
+			end
+		end
+		expression = case kind
+								 when :in
+									 /^in_/ 
+								 when :out
+									 /^out_/
+								 else
+									 /^in_|^out_/ 
+								 end
+
+		  extract_database_class = ->(c){ y =  c.to_s.gsub(expression, ''); y.empty? ? "E": y   }
+		# get a set of available edge-names 
+		# in_{abc} and out_{abc}
+		# with "out_" and "in_" as placeholder for E itself
+	  # populate result in case no further action is required
+		result = the_edges = attributes.keys.find_all{ |x|  x =~  expression }
+		if edge_name.present?
+			# if a class is provided, match for the ref_name only
+			if edge_name.is_a?(Class) 
+				result = [ the_edges.detect{ |x| edge_name.ref_name == extract_database_class[x] } ]
+			else
+				e_name = if edge_name.is_a?(Regexp)
+									 edge_name
+								 else
+									 Regexp.new  case  edge_name
+						#				 when  Class
+						#					 edge_name.ref_name 
+										 when String
+											 edge_name
+										 when Symbol
+											 edge_name.to_s 
+										 when Numeric
+											 edge_name.to_i.to_s
+									 end
+						end	
+				result = the_edges.find_all do |x|
+					 get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
+				end
+
+				# this is the same as find_all
+				#result = the_edges.map do |x|
+			#		x if get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
+			#	end.compact
+			end
+		end
+	# if expand = false , return the orientdb-databasename of the edges
+	#  this is used by  Vertex#nodes 
+	#  it avoids communications with the database prior to submitting the nodes-query
+	# if expand = true (default) load the edges instead
+		if expand
+			OrientSupport::Array.new work_on: self, 
+					work_with: 	result.compact.map{|x| attributes[x]}.map(&:expand).orient_flatten
+		else
+			result.map{|x|	extract_database_class[x] }
+		end
 	end
 end

@@ -418,6 +418,7 @@ end # class << self
 		def projection value= nil  # :nodoc:
 			if value.present?
 				@q[:projection] << value
+				self
 			elsif  @q[:projection].present?
 				@q[:projection].compact.map do | s |
 					case s

@@ -161,43 +161,7 @@ Creates one or more edge-classes and allocates the provided properties to each c
     r = name.map{|n| create_class( n.to_s, properties: properties){ E  } }
     r.size == 1 ? r.pop : r  # returns the created classes as array if multible classes are provided
   end
-=begin
 
-creates a vertex
-
-=end
-  def create_vertex( o_class, attributes:{} )
-
-		begin
-			response = execute(transaction: false, tolerated_error_code: /found duplicated key/) do
-				"CREATE VERTEX #{classname(o_class)} CONTENT #{attributes.to_orient.to_json}"
-			end
-			if response.is_a?(Array) && response.size == 1
-				response.pop # RETURN_VALUE
-			else
-				response  # return value (the normal case)
-			end
-		rescue ArgumentError => e
-			puts "CreateVertex:ArgumentError "
-			puts e.inspect
-		end  # begin
-
-	end
-
-=begin
-Deletes the specified vertices and unloads referenced edges from the cache
-=end
-  def delete_vertex *vertex
-    create_command =  -> do
-      { type: "cmd",
-	  language: 'sql',
-	  command: "DELETE VERTEX #{vertex.map{|x| x.to_orient }.join(',')} "
-		      }
-      end
-
-    vertex.each{|v| v.edges.each{| e | remove_record_from_hash e} }
-    execute{ create_command[] }
-  end
 
 =begin
 Deletes the specified edges and unloads referenced vertices from the cache

@@ -32,7 +32,6 @@ class Array
 
 	def orient_flatten
 		while( first.is_a?(Array) )
-			puts "first:#{first.to_human}"
 			self.flatten!(1)
 		end
 		self
