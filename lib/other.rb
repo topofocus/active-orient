@@ -28,8 +28,14 @@ class Array
     else
       self
     end
-
   end
+
+	def orient_flatten
+		while( first.is_a?(Array) )
+			self.flatten!(1)
+		end
+		self
+	end
 end
 
 class Symbol
@@ -235,6 +241,9 @@ class Hash #WithIndifferentAccess
     #puts "here hash.from_orient --> #{self.inspect}"
 		if keys.include?("@class" )
 			ActiveOrient::Model.orientdb_class( name: self["@class"] ).new self
+			# create a dummy class and fill with attributes from result-set
+		elsif keys.include?("@type") && self["@type"] == 'd'  
+			ActiveOrient::Model.orientdb_class(name: 'query' ).new self
 		else
 			substitute_hash = Hash.new
 			keys.each do |k| 
@@ -248,7 +257,7 @@ class Hash #WithIndifferentAccess
 			end
 			substitute_hash
 		end
-  end
+	end
 
 	# converts a hash to a string appropiate to include in raw queries
 	def to_or

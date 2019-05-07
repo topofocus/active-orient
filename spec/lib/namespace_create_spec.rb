@@ -1,6 +1,7 @@
 require 'spec_helper' 
 require 'rest_helper'
-require 'active_support'
+require 'connect_helper'
+#require 'active_support'
 require 'pp'
 
 ## Anything is performed in ActiveOrient
@@ -9,18 +10,19 @@ require 'pp'
 ## and that proper database-class-names are generated
 describe ActiveOrient::OrientDB do
 	before(:all) do 
-		reset_database
+    @db = connect database: 'temp'
 	end
 
+	#after(:all){ @db.delete_database database: 'temp' }
 
 	context "the standard case" do
 		it "allocate a new class in object-space" do
 			expect do
-				t = ORD.create_class 'test_1'
+				t = @db.create_class 'test_1'
 				expect( t ).to eq Test1
 				t.delete_class
 			end
-			.not_to change{ ORD.database_classes } 
+			.not_to change{ @db.database_classes } 
 		end
 
 		it "allocate a new namespaced class " do
@@ -28,18 +30,18 @@ describe ActiveOrient::OrientDB do
 			ActiveOrient::Init.define_namespace {  GH }
 
 			expect do
-				t = ORD.create_class 'test_2'
+				t = @db.create_class 'test_2'
 				expect( t ).to eq GH::Test2
 				t.delete_class
 			end
-			.not_to change{ ORD.database_classes } 
+			.not_to change{ @db.database_classes } 
 		end
 	end
 	context  "proallocation of classes" do
 		it "no prefix" do
 			ActiveOrient::Init.define_namespace{  Object }
 
-			result = ORD.allocate_class_in_ruby  'hurra'
+			result = @db.allocate_class_in_ruby  'hurra'
 			expect( result ).to eq Hurra
 			expect( result.ref_name ).to eq 'hurra'
 		end
@@ -48,11 +50,11 @@ describe ActiveOrient::OrientDB do
 			module HH; end	  # working-module-name
 			ActiveOrient::Init.define_namespace{  HH }
 
-			result = ORD.allocate_class_in_ruby  'Hurry'
+			result = @db.allocate_class_in_ruby  'Hurry'
 			expect( result ).to eq HH::Hurry
 			expect( result.ref_name ).to eq 'Hurry'
 
-			result = ORD.allocate_class_in_ruby  'hh_hipp_hurry'
+			result = @db.allocate_class_in_ruby  'hh_hipp_hurry'
 			expect( result ).to eq HH::HippHurry
 			expect( result.ref_name ).to eq 'hh_hipp_hurry'
 		end
@@ -60,7 +62,7 @@ describe ActiveOrient::OrientDB do
 			module HY; end	  # working-module-name
 			ActiveOrient::Init.define_namespace{  HY }
 
-			result = ORD.allocate_class_in_ruby 'hy_hipp_hurry' 
+			result = @db.allocate_class_in_ruby 'hy_hipp_hurry' 
 			expect( result ).to eq HY::HippHurry
 			expect( result.ref_name ).to eq 'hy_hipp_hurry'
 

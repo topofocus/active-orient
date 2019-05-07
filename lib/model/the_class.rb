@@ -175,7 +175,9 @@ returns the affected record
 =end
   def upsert set: nil, where: 
 		set = where if set.nil?
-    db.upsert self, set: set, where: where
+	# the result is a hash. We are intersted in the value only
+		# expected: {"@rid" => "#aa:bb"}
+    db.upsert( self, set: set, where: where) &.values.first.reload!
   end
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
@@ -190,14 +192,13 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
     if where.empty?
       set.merge! arg
     end
-    db.update_records  self, set: set, where: where
+	# the result is a hash. We are intersted in the value only
+		# expected: {"count" => n}
+    db.update_records( self, set: set, where: where).values.first
 
   end
-  #
-# removes a property from the collection (where given) or the entire class 
-  def remove attribute, where:{}
-    db.update_records self, remove: attribute, where: where
-  end
+
+	alias update update_all
 
 =begin
 Create a Property in the Schema of the Class and optionaly create an automatic index
@@ -373,7 +374,7 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 
 =begin
 »GetRecords« uses the REST-Interface to query the database. The alternative »QueryDatabase« submits 
-the query via Batch. 
+the query via Execute. 
 
 Both methods rely on OrientSupport::OrientQuery and its capacity to support complex query-builds.
 The method requires a hash of arguments. The following keys are supported:
@@ -466,14 +467,17 @@ instead of links.
 =end
 
   def where *attributes 
-    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
-    query.match_statements[0].where =  attributes unless attributes.empty?
+    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }.merge( where: attributes )
+#    query.match_statements[0].where   attributes unless attributes.empty?
 		# the block contains a result-record : 
 		#<ActiveOrient::Model:0x0000000003972e00 
 		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
 		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
 		#		             ^...........° -> classname.pluralize
-    query_database( query, set_from: false){| record | record.is_a?(ActiveOrient::Model) ? record : record.send( self.classnamepluralize.to_sym ) }
+    query_database( query) { | record | record[classname.pluralize.to_sym] }
+#			record.map do | key, value | 
+
+#			record.is_a?(ActiveOrient::Model) ? record : record.send( self.classname.pluralize.to_sym ) }
   end
 =begin
 Performs a Match-Query
@@ -509,7 +513,7 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 =end
 
   def match where: {}
-    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }
+    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname } 
     query.match_statements[0].where =  where unless where.empty?
     if block_given?
       query_database yield(query), set_from: false
@@ -523,15 +527,32 @@ By using subsequent »connect« and »statement« method-calls even complex Matc
 =begin
 QueryDatabase sends the Query directly to the database.
 
-The result is not nessessary an Object of the Class.
+The query returns a hash if a resultset is expected
+  select  {something} as {result} (...) 
+leads to
+  [ { :{result}  =>  {result of query} } ]
 
-The result can be modified further by passing a block.
-This is helpful, if a match-statement is used and the records should be autoloaded:
+It can be modified further by passing a block, ie
 
-  result = query_database(query, set_from: false){| record | record[ self.classname.pluralize ] }
+  	q =  OrientSupport::OrientQuery.new( from: :base )
+		                               .projection( 'first_list[5].second_list[9] as second_list' )
+		                               .where( label: 9 )
 
-This autoloads (fetches from the cache/ or database) the attribute self.classname.pluralize  (taken from method: where )
+    q.to_s  => 'select first_list[5].second_list[9] as second_list from base where label = 9 '
+
+		second_list = Base.query_database( q ){|x|  x[:second_list]}.first
+
+
+The query returns (a list of) documents of type ActiveOrient::Model if a document is queried i.e.
+
+	q =  OrientSupport::OrientQuery.new  from: :base
+	q.projection  'expand( first_list[5].second_list[9])'  #note: no 'as' statement
+	result2 = Base.query_database( q ).first
+	=> #<SecondList:0x000000000284e840 @metadata={}, @d=nil, @attributes={:zobel=>9, "@class"=>"second_list"}>
   
+
+
+
 
 query_database is used on model-level and submits
   select (...) from class
@@ -542,16 +563,17 @@ query_database is used on model-level and submits
 =end
 
   def query_database query, set_from: true
-    query.from self if set_from && query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
-    sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
+    # note: the parameter is not used anymore
+		query.from self if query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
+    #sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
     result = db.execute do
     query.to_s #  sql_cmd[query.to_s]
     end
-    if block_given?
-      result.is_a?(Array)? result.map{|x| yield x } : yield(result)
-    else
-      result
-    end
+		result = if block_given?
+							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
+						 else
+							 result
+						 end
     if result.is_a? Array  
       OrientSupport::Array.new work_on: self, work_with: result
     else
@@ -575,11 +597,18 @@ query_database is used on model-level and submits
   alias delete_document delete_record
 
 # Query the database and delete the records of the resultset
-
-  def delete_records where: {}
-    orientdb.delete_records self, where: where
-  end
-  alias delete_documents delete_records
+# 
+# Returns the count of datasets effected
+  def delete_records where: {} , **args
+		if args[:all] == true 
+			where = {}
+		else
+			where.merge!(args) if where.is_a?(Hash)
+			return 0 if where.empty?
+		end
+    orientdb.delete_records( self, where: where   ).count
+	end
+  alias delete delete_records
 
 
 

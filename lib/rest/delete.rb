@@ -30,37 +30,38 @@ module RestDelete
   ######### CLASS ##########
 
 =begin
-  Deletes the specified class and returns true on success
-  todo: remove all instances of the class
+	Deletes the specified class and returns true on success
+todo: remove all instances of the class
 =end
 
-  def delete_class o_class
-    cl = classname(o_class)
-    return if cl.nil?
-    logger.progname = 'RestDelete#DeleteClass'
+	def delete_class o_class
+		cl = classname(o_class)
+		return if cl.nil?
+		logger.progname = 'RestDelete#DeleteClass'
 
-    begin
-      ## to do: if cl contains special characters, enclose with backticks
-      response = @res["/class/#{ActiveOrient.database}/#{cl}"].delete
-      if response.code == 204
-	logger.info{"Class #{cl} deleted."}
-	ActiveOrient.database_classes.delete(cl)
-      end
-    rescue RestClient::InternalServerError => e
-      sentence=  JSON.parse( e.response)['errors'].last['content']
-      if ActiveOrient.database_classes.has_key? cl
-	logger.error{"Class #{cl} still present."}
-	logger.error{ sentence }
-	false
-      else
-	logger.error{e.inspect}
-	true
-      end
-    rescue Exception => e
-      logger.error{e.message}
-      logger.error{e.inspect}
-    end
-  end
+		begin
+			## to do: if cl contains special characters, enclose with backticks
+			response = @res["/class/#{ActiveOrient.database}/#{cl}"].delete
+			if response.code == 204
+				logger.info{"Class #{cl} deleted."}
+
+				ActiveOrient.database_classes.delete(cl)
+			end
+		rescue RestClient::InternalServerError => e
+			sentence=  JSON.parse( e.response)['errors'].last['content']
+			if ActiveOrient.database_classes.has_key? cl
+				logger.error{"Class #{cl} still present."}
+				logger.error{ sentence }
+				false
+			else
+				logger.error{e.inspect}
+				true
+			end
+		rescue Exception => e
+			logger.error{e.message}
+			logger.error{e.inspect}
+		end
+	end
 
   ############## RECORD #############
 
@@ -70,37 +71,36 @@ module RestDelete
   Todo: implement delete_edges after querying the database in one statement
 
   Example:
-  record =  Vertex.create_document attributes: { something: 'something' }
-  Vertex.delete_record record
+		ORD.create_class :test
+		record =  Test.new  something: 'something' 
+		ORD.delete_record record
 
-  records= (1..100).map{|x| Vertex.create_document attributes: { something: x } }
-  Vertex.delete_record *records
+		records= (1..100).map{|x| Test.create  something: x } 
+		ORD.delete_record *records
 
   delete_records provides the removal of datasets after quering the database.
 =end
 
-  def delete_record *rid
+  def delete_record *o
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
-    ridvec= rid.map( &:to_orient).flatten
-    unless ridvec.empty?
-      ridvec.map do |rid|
-        begin
-	  ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(rid) ) 
-          @res["/document/#{ActiveOrient.database}/#{rid[1..-1]}"].delete
-        rescue RestClient::InternalServerError => e
-          logger.error{"Record #{rid} NOT deleted"}
-        rescue RestClient::ResourceNotFound
-          logger.error{"Record #{rid} does not exist in the database"}
-        else
-          logger.info{"Record #{rid} deleted"}
-        end
-      end
-    else
-      logger.info{"No record deleted."}
-      return nil
-    end
-  end
-  alias delete_document delete_record
+		o.map( &:to_orient ).map do |r|
+			begin
+				puts "RR: #{r.inspect}"
+				ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(r) ) 
+				@res["/document/#{ActiveOrient.database}/#{r[1..-1]}"].delete
+			rescue RestClient::InternalServerError => e
+				logger.error{"Record #{r} NOT deleted"}
+			rescue RestClient::ResourceNotFound
+				logger.error{"Record #{r} does not exist in the database"}
+			rescue RestClient::BadRequest => e
+				logger.error{"tried to delete RID: #{r[1..-1]}, but something went wrong"}
+				logger.error e.inspect
+			else
+				logger.info{"Record #{r} deleted"}
+			end
+		end
+	end
+	alias delete_document delete_record
 
 =begin
   Deletes records. They are defined by a query. All records which match the attributes are deleted.
@@ -109,12 +109,7 @@ module RestDelete
 
   def delete_records o_class, where: {}
     logger.progname = 'RestDelete#DeleteRecords'
-    records_to_delete = get_records(from: o_class, where: where)
-    if records_to_delete.empty?
-      logger.info{"No record found"}
-    else
-      delete_record records_to_delete
-    end
+    get_records(from: o_class, where: where).each{|y| delete_record  y}
   end
   alias delete_documents delete_records
 

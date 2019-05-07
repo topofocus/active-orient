@@ -11,22 +11,21 @@ describe OrientSupport::MatchStatement do
 
 	after(:all){ @db.delete_database database: 'temp' }
   context "Initialize the QueryClass" do
-    it "simple Initialisation" do
-      q =  OrientSupport::MatchStatement.new @db.classname(TestQuery), where: { a:2 }
-      expect(q).to be_a OrientSupport::MatchStatement
-      expect( q.compose ).to eq '{class: test_query, as: test_queries, where:( a = 2)}'
-      expect( q.compose ).to eq q.compose_simple
-      expect(q.as).to eq 'test_queries'
+    Given( :simple ){ OrientSupport::MatchStatement.new @db.classname(TestQuery), where: { a:2 } }
+      Then { expect( simple ).to be_a OrientSupport::MatchStatement }
+      Then { simple.to_s  == '{class: test_query, as: test_queries, where:( a = 2)}'}
+      Then { simple.compose  ==  simple.compose_simple }
+      Then { simple.as  == 'test_queries' }
     end
   end
-end
 
 
 
 RSpec.describe OrientSupport::MatchConnection do
   before( :all ) do
     @db = connect database: 'temp'
-    @db.create_class :test_query
+    V.create_class :test_query
+		E.create_class :my_edge
   end # before
 
 #	after(:all){ @db.delete_database database: 'temp' }
@@ -48,14 +47,20 @@ RSpec.describe OrientSupport::MatchConnection do
 
 
      context "includes edges" do
-     Given( :ie ) { OrientSupport::MatchConnection.new  edge: 'my_edge', direction: :out }
+     Given( :ie ) { OrientSupport::MatchConnection.new  edge: MyEdge, direction: :out }
      Then { ie.compose  == " -my_edge-> " }
 
     end
 
     context "includes a ministatement " do
-     Given( :icm  ) { OrientSupport::MatchConnection.new  edge: 'my_edge', direction: :out, as: "friend" }
+     Given( :icm  ) { OrientSupport::MatchConnection.new  edge: MyEdge, direction: :out, as: "friend" }
      Then { icm.compose  == " -my_edge-> { as: friend } " }
 
     end
+
+		context "traverses throught the graph" do
+     Given( :ttg  ) { OrientSupport::MatchConnection.new  edge: MyEdge, direction: :out, while: '$depth < 6' }
+     Then { ttg.compose  == " -my_edge-> { as: friend } " }
+
+		end
 end

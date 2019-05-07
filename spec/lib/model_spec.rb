@@ -2,6 +2,7 @@
 require 'spec_helper'
 require 'connect_helper'
 require 'model_helper'
+require 'rspec/given'
 module ActiveOrient
   class Base
     def self.get_riid
@@ -13,22 +14,21 @@ end
 describe ActiveOrient::Model do
   before( :all ) do
     @db = connect database: 'temp'
-    @db.create_vertex_class "test_model"  # creates class TestModel
-    @db.create_vertex_class "test_model2"  # creates class TestModel
+		@db.create_class :work 
+    V.create_class :test_model, :test_model2, :my_node  # creates class TestModel, TestModel2
+		E.create_class :my_edge 
   end
 	after(:all){ @db.delete_database database: 'temp' }
 
-  context "create ActiveOrient::Model classes"  do
-#  context "ActiveOrient::Model classes got a logger and a database-reference"  do
-
+  context "create standalone ActiveOrient::Model classes" do
     subject { ActiveOrient::Model.orientdb_class name: 'Test' }
     it { is_expected.to be_a Class }
     its( :logger) { is_expected.to be_a Logger }
     its( :orientdb) { is_expected.to be_a ActiveOrient::OrientDB }
     if RUBY_PLATFORM == 'java'
-    its( :db) { is_expected.to be_a ActiveOrient::API }
+			its( :db) { is_expected.to be_a ActiveOrient::API }
     else
-    its( :db) { is_expected.to be_a ActiveOrient::OrientDB }
+			its( :db) { is_expected.to be_a ActiveOrient::OrientDB }
     end
 
     it "a Model-Instance inherents logger and db-reference" do
@@ -44,13 +44,9 @@ describe ActiveOrient::Model do
   end  #context
 
   context "The Models have proper superClasses"  do
-    before(:all) do
-       @db.create_class :my_class 
-       @db.create_vertex_class :my_node 
-       @db.create_edge_class :my_edge 
-    end
+
     it "A document class has an empty superClass" do
-      expect( MyClass.superclass ).to eq  ActiveOrient::Model
+      expect( Work.superclass ).to eq  ActiveOrient::Model
     end
     it "An Vertex inherents from »V«" do
       expect( MyNode.superclass ).to eq  V 
@@ -60,47 +56,41 @@ describe ActiveOrient::Model do
     end
   end  # context
 
-#  context "naming issues of classes"  do
-#    ['Indextest','Testindex'].each do | this_class |
-#      it_behaves_like 'basic class properties' , this_class
-#    end
-#  end
-  context "Create a new document",  focus: true do
-    before( :all ) do 
-      @db.create_class 'working_class' 
-    end
+	######################### documents #########################################
+	context "Create a new document"   do
 
-    context "new document"  do
-      subject{  WorkingClass.new w_att: 'Attribute' }
-      it { is_expected.to be_a WorkingClass }
-      its( :w_att ){ is_expected.to eq 'Attribute' }
-      its( :rid   ){ is_expected.to  eq ':'}
+		context "new document"  do
+			subject{  Work.new w_att: 'Attribute' }
+			it { is_expected.to be_a Work }
+			its( :w_att ){ is_expected.to eq 'Attribute' }
+			its( :rid   ){ is_expected.to  eq ':'}
 			its( :metadata ){ is_expected.to be_a(Hash) and be_empty }
 
-    end
+		end
 
-    context "save new document" do
-      subject{  WorkingClass.new( w_att: 'Attribute').save  }
-			it_behaves_like 'a new record'
-#      n =  WorkingClass.new w_att: 'Attribute' 
- #     n.save
-  #    expect( n.rid.rid? ).to be_truthy
-   #   n.w_att = "New_Attribute"
-    #  expect{ n.save }.to change{ n.version }.by 1
-
-    end
-  end
+		context "save new document" do
+			subject{  Work.new( w_att: 'Attribute').save  }
+			it_behaves_like 'a new record' 
+				it " save it now" do
+				n =  Work.new w_att: 'Attribute' 
+				n.save
+				expect( n.rid.rid? ).to be_truthy
+				n.w_att = "New_Attribute"
+				expect{ n.save }.to change{ n.version }.by 1
+			end 
+		end
+	end
 
 
   context "Add and modify documents"   do
-    before( :all ) do
-      @db.create_class "doc_class"
-    end
-		let( :obj ){ TestModel.create test: 45  }
+		before(:all){ Work.delete all: true }  # empty the class
+	
+		it{ expect( Work.count ).to   eq 0}
 
     it "put some data into the class"  do
-      (0..45).each{|x|  DocClass.create  test_cont: x  }
-      expect( DocClass.count ).to eq 46
+Work.delete all: true 
+      (0..45).each{|x|  Work.create  test_cont: x  }
+      expect( Work.count ).to eq 46
     end
 
     it "the database is empty before we start"  do
@@ -109,32 +99,22 @@ describe ActiveOrient::Model do
       expect( TestModel.count ).to be_zero
     end
 
-    it "create a document"  do
-      expect( obj.test ).to eq 45
-      expect( obj ).to be_a  ActiveOrient::Model
-      expect( ActiveOrient::Base.get_riid.values.detect{|x| x == obj}).to be_truthy
-    end
+		Given( :obj ){ TestModel.create test: 45  }
+		Then{ obj.test == 45 }
+		Then{ expect(obj).to be_a ActiveOrient::Model }
 
-
-    it "the document can be retrieved by all"  do
-      all = TestModel.all
-      expect(all).to be_a Array
-      expect(all.size).to eq 1
-      expect(all.first).to  be_a ActiveOrient::Model
-      expect(all.first.test).to eq 45
-    end
-
-    it "the document can be retrieved by first" do
-      expect( TestModel.first ).to be_a ActiveOrient::Model
-      expect( TestModel.first.test ).to eq 45
+    context "the document can be retrieved by first" do
+			Given( :first_document ){ TestModel.first }
+      Then { expect(first_document ).to be_a ActiveOrient::Model }
+      Then { first_document.test == 45 }
     end
 ##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
     #und nicht von der Datenbank abgefragt
-    it "the document can be updated"  do
-      expect{ obj.update set: { test: 76, new_entry: "This is a new Entry" } }.to change{ obj.version }.by 1
-      expect( obj.test ).to eq 76
-      expect( obj.new_entry).to be_a String
-    end
+		 context "the document can be updated " do
+      Given( :updated_document ){ obj.update set: { test: 76, new_entry: "This is a new Entry" } }
+      Then{ updated_document.test == 76 }
+      Then{ expect( updated_document.new_entry).to be_a String }
+		 end
 
     it "various Properties can be added to the document" do
       aa = [ 1,4,'r', :r ]  
@@ -154,103 +134,84 @@ describe ActiveOrient::Model do
 
     it "the document can be deleted"  do
 			d =  TestModel.create test: 56  # does not work using obj
-      expect{ d.delete }.to change { TestModel.count }.by -1
+			puts "d: #{d.to_human}"
+			c = TestModel.count
+      d.delete  
+			expect( TestModel.count ).to eq c - 1
     end
   end #context
 
   context "ActiveRecord mimics"  do
 		before(:all) do 
-			@db.create_edge_class  'my_edge'
-			@db.create_vertex_class  'my_node'
-			TestModel.delete
-			 TestModel.create_property :test, type: :integer,   index: :unique
-			 expect( TestModel.indexes.first['fields'] ).to eq ["test"]
+			TestModel.delete all: true
+			TestModel.create_property :test, type: :integer,   index: :unique
 			(0..45).each{|x| TestModel.create  test: x  }
-			@db.database_classes requery: true
+			#@db.database_classes requery: true
 		end
-    it "fetch all documents into an Array" do
-      all_documents = TestModel.all
-      expect( all_documents ).to be_a Array 
-      expect( all_documents ).to have_at_least(45).elements
-      all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }
+		it{  expect( TestModel.indexes.first['fields'] ).to eq ["test"] }
+		context "fetch all documents into an Array" do
+      Given( :all_documents) { TestModel.all }
+      Then { expect( all_documents ).to be_a Array  }
+      Then { expect( all_documents ).to have_at_least(45).elements }
+      Then { all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }  }
     end
 
-    it "get a set of documents queried by where"  do
-      nr_23=  TestModel.where  test: 23
-      expect( nr_23 ).to have(1).element
-      expect( nr_23.first.test).to eq 23
+    context "get a set of documents queried by where"  do
+      Given( :nr_23 ) {  TestModel.where  test: 23 }
+      Then { expect( nr_23 ).to have(1).element }
+      Then { expect( nr_23.first.test).to eq 23 }
     end
-    it "datasets are unique only  on update"    do
+    it "datasets are unique only  on update"  do
       expect{ TestModel.upsert(  :where => { test: 45 }) }. not_to change { TestModel.count }
       expect{ TestModel.create  test: 45 }.not_to change { TestModel.count }
+			# upsert returns the affected document
+      expect( TestModel.upsert(  :where => { test: 46 }) ).to be_a TestModel
     end
 
 
     it "specific datasets can be manipulated" do
-      expect( TestModel.where( 'test > 40' ) ).to have(5).elements
-      expect( TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')).to eq 5
-      expect( TestModel.where( new_ds: 45 ) ).to have(5).elements
+      expect( TestModel.where( 'test > 40' ) ).to have(6).elements
+      expect( TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')).to eq 6
+      expect( TestModel.where( new_ds: 45 ) ).to have(6).elements
     end
 
     it "specific datasets can be removed" do
       count= TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')
-      expect( TestModel.remove(  :new_ds , where: {test: 42})).to eq 1
+      expect( TestModel.delete(  where: {test: 42})).to eq 1
       expect( TestModel.where( new_ds: 45 ) ).to have( count -1 ).elements
     end
 
-    it "creates an edge between two vertices"  do
-      node_1 = TestModel.where( test: 45 ).first
-      node_2 = TestModel.where( test: 2 ).first
-      node_3 = TestModel.where( test: 16 ).first
-      expect( node_1 ).to be_a V
-      expect( node_2 ).to be_a V
-      the_edge = MyEdge.create( attributes: { halbwertzeit: 655 },
-					  from: node_1,
-					    to: node_2  )
+let( :node_1) { TestModel.where( test: 45 ).first }
+let( :node_2) { TestModel.where( test: 2 ).first }
+let( :node_3) { TestModel.where( test: 16 ).first }
+
+    it "creates an edge between two vertices"   do
+      [ node_1, node_2 ].each{|y| expect( y ).to be_a V }
+      the_edge = MyEdge.create(  halbwertzeit: 655, from: node_1, to: node_2  )
       expect( the_edge ).to be_a E
       expect( the_edge.in ).to eq node_2
       expect( the_edge.out ).to eq node_1
+			puts "node_1:  #{node_1}"
+		end
 
-## this is omitted in favor of using contrains on the edge-class 
-      # creation of a second edge with the same properties leads to  reusing the existent edge
-#      the_edge2= E.create(
-#		    attributes: { halbwertzeit: 655 },
-#		    from: node_1,
-#		    to:   node_2  )
-#      expect( the_edge.rid ).to eq the_edge2.rid
-      #      the_edge2= @myedge.create_edge(
-      #			  attributes: { halbwertzeit: 46 },
-      #			  from: in_e,
-      #			  to:   in_e2  )
-      expect( the_edge.out ).to eq node_1 ## hier wird ein Document zurück gegeben...
-      expect( the_edge.in ).to eq node_2
-      #      expect( the_edge2.out ).to eq in_e
-      #      expect( the_edge2.in ).to eq in_e2
-#      out_e =  TestModel.where(  test: 23  ).first
-#      expect( out_e ).to eq node_1
-#      expect( out_e.attributes).to include 'out_Myedge'
-#      in_e = TestModel.where(  test: 15  ).first
-      #      puts "--------------------------------"
-      #      puts node_1.attributes.inspect
-      #      expect( in_e.attributes).to include 'in_Myedge'
-      #    expect( node_1.myedge).to have(1).item
-      #    expect( node_1.myedge[0][:out].test).to eq 23
-      #    expect( node_1.in_Myedge[0][:in].test).to eq  15
+		it "create a second edge" do
+			the_edge =  MyEdge.where( halbwertzeit: 655 ).first
+      the_edge2= E.create( set: { halbwertzeit: 655 }, from: node_1, to:   node_2  )
+      expect( the_edge.rid ).not_to eq the_edge2.rid
+      expect( the_edge2.out ).to eq  node_1
     end
 
     it "deletes an edge"  do
       the_edges =  E.all
       expect(the_edges.size).to  be >=1
-      the_edges.each do |edge|
-        edge.remove
-      end
-      expect(E.count).to  be_zero
+      the_edges.each{ |edge| edge.delete }
+      expect(E.count).to eq 0
     end
 
   end
 
 	context "upsert returns a valid dataset" do
-		before( :all ) { TestModel2.delete }    # erase any content from TestModel
+		before( :all ) { TestModel2.delete all: true }    # erase any content from TestModel
 
 		context " on a new record " do
 			subject  { TestModel2.upsert set: { a: 5, b:7 }, where: { c: 8 } }
@@ -263,7 +224,7 @@ describe ActiveOrient::Model do
 				it_behaves_like 'a new record'
 			end
 			context "update a dataset" do
-
+					
 				subject{ TestModel2.upsert set: { a: 6, b:7 }, where: { c: 9 } }
 				it_behaves_like 'a valid record'
 				its( :version ){ is_expected.to be > 1 }

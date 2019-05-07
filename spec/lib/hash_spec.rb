@@ -1,14 +1,15 @@
 require 'spec_helper'
+require 'connect_helper'
 require 'rest_helper'
 
 describe 'Properties and Application of Hashes' do
   before( :all ) do
-#    ORD = ActiveOrient::OrientDB.new database: 'HashTest'
-    reset_database
-    ORD.create_class "test_model"
-    ORD.create_class 'link_class'
+    @db = connect database: 'temp'
+    @db.create_class "test_model"
+    @db.create_class 'link_class'
   end
 
+	after(:all){ @db.delete_database database: 'temp' }
   #  context "check isolated", focus:true do
   #    let( :basic ) { OrientSupport::Hash.new @ecord, 'Go to Orient'}
   #    it { expect( basic ).to be_a OrientSupport:: Hash}
