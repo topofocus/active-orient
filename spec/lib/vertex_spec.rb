@@ -22,9 +22,25 @@ def linear_elements start, count  #returns the edge created
 
 	new_vertex = ->(n) {  V2.create( note_count: n)}
 	#start.assign vertex: new_vertex[1], via: E2
-	(1..count).each do |m|
+	ActiveOrient::Base.logger.level=2
+	(2..count).each do |m|
 		start = start.assign vertex: new_vertex[m], via: E2
 	end
+	ActiveOrient::Base.logger.level=1
+end
+
+def threaded_creation data
+	th = []
+	ActiveOrient::Base.logger.level=2
+	V2.delete all: true
+	data.map do |d|
+		th << Thread.new do
+			V2.create data: d
+		end
+	end
+	th.each &:join # wait til all thread are finished
+	ActiveOrient::Base.logger.level=1
+  V2.count # return value
 end
 
 RSpec.describe V do
@@ -59,12 +75,12 @@ RSpec.describe V do
 				my_vertex =  V2.where a: 'c'	
 				 expect(my_vertex.size).to eq 1
 				 rrid= my_vertex.first.rrid
-				 my_vertex.first.delete
-         expect( rrid.expand).to be_nil 
+				 expect{ my_vertex.first.delete }.to change{ V2.count }.by -1
+#         expect( ).to be_nil 
 			end
 		end
 	end
-	describe "creating a sample graph"  , focus: true do
+	describe "creating a sample graph"  do
 		Given( :the_node ){ create_structure( V1.upsert( where:{ item: 1 }) ) }
 		Then{ expect( the_node.reload!.to_human ).to match /out: {E2=>10, E3=>10}, item : 1>/ }
 		Then{ the_node.edges( :out ).size ==  20 }
@@ -102,7 +118,7 @@ RSpec.describe V do
 		end
 	end
 
-	describe "linear graph", focus: true do
+	describe "linear graph"do
 		before(:all) do
 				start_node =   V1.upsert( where:{ item: 'l'} ) 
 				linear_elements( start_node , 200) if start_node.edges.empty?
@@ -114,4 +130,15 @@ RSpec.describe V do
 				Then {  expect( all_elements.size).to eq 200 }
 		end
 	end	
+
+	 describe "threaded creation" do
+		  Given( :the_raw_data ){ (1 .. 10000).map{ |y|   Math.sin(y) } }
+		 Then { expect(the_raw_data.size).to eq 10000 }
+		
+		 Given( :v3_count  ) { threaded_creation the_raw_data }
+
+
+		 Then {  expect(v3_count).to eq 10000 } 
+
+	 end
 end	

@@ -72,23 +72,31 @@ Subsequent initialisations are made to initialise namespaced database classes, i
       ActiveOrient::Model.db = self 
       ActiveOrient::Model.keep_models_without_file ||= nil
       preallocate_classes( model_dir )  if preallocate
-
+			Thread.abort_on_exception = true
     end
 
+		# thread safe method to allocate a resource
     def get_resource
+	   if Thread.current['resource'].blank?
+		  logger.info{ "creating a new RestClient Resource" }
       login = [ActiveOrient.default_server[:user] , ActiveOrient.default_server[:password]]
       server_adress = "http://#{ActiveOrient.default_server[:server]}:#{ActiveOrient.default_server[:port]}"
-      RestClient::Resource.new(server_adress, *login)
+			Thread.current['resource'] = RestClient::Resource.new(server_adress, *login)
+		 end
+		 Thread.current['resource']
     end
+
+
 
 # Used to connect to the database
 
-    def connect
+    def connect 
       first_tentative = true
+      # resource = @res if resource.nil?
       begin
 				database =  ActiveOrient.database
         logger.progname = 'OrientDB#Connect'
-        r = @res["/connect/#{database}"].get
+        r = get_resource["/connect/#{database}"].get
         if r.code == 204
   	      logger.info{"Connected to database #{database}"}
   	      true

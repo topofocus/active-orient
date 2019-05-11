@@ -7,7 +7,9 @@ module RestRead
 #    ORD.get_databases
 #     => ["temp", "GratefulDeadConcerts", (...)] 
   def get_databases
-    JSON.parse(@res["/listDatabases"].get.body)['databases']
+
+		rest_resource = Thread.current['resource'] || get_resource 
+    JSON.parse(rest_resource["/listDatabases"].get.body)['databases']
   end
 
 =begin
@@ -21,7 +23,8 @@ Returns an Array with (unmodified) Class-attribute-hash-Elements
 =end
   def get_classes *attributes
     begin
-    	response = @res["/database/#{ActiveOrient.database}"].get
+		rest_resource = Thread.current['resource'] || get_resource 
+    	response = rest_resource["/database/#{ActiveOrient.database}"].get
     	if response.code == 200
     	  classes = JSON.parse(response.body)['classes']
     	  unless attributes.empty?
@@ -48,7 +51,8 @@ Returns an Array with (unmodified) Class-attribute-hash-Elements
 #    => {"name"=>"a", "superClass"=>"V", "superClasses"=>["V"], "alias"=>nil, "abstract"=>false, "strictmode"=>false, "clusters"=>[65, 66, 67, 68], "defaultCluster"=>65, "clusterSelection"=>"round-robin", "records"=>3} 
 #
   def get_class_properties o_class
-    JSON.parse(@res["/class/#{ActiveOrient.database}/#{classname(o_class)}"].get)
+		rest_resource = Thread.current['resource'] || get_resource 
+    JSON.parse(rest_resource["/class/#{ActiveOrient.database}/#{classname(o_class)}"].get)
   rescue => e
     logger.error  e.message
     nil
@@ -86,7 +90,8 @@ The rid-cache is not used or updated
 		begin
 			logger.progname = 'RestRead#GetRecord'
 			if rid.rid?
-				response = @res["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
+		rest_resource = Thread.current['resource'] || get_resource 
+				response = rest_resource["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
 				raw_data = JSON.parse(response.body) 
 				#	ActiveOrient::Model.use_or_allocate( raw_data['@rid'] ) do 
 				the_object=   ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
@@ -130,7 +135,8 @@ In this case cached data are used in favour and its not checked if the database 
     begin
       logger.progname = 'RestRead#GetRecords'
   	  url = "/query/#{ActiveOrient.database}/sql/" + query.compose(destination: :rest) + "/#{query.get_limit}"
-  	  response = @res[URI.encode(url)].get
+		rest_resource = Thread.current['resource'] || get_resource 
+  	  response = rest_resource[URI.encode(url)].get
 	  JSON.parse(response.body)['result'].map do |record|
 	    if raw
 	      record
@@ -160,8 +166,7 @@ In this case cached data are used in favour and its not checked if the database 
   	  logger.error{"Invalid URI detected"}
   	  logger.error query.to_s
   	  logger.info{"Trying batch processing"}
-  	  sql_cmd = -> (command){{type: "cmd", language: "sql", command: command}}
-  	  response = execute{[sql_cmd[query.to_s]]}
+  	  response = execute{ query.to_s}
   	  logger.info{"Success: to avoid this delay use ActiveOrient::Model#query_database instead"}
       response
     end

@@ -167,18 +167,12 @@ Creates one or more edge-classes and allocates the provided properties to each c
 Deletes the specified edges and unloads referenced vertices from the cache
 =end
   def delete_edge *edge
-    create_command =  -> do
-      { type: "cmd",
-	  language: 'sql',
-	  command: "DELETE EDGE #{edge.map{|x| x.to_orient }.join(',')} "
-		      }
-      end
 
     edge.each do |r|
       [r.in, r.out].each{| e | remove_record_from_hash e}
       remove_record_from_hash r
     end
-    execute{ create_command[] }
+	  execute{ "DELETE EDGE #{edge.map{|x| x.to_orient }.join(',')} "}
   end
 
   private

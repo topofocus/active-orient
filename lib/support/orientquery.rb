@@ -197,7 +197,7 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 								[], # :where ,
 								[], # :let ,
 								[], # :order,
-								[], # :while],
+								[], # :while,
 								[] , # misc
 								[],  # match_statements
 								'',  # class
@@ -387,6 +387,7 @@ class << self
 				define_method( def_m ) do | value=nil |
 						if value.present?
 							@q[def_m]  = value
+							self
 						elsif @q[def_m].present?
 						 "#{def_m.to_s}  #{generate_sql_list(@q[def_m]){' ,'}}"
 						end
@@ -394,6 +395,7 @@ class << self
 			end
 		end
 end # class << self
+		mk_simple_setter :limit, :skip, :unwind 
 
 
 		def let       value = nil
@@ -435,7 +437,6 @@ end # class << self
 
 			
 		
-		mk_simple_setter :limit, :skip, :unwind 
 	  def group value = nil
 			if value.present?
      	@q[:group] << value

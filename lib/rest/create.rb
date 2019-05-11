@@ -14,7 +14,9 @@ module RestCreate
 		ActiveOrient.database_classes = {} 
 		ActiveOrient.database = database 
 		begin
-			response = @res["database/#{ActiveOrient.database}/#{type}"].post ""
+
+		rest_resource = Thread.current['resource'] || get_resource 
+			response = rest_resource["database/#{ActiveOrient.database}/#{type}"].post ""
 			if response.code == 200
 				logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
 			else
@@ -51,26 +53,23 @@ def create_this_class  *db_classname  #nodoc#
 		abstract =  nil
 	end
 	#
-	command= db_classname.map do | database_class |
+	 db_classname.map do | database_class |
 		c = if superclass.present?
 					"CREATE CLASS #{database_class} EXTENDS #{superclass}" 
 				else
 					"CREATE CLASS #{database_class} "
 				end
 		c << " ABSTRACT" if abstract.present?
-	#	{ type: "cmd", language: 'sql', command: c }  # return value 4 command
-	c	
+		execute( tolerated_error_code: /already exists/ ){ c }	
 	end
     # execute anything as batch, don't roll back in case of an error
 
-   execute transaction: false, tolerated_error_code: /already exists/ do
-      command
-    end
+#   execute transaction: false, tolerated_error_code: /already exists/ do
+#      command
+#    end
    
   rescue ArgumentError => e
     logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
-	rescue ActiveOrient::Error::ServerError
-		# do nothing
   end
 
 
@@ -97,7 +96,8 @@ Puts the database-response into the cache by default
     # @class must not quoted! Quote only attributes(strings)
     post_argument = {'@class' => classname(o_class)}.merge(attributes.to_orient)
     begin
-      response = @res["/document/#{ActiveOrient.database}"].post post_argument.to_json
+		rest_resource = Thread.current['resource'] || get_resource 
+      response = rest_resource["/document/#{ActiveOrient.database}"].post post_argument.to_json
       data = JSON.parse(response.body)
       the_object = ActiveOrient::Model.orientdb_class(name: data['@class']).new data ## return_value
       if cache 
@@ -194,7 +194,8 @@ A composite index
 #		puts "all_properties_in_a_hash #{all_properties_in_a_hash.to_json}"
 		begin
 			if all_properties_in_a_hash.is_a?(Hash)
-				response = @res["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
+		rest_resource = Thread.current['resource'] || get_resource 
+				response = rest_resource["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
 #				puts response.inspect
 				# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
 				count= response.body.to_f.to_i if response.code == 201

@@ -12,7 +12,8 @@ module RestDelete
     old_ds = ActiveOrient.database
     change_database database
     begin
-  	  response = @res["/database/#{ActiveOrient.database}"].delete
+		rest_resource = Thread.current['resource'] || get_resource 
+  	  response = rest_resource["/database/#{ActiveOrient.database}"].delete
   	  if database == old_ds
   	    change_database  'temp'
   	    logger.info{"Working database deleted, switched to temp"}
@@ -41,7 +42,8 @@ todo: remove all instances of the class
 
 		begin
 			## to do: if cl contains special characters, enclose with backticks
-			response = @res["/class/#{ActiveOrient.database}/#{cl}"].delete
+		rest_resource = Thread.current['resource'] || get_resource 
+			response = rest_resource["/class/#{ActiveOrient.database}/#{cl}"].delete
 			if response.code == 204
 				logger.info{"Class #{cl} deleted."}
 
@@ -83,11 +85,14 @@ todo: remove all instances of the class
 
   def delete_record *o
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
-		o.map( &:to_orient ).map do |r|
+		#o.map( &:to_orient ).map do |r|
+		o.orient_flatten.map do |r|
 			begin
-				puts "RR: #{r.inspect}"
-				ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(r) ) 
-				@res["/document/#{ActiveOrient.database}/#{r[1..-1]}"].delete
+		#		ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(r) ) 
+				rest_resource = Thread.current['resource'] || get_resource 
+#				rest_resource["/document/#{ActiveOrient.database}/#{r[1..-1].to_or}"].delete
+				rest_resource["/document/#{ActiveOrient.database}/#{r.rid}"].delete
+
 			rescue RestClient::InternalServerError => e
 				logger.error{"Record #{r} NOT deleted"}
 			rescue RestClient::ResourceNotFound
@@ -118,7 +123,8 @@ todo: remove all instances of the class
   def delete_property o_class, field
     logger.progname = 'RestDelete#DeleteProperty'
     begin
-  	  response =   @res["/property/#{ActiveOrient.database}/#{classname(o_class)}/#{field}"].delete
+		rest_resource = Thread.current['resource'] || get_resource 
+  	  response =   rest_resource["/property/#{ActiveOrient.database}/#{classname(o_class)}/#{field}"].delete
   	  true if response.code == 204
     rescue RestClient::InternalServerError => e
   	  logger.error{"Property #{field} in  class #{classname(o_class)} NOT deleted" }

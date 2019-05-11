@@ -84,7 +84,8 @@ Returns the JSON-Response.
     content = yield
     if content.is_a? Hash
       begin
-        @res["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
+				rest_resource = Thread.current['resource'] || get_resource
+        rest_resource["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
       rescue RestClient::InternalServerError => e
 	sentence=  JSON.parse( e.response)['errors'].last['content']
 	  logger.error{sentence}
@@ -132,12 +133,7 @@ Returns the JSON-Response.
         return 0
       end
 
-      name_class = classname(o_class)
-      execute name_class, transaction: false do # To execute commands
-        [{ type: "cmd",
-          language: 'sql',
-          command: "ALTER PROPERTY #{name_class}.#{property} #{attribute} #{alteration}"}]
-      end
+			execute { "ALTER PROPERTY #{class_name(o_class)}.#{property} #{attribute} #{alteration}"}
     rescue Exception => e
       logger.error{e.message}
     end

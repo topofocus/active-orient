@@ -5,11 +5,11 @@ class V   < ActiveOrient::Model
 specialized creation of vertices, overloads model#create
 =end
 	def self.create set: {},  **attributes
-
+	
 		new_vert = db.execute( transaction: false, tolerated_error_code: /found duplicated key/) do
-		 "CREATE VERTEX #{ref_name} CONTENT #{set.merge(attributes).to_orient.to_json}"
-		 end
-			 
+			"CREATE VERTEX #{ref_name} CONTENT #{set.merge(attributes).to_orient.to_json}"
+		end
+
 		new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
 		if new_vert.nil?
 			logger.error('Vertex'){ "Table #{ref_name} ->>  create failed:  #{set.merge(attributes).inspect}" } 
@@ -84,18 +84,22 @@ List edges
 
 	# Returns a collection of all vertices passed during the traversal 
 	#
+	# Includes the start_vertex (start_at =0 by default)
+	# 
+	# If the vector should not include the start_vertex, call with `start_at:1` and increase the depth by 1
+	#
 	# fires a query
 	#   
-	#    select  from  ( traverse  outE('}#{via}').in  from #{vertex}  while $depth <= #{depth}   ) 
+	#    select  from  ( traverse  outE('}#{via}').in  from #{vertex}  while $depth < #{depth}   ) 
 	#            where $depth >= #{start_at} 
 	#
 	# If » excecute: false « is specified, the traverse-statement is returned (as Orient-Query object)
-	def traverse in_or_out = :out, via: nil,  depth: 1, execute: true, start_at: 1, where: nil
+	def traverse in_or_out = :out, via: nil,  depth: 1, execute: true, start_at: 0, where: nil
 
 			edges = detect_edges( in_or_out, via, expand: false)
 			the_query = OrientSupport::OrientQuery.new kind: 'traverse' 
 			the_query.where where if where.present?
-			the_query.while "$depth <= #{depth} " unless depth <=0
+			the_query.while "$depth < #{depth} " unless depth <=0
 			the_query.from   self
 			edges.each{ |ec| the_query.nodes in_or_out, via: ec, expand: false }
 			outer_query = OrientSupport::OrientQuery.new from: the_query, where: "$depth >= #{start_at}"
@@ -107,7 +111,7 @@ List edges
 				end
 		end
 
-
+	
 
 =begin
 Assigns another Vertex via an EdgeClass. If specified, puts attributes on the edge.
@@ -129,6 +133,11 @@ or
 		vertex
   end
 
+## optimisation
+	#
+	#         "LET $a = CREATE VERTEX VTest SET name = 'John';" +
+ #                      "CREATE EDGE ETest FROM :ParentRID TO $a;" +
+ #                       "RETURN $a;", params)
 
 
 
@@ -232,7 +241,7 @@ Format: < Classname : Edges, Attributes >
 		end.compact.sort.join(', ') + ">".gsub('"' , ' ')
 	end
 
-private
+protected
 #Present Classes (Hierarchy) 
 #---
 #- - E

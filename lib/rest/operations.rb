@@ -7,7 +7,8 @@ module RestOperations
   #     puts "uri:#{function_uri { args.join('/') } }"
     begin
       term = args.join('/')
-      @res["/function/#{@database}/#{term}"].post ''
+		rest_resource = Thread.current['resource'] || get_resource 
+     rest_resource["/function/#{@database}/#{term}"].post ''
     rescue RestClient::InternalServerError => e
   	  puts  JSON.parse(e.http_body)
     end
@@ -98,56 +99,80 @@ Multible statements are transmitted at once if the Block provides an Array of st
 
 =end
 
-def read_transaction
-	@transaction
-end
-	def execute transaction: false, tolerated_error_code: nil, process_error: true, raw: nil
-		@transaction = []  unless @transaction.is_a?(Array)
-		if block_given?
-			command =  yield
-			command.is_a?(Array) ? command.each{|c| @transaction << c} : @transaction << command
-		else
-			logger.error { "No Block provided to execute" }
-			return nil
-		end
+	def read_transaction
+		@transaction
+	end
 
-#			puts "transaction #{@transaction.inspect}"
-		unless transaction == :prepare
+	def manage_transaction kind, command
+		@transaction = []  unless @transaction.is_a?(Array)
+
+		# in any case:  add statement to array
+		command.is_a?(Array) ? command.each{|c| @transaction << c} : @transaction << command
+
+		# if kind is prepare, we a done. 
+		# now, combine anything
+		unless kind == :prepare
 			commands =  @transaction.map{|y| y if y.is_a? String }.compact
 			@transaction.delete_if{|y| y if y.is_a?(String)} 
 			#puts "tn #{commands.inspect}"
-			return nil if commands.empty?
-			if commands.size >1
-			@transaction <<	{ type: 'script', language: 'sql', script: commands } 
-			elsif  transaction ==  false
-				@transaction = 	commands.first
-			else
-				transaction =  true
-				@transaction <<		{ type: 'cmd', language: 'sql', command: commands.first } 
-			end	
- 			_execute transaction, tolerated_error_code, process_error, raw
+				@transaction <<	{ type: 'script', language: 'sql', script: commands } unless  commands.empty?
+	#		elsif  transaction ==  false
+	#			@transaction = 	commands.first
+	#		else
+	#			transaction =  true
+	#			@transaction <<		{ type: 'cmd', language: 'sql', command: commands.first } 
+
+				# transaction is true only for multible statements
+				#      batch[:transaction] = transaction & batch[:operations].size >1
+	#			logger.info{ @transaction.map{|y|y[:command]}.join(";\n ") } 
+#				logger.info{ @transaction.map{|y|y[:script]}.join(";\n ") } 
+		#		batch= { transaction: transaction, operations: @transaction  }
+		#		puts "batch:  #{batch.inspect}"
+
+		#		@res["/batch/#{ActiveOrient.database}"].post batch.to_json
 		end
 	end
 
+	# execute the command 
+	#
+	# thread-safe  ( transaction = false)
+	#
+	# 
+	def execute transaction: nil,
+		          command: nil,
+							tolerated_error_code: nil, 
+							process_error: true, 
+							raw: nil 
+		
+		if block_given?
+			command =  yield
+		end
+	  unless command.present?	
+			logger.error { "No Command  provided to execute" }
+			return nil
+		end
+		if ( transaction.present? || command.is_a?(Array) )
+			logger.error  "calling manage_transaction NOT IMPLEMENTED YET!"
+			manage_transaction transaction, command
+		end		
+	
+		rest_resource = Thread.current['resource'] || get_resource 
+		 logger.info command.to_s								
+		_execute( tolerated_error_code, process_error, raw) do
+			rest_resource["/command/#{ActiveOrient.database}/sql"].post command.to_s #.to_json
+		end
 
-		def _execute transaction, tolerated_error_code, process_error, raw
+#		rest_resource.delete #if resource.present?
+
+	end
+
+
+	def _execute tolerated_error_code, process_error, raw
 
 		logger.progname= "Execute"
+
 		begin
-			response = if @transaction.is_a?(Array) 
-									 @transaction.compact!
-									 return nil if @transaction.empty?
-									 # transaction is true only for multible statements
-									 #      batch[:transaction] = transaction & batch[:operations].size >1
-									 logger.info{ @transaction.map{|y|y[:command]}.join(";\n ") } 
-									 logger.info{ @transaction.map{|y|y[:script]}.join(";\n ") } 
-									batch= { transaction: transaction, operations: @transaction  }
-									puts "batch:  #{batch.inspect}"
-									 @res["/batch/#{ActiveOrient.database}"].post batch.to_json
-								 else
-									 logger.info{ @transaction } 
-									 @res["/command/#{ActiveOrient.database}/sql"].post @transaction #.to_json
-								 end
+			response = yield
 		rescue RestClient::BadRequest => f
 			# extract the misspelled query in logfile and abort
 			sentence=  JSON.parse( f.response)['errors'].last['content']
@@ -155,8 +180,13 @@ end
 			puts "Query not recognized"
 			puts sentence
 			raise
+		rescue RestClient::Conflict => e  # (409)
+			# most probably the server is busy. we  wait for a second  print an Error-Message and retry
+			sleep(1)
+			logger.error{ e.inspect }
+			logger.error{ "RestClient::Error(409): Server is signaling a conflict ... retrying" }
+			retry
 		rescue RestClient::InternalServerError => e
-			@transaction = []
 			sentence=  JSON.parse( e.response)['errors'].last['content']
 			if tolerated_error_code.present? &&  e.response =~ tolerated_error_code
 				logger.debug('RestOperations#Execute'){ "tolerated_error::#{e.message}"}
@@ -164,8 +194,6 @@ end
 				nil  # return value
 			else
 				if process_error
-					#	    puts batch.to_json
-					#	  logger.error{e.response}
 					logger.error{sentence}
 					#logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
 					#	  logger.error{e.message.to_s}
@@ -177,22 +205,16 @@ end
 			sleep(2)
 			retry
 		else  # code to execute if no exception  is raised
-			@transaction = []
 			if response.code == 200
-				if response.body['result'].present?
-					result=JSON.parse(response.body)['result']
-					if raw.present? 
-						 result
-					else
-						y= result.from_orient
-					end
+				result=JSON.parse(response.body)['result']
+				if raw.present? 
+					result
 				else
-					response.body
-				end
+					result.from_orient
+				end # raw present?
 			else
-				nil
+				logger.error { "code : #{response.code}" }
 			end
 		end
 	end
-
 end
