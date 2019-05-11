@@ -2,6 +2,9 @@
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
 datasets. **OrientDB Version 3 is required**
 
+> Note: The branch "match" includes a thread-safe version, currently testing the appraoach 
+
+
 For changes from Version OrientDB 2.2 -> [Wiki](../..//wiki/Changes-2.2--to------3.0)
 ### Quick Start
 
