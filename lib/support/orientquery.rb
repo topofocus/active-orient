@@ -184,7 +184,7 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 
 	QueryAttributes =  Struct.new( :kind, :projection, :where, :let, :order, :while, :misc, 
 																:match_statements, :class, :return,  :aliases, :database, 
-																:group, :skip, :limit, :unwind  )
+																:set, :group, :skip, :limit, :unwind  )
 	
 	class OrientQuery
     include Support
@@ -203,7 +203,8 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 								'',  # class
 								'',  #  return
 								[],   # aliases
-								''  # database
+								'',  # database
+								[]   #set
 			  args.each{|k,v| send k, v}
 		end
 		
@@ -304,7 +305,7 @@ Parameter (all optional)
 				end
 			elsif kind.to_sym == :update
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$this" : @q[:aliases].first.to_s)
-				[ kind, @q[:database], misc, where, return_statement ].compact.join(' ')
+				[ kind, @q[:database], set, where, return_statement ].compact.join(' ')
 			elsif destination == :rest
 				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
 			else
@@ -394,9 +395,31 @@ class << self
 				end
 			end
 		end
+		def mk_let_set_setter *m
+			m.each do |def_m|
+				define_method( def_m  ) do | value = nil |
+					if value.present?
+						@q[def_m] << value
+						self
+					elsif @q[def_m].present?
+						"let " << @q[def_m].map do |s|
+																		case s
+																		when String
+																			s
+																		when ::Array
+																			s.join(',  ')
+																		when ::Hash  ### is not recognized in jruby
+																			#	      else
+																			s.map{|x,y| "$#{x} = (#{y})"}.join(', ')
+																		end
+																end.join(', ')
+					end # branch
+				end     # def_method
+			end  # each
+			end  #  def
 end # class << self
-		mk_simple_setter :limit, :skip, :unwind 
-
+		mk_simple_setter :limit, :skip, :unwind , :set
+#		mk_let_set_setter :set
 
 		def let       value = nil
 			if value.present?
