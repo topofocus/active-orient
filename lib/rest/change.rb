@@ -82,21 +82,27 @@ Returns the JSON-Response.
   def patch_record rid	    # :nodoc:   (used by #update )
     logger.progname = 'RestChange#PatchRecord'
     content = yield
-    if content.is_a? Hash
-      begin
-				rest_resource = Thread.current['resource'] || get_resource
-        rest_resource["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
-      rescue RestClient::InternalServerError => e
-	sentence=  JSON.parse( e.response)['errors'].last['content']
-	  logger.error{sentence}
-	  logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
-	  logger.error{e.message.to_s}
-      end
-    else
-  	  logger.error{"PATCH FAILED: The Block must provide an Hash with properties to be updated"}
-    end
-  end
-  alias patch_document patch_record
+		if content.is_a? Hash
+			begin
+				ActiveOrient.db_pool.checkout do | conn |
+					conn["/document/#{ActiveOrient.database}/#{rid}"].patch content.to_orient.to_json
+				end
+			rescue RestClient::Conflict => e  # (409)
+				# most probably the server is busy. we  wait for a second  print an Error-Message and retry
+				sleep(1)
+				logger.error{ "RestClient::Error(409): Server is signaling a conflict ... retrying" }
+				retry
+			rescue RestClient::InternalServerError => e
+				sentence=  JSON.parse( e.response)['errors'].last['content']
+				logger.error{sentence}
+				logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+				logger.error{e.message.to_s}
+			end
+		else
+			logger.error{"PATCH FAILED: The Block must provide an Hash with properties to be updated"}
+		end
+	end
+	alias patch_document patch_record
 
 
   #### EXPERIMENTAL ##########

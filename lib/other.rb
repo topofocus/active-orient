@@ -149,10 +149,17 @@ class String
     end
   end
 
+	# from orient translates the database response into active-orient objects
+	#
+	# symbols are representated via ":{something]:}"
+	# 
+	# database records respond to the "rid"-method
+	#
+	# other values are not modified
   def from_orient
 	  if rid?
 	    ActiveOrient::Model.autoload_object self
-	  elsif
+	  elsif  # symbol-representation in the database
 	    self =~ /^:.*:$/
 	    self[1..-2].to_sym
 	  else
@@ -175,6 +182,7 @@ class String
   def rid
       self["#"].nil? ? self : self[1..-1] if rid? 
   end
+	alias rrid rid
 
   def to_classname
     if self[0] == '$'

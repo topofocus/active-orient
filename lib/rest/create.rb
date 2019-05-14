@@ -13,21 +13,21 @@ module RestCreate
 		old_d = ActiveOrient.database
 		ActiveOrient.database_classes = {} 
 		ActiveOrient.database = database 
-		begin
-
-		rest_resource = Thread.current['resource'] || get_resource 
-			response = rest_resource["database/#{ActiveOrient.database}/#{type}"].post ""
-			if response.code == 200
-				logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
-			else
+			begin
+				response = ActiveOrient.db_pool.checkout do | conn |
+					 conn["database/#{ActiveOrient.database}/#{type}"].post ""
+				end
+				if response.code == 200
+					logger.info{"Database #{ActiveOrient.database} successfully created and stored as working database"}
+				else
+					logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
+					ActiveOrient.database = old_d
+				end
+			rescue RestClient::InternalServerError => e
 				logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
 				ActiveOrient.database = old_d
 			end
-		rescue RestClient::InternalServerError => e
-			logger.error{"Database #{ActiveOrient.database} was NOT created. Working Database is still #{ActiveOrient.database}"}
-			ActiveOrient.database = old_d
-		end
-		ActiveOrient.database  # return_value
+			ActiveOrient.database  # return_value
 	end
 
 
@@ -95,30 +95,32 @@ Puts the database-response into the cache by default
     attributes = yield if attributes.empty? && block_given?
     # @class must not quoted! Quote only attributes(strings)
     post_argument = {'@class' => classname(o_class)}.merge(attributes.to_orient)
+		response = nil
     begin
-		rest_resource = Thread.current['resource'] || get_resource 
-      response = rest_resource["/document/#{ActiveOrient.database}"].post post_argument.to_json
+			response = ActiveOrient.db_pool.checkout do | conn |
+				conn["/document/#{ActiveOrient.database}"].post post_argument.to_json
+			end
       data = JSON.parse(response.body)
       the_object = ActiveOrient::Model.orientdb_class(name: data['@class']).new data ## return_value
       if cache 
-	  ActiveOrient::Base.store_rid( the_object ) 
+				ActiveOrient::Base.store_rid( the_object ) 
       else
-	the_object
+				the_object
       end
     rescue RestClient::InternalServerError => e
       sentence=  JSON.parse( e.response)['errors'].last['content']
 #      puts sentence.to_s
       if sentence =~ /found duplicated key/
-	rid = sentence.split("#").last
-	logger.info{ "found duplicated Key --> loaded #{rid} instead of creating "}
-	## reading database content -- maybe update attributes?
-	get_record rid
-      else
-	response = JSON.parse(e.response)['errors'].pop
-	logger.error{response['content'].split(':')[1..-1].join(':')}
-	logger.error{"No Object allocated"}
-	nil # return_value
-       end
+				rid = sentence.split("#").last
+				logger.info{ "found duplicated Key --> loaded #{rid} instead of creating "}
+				## reading database content -- maybe update attributes?
+				get_record rid
+			else
+				response = JSON.parse(e.response)['errors'].pop
+				logger.error{response['content'].split(':')[1..-1].join(':')}
+				logger.error{"No Object allocated"}
+				nil # return_value
+			end
     rescue Errno::EADDRNOTAVAIL => e
       sleep(2)
       retry
@@ -190,23 +192,24 @@ A composite index
 		logger.progname = 'RestCreate#CreateProperties'
 		all_properties_in_a_hash = Hash.new  #WithIndifferentAccess.new
 		all_properties.each{|field, args| all_properties_in_a_hash.merge! translate_property_hash(field, args)}
-		count=0
+		count, response = 0, nil
 #		puts "all_properties_in_a_hash #{all_properties_in_a_hash.to_json}"
-		begin
-			if all_properties_in_a_hash.is_a?(Hash)
-		rest_resource = Thread.current['resource'] || get_resource 
-				response = rest_resource["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
-#				puts response.inspect
-				# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
-				count= response.body.to_f.to_i if response.code == 201
+		if all_properties_in_a_hash.is_a?(Hash)
+			begin
+				response = ActiveOrient.db_pool.checkout do | conn |
+					 conn["/property/#{ActiveOrient.database}/#{classname(o_class)}"].post all_properties_in_a_hash.to_json
+				end
+					#				puts response.inspect
+					# response.body.to_i returns  response.code, only to_f.to_i returns the correct value
+					count= response.body.to_f.to_i if response.code == 201
+			rescue RestClient::InternalServerError => e
+				logger.progname = 'RestCreate#CreateProperties'
+				response = JSON.parse(e.response)['errors'].pop
+				error_message = response['content'].split(':').last
+				logger.error{"Properties in #{classname(o_class)} were NOT created"}
+				logger.error{"The Error was: #{response['content'].split(':').last}"}
+				nil
 			end
-		rescue RestClient::InternalServerError => e
-			logger.progname = 'RestCreate#CreateProperties'
-			response = JSON.parse(e.response)['errors'].pop
-			error_message = response['content'].split(':').last
-			logger.error{"Properties in #{classname(o_class)} were NOT created"}
-			logger.error{"The Error was: #{response['content'].split(':').last}"}
-			nil
 		end
 		### index
 		if block_given?# && count == all_properties_in_a_hash.size
@@ -237,22 +240,22 @@ If an index is to be specified, it's defined in the optional block
   --> creates a manual index
 =end
 
-  def create_property o_class, field, index: nil, **args, &b
-    logger.progname = 'RestCreate#CreateProperty'
-    args= { type: :string} if args.blank?  # the default case
-    c = create_properties o_class, {field => args}
-    if index.nil? && block_given?
-      index = yield
-    end
-    if index.present?
-      if index.is_a?(String) || index.is_a?(Symbol)
-	create_index o_class, name: field, type: index
-      elsif index.is_a? Hash
-	bez = index.keys.first
-	create_index o_class, name: bez, type: index[bez], on: [field]
-      end
-    end
-  end
+	def create_property o_class, field, index: nil, **args, &b
+		logger.progname = 'RestCreate#CreateProperty'
+		args= { type: :string} if args.blank?  # the default case
+		c = create_properties o_class, {field => args}
+		if index.nil? && block_given?
+			index = yield
+		end
+		if index.present?
+			if index.is_a?(String) || index.is_a?(Symbol)
+				create_index o_class, name: field, type: index
+			elsif index.is_a? Hash
+				bez = index.keys.first
+				create_index o_class, name: bez, type: index[bez], on: [field]
+			end
+		end
+	end
 
   ################# INDEX ###################
 

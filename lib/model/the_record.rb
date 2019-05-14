@@ -145,22 +145,22 @@ is identical to the update statement above
 		if block_given?			# calling vs. a block is used internally
 			# to remove an Item from lists and sets call update(remove: true){ query }
 			set_or_remove =  args[:remove].present? ? "remove" : "set"
-			transfer_content from: 	 query( "update #{rrid} #{set_or_remove} #{ yield }  return after @this" )&.first
+			#transfer_content from: 	 
+			query( "update #{rrid} #{set_or_remove} #{ yield }  return after @this" )&.first
 		 else
 			set.merge! args
 		#	set.merge updated_at: DateTime.now
 
 			if rid.rid?
-				transfer_content from:  db.update( self, set, version )
+				 db.update( self, set, version )
 				# if the updated dataset changed, drop the changes made siently
 		#		self # return value
 			else  # new record
 				@attributes.merge! set
 				save
 			end
-		self
+		 reload!
 		end
-
   end
 
 # mocking active record  
@@ -269,5 +269,6 @@ Automatic database-updates are deactivated for now
 				# throw from["@..."] away and convert keys to symbols, merge that into attributes
 				@attributes.merge! Hash[ from.delete_if{|k,_| k =~ /^@/}.map{|k,v| [k.to_sym, v.from_orient]}]
 			end
+			self  # return the modified object
   end
 end

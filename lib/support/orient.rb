@@ -79,12 +79,13 @@ The change is immediately transmitted to the database.
 
 		alias  << append 
 
+
 		def remove *k
 			# todo combine queries in a transaction
-			puts "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"
-			k.each{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
+			ActiveOrient::Base.logger.debug { "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"}
+			k.map{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
+			@orient.reload!
 		end
-
 
 
 =begin
@@ -155,9 +156,11 @@ The change is immediately transmitted to the database.
 # removes a key-value entry from the hash. 
 # 
 # parameter: list of key's (duplicate values are removed)
+#
+# returns the removed items 
 		def remove *k
 			# todo combine queries in a transaction
-			k.map{ |key| @orient.update( remove: true ) { "#{@name.to_s}.#{key} " } }.last
+			r= k.map{ |key| @orient.update( remove: true ) { "#{@name.to_s}.#{key} " } }.last
 		end
 	#	def delete *key
 #

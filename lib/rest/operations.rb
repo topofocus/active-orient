@@ -156,10 +156,12 @@ Multible statements are transmitted at once if the Block provides an Array of st
 			manage_transaction transaction, command
 		end		
 	
-		rest_resource = Thread.current['resource'] || get_resource 
 		 logger.info command.to_s								
 		_execute( tolerated_error_code, process_error, raw) do
-			rest_resource["/command/#{ActiveOrient.database}/sql"].post command.to_s #.to_json
+
+			ActiveOrient.db_pool.checkout do | conn |
+				conn["/command/#{ActiveOrient.database}/sql"].post command.to_s #.to_json
+			end
 		end
 
 #		rest_resource.delete #if resource.present?

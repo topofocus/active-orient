@@ -12,8 +12,10 @@ module RestDelete
     old_ds = ActiveOrient.database
     change_database database
     begin
-		rest_resource = Thread.current['resource'] || get_resource 
-  	  response = rest_resource["/database/#{ActiveOrient.database}"].delete
+		  response = nil
+			ActiveOrient.db_pool.checkout do | conn |
+				response = conn["/database/#{ActiveOrient.database}"].delete
+			end
   	  if database == old_ds
   	    change_database  'temp'
   	    logger.info{"Working database deleted, switched to temp"}
@@ -42,8 +44,10 @@ todo: remove all instances of the class
 
 		begin
 			## to do: if cl contains special characters, enclose with backticks
-		rest_resource = Thread.current['resource'] || get_resource 
-			response = rest_resource["/class/#{ActiveOrient.database}/#{cl}"].delete
+			response = nil
+			ActiveOrient.db_pool.checkout do | conn |
+				response = conn["/class/#{ActiveOrient.database}/#{cl}"].delete
+			end
 			if response.code == 204
 				logger.info{"Class #{cl} deleted."}
 
@@ -88,10 +92,11 @@ todo: remove all instances of the class
 		#o.map( &:to_orient ).map do |r|
 		o.orient_flatten.map do |r|
 			begin
-		#		ActiveOrient::Base.remove_rid(  ActiveOrient::Base.get_rid(r) ) 
-				rest_resource = Thread.current['resource'] || get_resource 
+				ActiveOrient::Base.remove_rid r 
 #				rest_resource["/document/#{ActiveOrient.database}/#{r[1..-1].to_or}"].delete
-				rest_resource["/document/#{ActiveOrient.database}/#{r.rid}"].delete
+				ActiveOrient.db_pool.checkout do | conn |
+					conn["/document/#{ActiveOrient.database}/#{r.rid}"].delete
+				end
 
 			rescue RestClient::InternalServerError => e
 				logger.error{"Record #{r} NOT deleted"}
@@ -123,9 +128,10 @@ todo: remove all instances of the class
   def delete_property o_class, field
     logger.progname = 'RestDelete#DeleteProperty'
     begin
-		rest_resource = Thread.current['resource'] || get_resource 
-  	  response =   rest_resource["/property/#{ActiveOrient.database}/#{classname(o_class)}/#{field}"].delete
-  	  true if response.code == 204
+			response = ActiveOrient.db_pool.checkout do | conn |
+				r =  conn["/property/#{ActiveOrient.database}/#{classname(o_class)}/#{field}"].delete
+				true if r.code == 204
+			end
     rescue RestClient::InternalServerError => e
   	  logger.error{"Property #{field} in  class #{classname(o_class)} NOT deleted" }
   	    false

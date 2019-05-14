@@ -55,6 +55,7 @@ require_relative "railtie" if defined?(Rails)
 
 module  ActiveOrient
 mattr_accessor :database
+mattr_accessor :db_pool
 mattr_accessor :database_classes
 mattr_accessor :default_server
 
