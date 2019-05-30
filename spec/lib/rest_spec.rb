@@ -134,14 +134,15 @@ describe ActiveOrient::OrientDB do
       f = Exchange.create :label => 'Frankfurt'
       b = Exchange.create :label => 'Berlin'
       s = Exchange.create :label => 'Stuttgart'
-      ds =Property.create con_id: 12355
-      ds.update  exchange: [f,b,s]      #	  ds.add_item_to_property :exchanges, b
-      #	  ds.add_item_to_property :exchanges, s
+      pr =Property.create con_id: 12355
+      ds = pr.update  exchange: [f,b,s]   
       expect( ds.exchange ).to have(3).items
+#      expect( ds.exchange ).to be_a OrientSupport::Array
       expect( Property.custom_where( "'Stuttgart' in exchange.label").first ).to eq ds
       expect( Property.custom_where( "'Hamburg' in exchange.label") ).to  be_empty
-      ds.exchange.remove( b,s )
+      dr = ds.exchange.remove( b,s )
       expect( ds.exchange ).to have(1).items
+      expect( dr.exchange ).to have(1).items
     end
 
    it "add  an embedded linkmap- entry " do # , :pending => true do
@@ -155,7 +156,7 @@ describe ActiveOrient::OrientDB do
       # to query: select * from Property where 'Stuttgart' in exchanges.label
       # or select * from Property where exchanges contains ( label = 'Stuttgart' )
       property_record.reload!
-			puts "PR: #{property_record.property.inspect}"
+#			puts "PR: #{property_record.property.inspect}"
       expect(  property_record.property.label ).to eq industries 
 			
 

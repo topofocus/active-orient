@@ -349,8 +349,8 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 # get the last element of the class
 
   def last where: {}
-    db.get_records(from: self, where: where, order: {"@rid" => 'desc'}, limit: 1).pop
-  end
+    query_database( OrientSupport::OrientQuery.new( where: where, order: {"@rid" => 'desc'}, limit: 1)).pop  
+	end
 # Used to count of the elements in the class
 
   def count **args
@@ -565,10 +565,7 @@ query_database is used on model-level and submits
   def query_database query, set_from: true
     # note: the parameter is not used anymore
 		query.from self if query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
-    #sql_cmd = -> (command) {{ type: "cmd", language: "sql", command: command }}
-    result = db.execute do
-    query.to_s #  sql_cmd[query.to_s]
-    end
+    result = db.execute{  query.to_s  }
 		result = if block_given?
 							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
 						 else

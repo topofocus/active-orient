@@ -29,6 +29,7 @@ module  ActiveOrient
   Any Change of the Object is thus synchonized to any allocated variable.
 =end
     @@rid_store = Hash.new
+		@@mutex = Mutex.new
 
     def self.display_rid
       @@rid_store
@@ -44,10 +45,11 @@ thus a string or a Model-Object is accepted
 
     def self.remove_rid obj
 			if obj &.rid.present?
-      @@rid_store.delete obj.rid     
+			@@mutex.synchronize do 
+				@@rid_store.delete obj.rid     
+			end
 			else
 				logger.error "Cache entry not removed: #{obj} "
-
 			end
 		end
 
@@ -68,17 +70,20 @@ and the cached obj is returned
   
 =end
     def self.store_rid obj
-      if obj.rid.present? && obj.rid.rid?
-	 if @@rid_store[obj.rid].present?
-		    @@rid_store[obj.rid].transfer_content from: obj
-	  else
-		 @@rid_store[obj.rid] =   obj
-	  end
-	 @@rid_store[obj.rid] 
-      else
-	nil 
-      end
-    end
+
+			@@mutex.synchronize do 
+				if obj.rid.present? && obj.rid.rid?
+					if @@rid_store[obj.rid].present?
+						@@rid_store[obj.rid].transfer_content from: obj
+					else
+						@@rid_store[obj.rid] =   obj
+					end
+					@@rid_store[obj.rid] 
+				else
+					nil 
+				end
+			end
+		end
 
 
     # rails compatibility

@@ -1,77 +1,66 @@
 require 'spec_helper'
 require 'connect_helper'
 require 'rest_helper'
+require 'rspec/given'
 
 describe 'Properties and Application of Hashes' do
-  before( :all ) do
-    @db = connect database: 'temp'
-    @db.create_class "test_model"
-    @db.create_class 'link_class'
-  end
+	before( :all ) do
+		db = connect database: 'temp'
+		db.delete_database database: 'temp' 
 
-	after(:all){ @db.delete_database database: 'temp' }
-  #  context "check isolated", focus:true do
-  #    let( :basic ) { OrientSupport::Hash.new @ecord, 'Go to Orient'}
-  #    it { expect( basic ).to be_a OrientSupport:: Hash}
-  #
-  #    it { expect( basic ).to be_empty }
-  #
-  #
-  #    it "add and change an element" do
-  #      expect{ basic[ :test ] = 56 }.to change{ basic.size }
-  #      expect{ basic[ :test ] = 'newtest' }.not_to change{ basic.size }
-  #
-  #    end
-  ##    it "change the value of an element" do
-  #      expect{ basic[0]  =  "a new Value " }.to change{ basic.first }
-  #      expect( basic ).to eq [ "a new Value ", 6, 5 ]
-  #    end
+		db = connect database: 'temp'
+		db.create_class "test_model"
+		db.create_class 'link_class'
+		# the test records
+		TestModel.create  ll:  { a:'test', b: 5, 8 => 57 , 'zu' => 7988 }   
 
-  #end
+		record =  TestModel.create ll: {}
+		tj = []
+		(0..99).each do |i|
+			tj << Thread.new do
+				record.ll[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" ) 
+			end
+		end
+		tj.join()
+	end
 
+  context "add and populate an Hash"  do
+		 Given(:record ){ TestModel.first } 
 
+      Then {record.ll.is_a? Hash }
 
-  context "add and populate an Hash" do
-      let( :record ){  TestModel.create  ll:  { a:'test', b: 5, 8 => 57 , 'zu' => 7988 }  } 
+      Then { record.ll.first == [:a,"test"] }   # contains array
+      Then { record.ll[:b] == 5 }               # contains numeric
+			Then { record.ll.keys == [ :a, :b, 8, :zu ] }  # keys and values 
+			Then { record.ll.values == [ 'test', 5, 57, 7988 ] }
+			Then { record.ll.size == 4 }
+	end
+	context "modify the Object"  do
+			before(:all){ TestModel.first.ll.merge zu: 78, bla: [8,9,10] }
+			Given( :modified_hash ){  TestModel.first.ll }
+			Then {  modified_hash[:bla] == [8,9,10] } # item added
+			Then {  modified_hash[:zu] == 78 }        # item changed
+			Then {  modified_hash.size == 5 }
+	end
 
-    it "initialize the Object"  do
-      expect( record.ll ).to be_a Hash
-      expect( record.ll.first ).to eq ["a","test"]
-      expect( record.ll[:b] ).to eq 5
-      expect( record.ll.keys ).to eq [ "a", "b", 8, "zu" ]
-    end
-    it "modify the Object" , focus: true do
-#      expect{ record.add_item_to_property :ll,  :a =>  :b }.to change { record.ll.size }.by 1
-      expect do
-        expect{ record.ll[:z] = 78  }.to change { record.ll.size }.by 1
+	context "remove content from Hash"	do
+		  before(:all ) { TestModel.first.ll.remove :bla }
+			Given( :partial_hash ){  TestModel.first.ll }
+			Then { partial_hash.size == 4 }
+			Then { partial_hash[:bla] ==  :ll }  # if the item is not present, a symbol is returned
 
-        expect{ record.ll.delete(8) }.to change { record.ll.size }.by -1
-        expect{ record.ll.delete_if{|x,y| y==5}; record.save }.to change { record.ll.size }.by -1
-      end.to change{ record.version }.by 3
-    end
-    it "update the object" do
-      expect{ record.ll[0]  =  "a new Value "}.to change{ record.version }
-      expect( record.ll[0] ).to eq  "a new Value "
-    end
-  end
+	end
 
-  context "a Hash with links "   do
+	context "a Hash with links "   do
+		it{ sleep 1.5 }  #  to synchonize threaded allocation of datasets in |before :all|
+		Given( :linked_items ) { TestModel.last.ll }
 
-    before(:all) do
-      new_hash =  HashWithIndifferentAccess.new
-      ( 1 .. 99 ).each do | i |
-        new_hash[ "item_#{i}" ] = LinkClass.create( linked_item: i*i, value: "a value #{i+4}" )
-      end
-      @lnk = TestModel.create ll: new_hash 
-    end
-
-    it { expect( LinkClass.count ).to eq 99 }
-    it { expect( @lnk.ll.size ).to eq 99 }
-    it{  (1..99).each{|x| expect(@lnk.ll["item_#{x}"]).to be_a ActiveOrient::Model } }
+		Then { linked_items.size == 100 }
+		Then { linked_items.map{|_,y| y.is_a?( ActiveOrient::Model )}.uniq  == [true] }
 
 
 
 
-  end
+	end
 
 end

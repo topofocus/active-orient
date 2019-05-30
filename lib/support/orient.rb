@@ -79,12 +79,13 @@ The change is immediately transmitted to the database.
 
 		alias  << append 
 
+
 		def remove *k
 			# todo combine queries in a transaction
-			puts "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"
-			k.each{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
+			ActiveOrient::Base.logger.debug { "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"}
+			k.map{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
+			@orient.reload!
 		end
-
 
 
 =begin
@@ -138,26 +139,34 @@ The change is immediately transmitted to the database.
 		end
 
 
-		def []=  k, v
-			 @orient.update { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }
+		def store  k, v
+			super
+			 @orient.update{ "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }[@name]
 		end
 
-# Inserts the provided Hash to the (possibly empty) list-property and returns a hash	
-		def append arg
-			# the argument is simply provided as JSON-parameter to »update«
-			# generated query: update {rrid} set { @name } = { arg.to_json } return after @this
-			# todo : consider returning a OrientSuport::Hash
-			@orient.update { "#{@name.to_s} = "+ arg.to_json }[@name]
+		alias []= store
+
+# Inserts the provided Hash to the (possibly empty) list-property and returns the modified hash	
+		#
+		# Keys are translated to symbols 
+		#
+		# Merge does not support assigning Hashes as values
+		def merge **arg
+			super
+			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_orient}" unless y.is_a?(Hash) }.compact.join( ', ' )
+			@orient.update( delete_cach: true ) { updating_string }[@name]
 		end
 
-		alias  << append 
+		alias  << merge 
 
 # removes a key-value entry from the hash. 
 # 
 # parameter: list of key's (duplicate values are removed)
+#
+# returns the removed items 
 		def remove *k
 			# todo combine queries in a transaction
-			k.map{ |key| @orient.update( remove: true ) { "#{@name.to_s}.#{key} " } }.last
+			r= k.map{ |key| @orient.update( remove: true ) { "#{@name.to_s}.#{key} " } }.last
 		end
 	#	def delete *key
 #
@@ -178,7 +187,19 @@ The change is immediately transmitted to the database.
 
 		end
 
-
+ # slice returns a subset of the hash 
+		#
+		# excepts a regular expression as well
+		def slice arg
+			if arg.is_a? Regexp
+				find_all{ |key| key.to_s.match(arg) }.to_h
+			else
+				 super arg.to_sym
+			end
+		end
+		def [] arg
+			super
+		end
 	end
 end #Module
 

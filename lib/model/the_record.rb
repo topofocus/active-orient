@@ -58,9 +58,10 @@ ActiveOrient::Model-Object or an Array of Model-Objects as result.
 
 =end
 
-  def query query
+  def query query, delete_cash: false
     
     query.from  rrid if query.is_a?( OrientSupport::OrientQuery) && query.from.nil?
+		ActiveOrient::Base.remove_rid( self ) if delete_cash
     result = orientdb.execute{ query.to_s }
 		result = if block_given?
 							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
@@ -145,27 +146,25 @@ is identical to the update statement above
 		if block_given?			# calling vs. a block is used internally
 			# to remove an Item from lists and sets call update(remove: true){ query }
 			set_or_remove =  args[:remove].present? ? "remove" : "set"
-			transfer_content from: 	 query( "update #{rrid} #{set_or_remove} #{ yield }  return after @this" )&.first
-		 else
+			#transfer_content from: 	 
+			updated_record = 	query( "update #{rrid} #{set_or_remove} #{ yield }  return after @this", delete_cash: true )&.first
+			transfer_content from: updated_record  if updated_record.present?
+		else
 			set.merge! args
-		#	set.merge updated_at: DateTime.now
-
+			#	set.merge updated_at: DateTime.now
 			if rid.rid?
-				transfer_content from:  db.update( self, set, version )
-				# if the updated dataset changed, drop the changes made siently
-		#		self # return value
+				db.update( self, set, version )
+				reload!
 			else  # new record
 				@attributes.merge! set
 				save
 			end
-		self
 		end
-
   end
 
 # mocking active record  
   def update_attribute the_attribute, the_value # :nodoc:
-    update { " #{the_attribute} = #{the_value.to_or} " }
+    update( delete_cash: true ){ " #{the_attribute} = #{the_value.to_or} " }
   end
 
   def update_attributes **args    # :nodoc:
@@ -263,11 +262,12 @@ Automatic database-updates are deactivated for now
 		# attributes.
 			if from.is_a? ActiveOrient::Model
        @metadata = from.metadata
-       @attributes =  from.attributes
+       self.attributes =  from.attributes
 			else
 				self.version =  from['@version']
 				# throw from["@..."] away and convert keys to symbols, merge that into attributes
 				@attributes.merge! Hash[ from.delete_if{|k,_| k =~ /^@/}.map{|k,v| [k.to_sym, v.from_orient]}]
 			end
+			self  # return the modified object
   end
 end

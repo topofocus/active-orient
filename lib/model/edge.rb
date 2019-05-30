@@ -21,6 +21,8 @@ Creates individual indices for child-classes if applied to the class itself.
 
  if the creation of an edged is not possible, due to constrains (uniq_index), the already
  connecting edge is returned 
+
+ the method is thread safe, if transaction and update_cache are set to false
 =end
   def create from:, to: , set: {}, transaction:  false, update_cache: false, **attributes
 		return nil if from.blank? || to.blank?
@@ -47,6 +49,7 @@ Creates individual indices for child-classes if applied to the class itself.
 
 =begin
 Fires a "delete edge" command to the database.
+
 
 The where statement can be empty ( "" or {}"), then all edges are removed 
 
