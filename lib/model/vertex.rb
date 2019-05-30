@@ -56,14 +56,13 @@ List edges
 		else
 			kind =   [:in, :out, :both, :all].detect{|x|  args.include? x }
 			if kind.present?
-				args =  args -[ kind ]
+				args =  args - [ kind ]
 			else
 				kind = :both
 			end
 		detect_edges  kind, args.first
 
 		end
-
 	end
 
 	# Lists all connected Vertices

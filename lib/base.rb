@@ -50,7 +50,6 @@ thus a string or a Model-Object is accepted
 			end
 			else
 				logger.error "Cache entry not removed: #{obj} "
-
 			end
 		end
 

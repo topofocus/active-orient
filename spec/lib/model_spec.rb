@@ -88,49 +88,56 @@ describe ActiveOrient::Model do
 		it{ expect( Work.count ).to   eq 0}
 
     it "put some data into the class"  do
-Work.delete all: true 
-      (0..45).each{|x|  Work.create  test_cont: x  }
-      expect( Work.count ).to eq 46
-    end
+			Work.delete all: true 
+			(0..45).each{|x|  Work.create  test_cont: x  }
+			expect( Work.count ).to eq 46
+		end
 
-    it "the database is empty before we start"  do
+		it "the database is empty before we start"  do
       expect( TestModel.all ).to be_empty
       expect( @db.get_documents  from: TestModel ).to be_empty
       expect( TestModel.count ).to be_zero
     end
 
-		Given( :obj ){ TestModel.create test: 45  }
-		Then{ obj.test == 45 }
-		Then{ expect(obj).to be_a ActiveOrient::Model }
+		context " create an document" do
+			Given( :obj ){ TestModel.create test: 45  }
+			Then { obj.test == 45 }
+			Then { expect(obj).to be_a ActiveOrient::Model }
+			context "the document can be retrieved by first" do
+				Given( :first_document ){ TestModel.first }
+				Then { expect(first_document ).to be_a ActiveOrient::Model }
+				Then { first_document.test == 45 }
+			end
+			##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
+			#und nicht von der Datenbank abgefragt
+			context "the document can be updated " do
+				Given( :updated_document ){ obj.update set: { test: 76, new_entry: "This is a new Entry" } }
+				Then{ updated_document.test == 76 }
+				Then{ expect( updated_document.new_entry).to be_a String }
+			end
 
-    context "the document can be retrieved by first" do
-			Given( :first_document ){ TestModel.first }
-      Then { expect(first_document ).to be_a ActiveOrient::Model }
-      Then { first_document.test == 45 }
-    end
-##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
-    #und nicht von der Datenbank abgefragt
-		 context "the document can be updated " do
-      Given( :updated_document ){ obj.update set: { test: 76, new_entry: "This is a new Entry" } }
-      Then{ updated_document.test == 76 }
-      Then{ expect( updated_document.new_entry).to be_a String }
-		 end
+			it "various Properties can be added to the document" do
+				aa = [ 1,4,'r', :r ]  
+				ah = { :a => 'b', b: 2, c: :d } 
+				eh = { "a" => "b" , "b" => 2, "c" => :d  }
+				obj.update set: { a_array: aa  , a_hash: eh }   
+				expect( obj.a_array ).to eq aa
+				expect( obj.a_hash ).to eq  ah   # Hash-keys are always symbols!!
+			end
 
-    it "various Properties can be added to the document" do
-      aa = [ 1,4,'r', :r ]  
-      ah = { :a => 'b', b: 2, c: :d } 
-      eh = { "a" => "b" , "b" => 2, "c" => :d  }
-      obj.update set: { a_array: aa  , a_hash: eh }   
-      expect( obj.a_array ).to eq aa
-      expect( obj.a_hash ).to eq  ah   # Hash-keys are always symbols!!
-    end
+			it "a value can be added to the array" do
+				the_updated_object = obj.update a_array: [1,4,'r',:r] 
+				expect(  the_updated_object.a_array).to eq  [1,4,'r',:r]  
 
-    it "a value can be added to the array" do
-      obj.update a_array: [1,4,'r',:r]
-			obj.a_array << 56
-      expect(obj.a_array).to eq [ 1,4,'r', :r, 56 ]
-
-    end
+				puts "obj : #{the_updated_object}"
+			  the_updated_object.a_array << 56 
+				# object is not changed
+				expect( the_updated_object.a_array).to eq  [ 1,4,'r', :r ] 
+				the_updated_object.reload! 
+				expect( the_updated_object.a_array).to eq  [ 1,4,'r', :r , 56] 
+				#expect( updated_array).to eq the_updated_object.a_array 
+			end
+		end
 
     it "the document can be deleted"  do
 			d =  TestModel.create test: 56  # does not work using obj
@@ -178,7 +185,7 @@ Work.delete all: true
     it "specific datasets can be removed" do
       count= TestModel.update_all( set: { new_ds: 45 }, where: 'test > 40')
       expect( TestModel.delete(  where: {test: 42})).to eq 1
-      expect( TestModel.where( new_ds: 45 ) ).to have( count -1 ).elements
+      expect( TestModel.where( new_ds: 45 ) ).to have( count - 1 ).elements
     end
 
 let( :node_1) { TestModel.where( test: 45 ).first }
