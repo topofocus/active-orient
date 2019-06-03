@@ -129,12 +129,10 @@ The change is immediately transmitted to the database.
 		include OrientSupport::Support
 		def initialize modelinstance, args
 			super()
-		#	puts "Hash.new args #{args}"
 			@orient = modelinstance
 			self.merge! args
 			@name = modelinstance.attributes.key(self)
 			@name =  yield if @name.nil? && block_given?
-		#	puts "@name #{@name}"
 			self
 		end
 

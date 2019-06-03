@@ -264,7 +264,7 @@ protected
 	def detect_edges kind = :in,  edge_name = nil, expand: true  #:nodoc:
 		## returns a list of inherented classes
 		get_superclass = ->(e) do
-			if ["", "e", "E", E ].include?(e)
+			if [nil,"", "e", "E", E, :e, :E ].include?(e)
 				"E"
 			else
 				n = orientdb.get_db_superclass(e)
@@ -280,7 +280,7 @@ protected
 									 /^in_|^out_/ 
 								 end
 
-		  extract_database_class = ->(c){ y =  c.to_s.gsub(expression, ''); y.empty? ? "E": y   }
+		extract_database_class = ->(c){ y =  c.to_s.gsub(expression, ''); y.empty? ? "E": y   }
 		# get a set of available edge-names 
 		# in_{abc} and out_{abc}
 		# with "out_" and "in_" as placeholder for E itself
@@ -308,11 +308,6 @@ protected
 				result = the_edges.find_all do |x|
 					 get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
 				end
-
-				# this is the same as find_all
-				#result = the_edges.map do |x|
-			#		x if get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
-			#	end.compact
 			end
 		end
 	# if expand = false , return the orientdb-databasename of the edges

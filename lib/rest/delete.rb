@@ -34,11 +34,17 @@ module RestDelete
 
 =begin
 	Deletes the specified class and returns true on success
+
+	The class-entries in ActiveOrient.database_classes and ORD.database_classes are removed.
+	
+	The Ruby-Class itself is untouched. 
+	However, any furter operation leads to an Error.
+
 todo: remove all instances of the class
 =end
 
 	def delete_class o_class
-		cl = classname(o_class)
+		cl = classname(o_class).to_s
 		return if cl.nil?
 		logger.progname = 'RestDelete#DeleteClass'
 

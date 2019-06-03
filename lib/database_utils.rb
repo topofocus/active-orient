@@ -33,7 +33,7 @@ To retrieve the class hierarchy from Objects avoid calling `ORD.classname (obj)`
 =end
 
 	def class_hierarchy base_class: '',  system_classes: nil
-		@actual_class_hash = get_classes('name', 'superClass') #if requery || @all_classes.blank?
+#		@actual_class_hash = get_classes('name', 'superClass') #if requery || @all_classes.blank?
 		fv = ->( s )	{ 	@actual_class_hash.find_all{|x| x['superClass']== s}.map{|v| v['name']} }
 		fx = ->( v )  {		fv[v.strip].map{|x| ar = fx[x]; ar.empty? ? x : [x, ar]} }
 		if system_classes.present?
@@ -45,13 +45,15 @@ To retrieve the class hierarchy from Objects avoid calling `ORD.classname (obj)`
 
 
 =begin
-Returns an array with all names of the classes of the database. Uses a cached version if possible.
+
+Returns an array with all names of the classes of the database.
+
+Reads the database-structure and updates the @actual_class_hash (used by class_hierachy and get_db_superclass )
   
-Parameters: system_classes: false|true, requery: false|true
 =end
 
-  def database_classes system_classes: nil, requery: false
-    class_hierarchy system_classes: system_classes #requery: true
+  def database_classes system_classes: nil
+		@actual_class_hash = get_classes('name', 'superClass') 
     all_classes = get_classes('name').map(&:values).sort.flatten
     all_user_classes =  all_classes - system_classes()
 
@@ -65,8 +67,8 @@ Service-Method for Model#OrientdbClass
 =end
 
   def get_db_superclass name   #:nodoc:
-    @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
-   z= @actual_class_hash.find{|x,y|  x['name'] == name.to_s }
+#    @actual_class_hash = get_classes( 'name', 'superClass') if @actual_class_hash.nil? 
+   z= @actual_class_hash.find{|x,y|  x['name'] == name.to_s } 
    z['superClass'] unless z.nil?
   end
 
@@ -81,11 +83,11 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
 			allocate_class_in_ruby( db_name ) do |detected_class|
 			keep_the_dataset =  true
 			# keep the class if it is already noted in database_classes 
-		 if	![E,V].include?(detected_class) &&
+			if	![E,V].include?(detected_class) &&
 				!ActiveOrient.database_classes.key( detected_class) && 
 				!detected_class.require_model_file(from_model_dir) &&
-			  !ActiveOrient::Model.keep_models_without_file  
-	
+				!ActiveOrient::Model.keep_models_without_file  
+
 				logger.info{ "#{detected_class.name} -->  Class NOT allocated"}
 				ActiveOrient.database_classes[ detected_class.ref_name ] = "no model file"
 				keep_the_dataset = false 

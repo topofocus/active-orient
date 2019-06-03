@@ -65,7 +65,8 @@ Subsequent initialisations are made to initialise namespaced database classes, i
 																				:user   => defaults[:user].to_s ,
 																				:password => defaults[:password].to_s }
 			# setup connection pool
-			ActiveOrient.db_pool ||= Pond.new( :maximum_size => 15000, :timeout => 500) {  get_resource }
+			# database-settings: client.channel.maxPool = 100
+			ActiveOrient.db_pool ||= Pond.new( :maximum_size => 500, :timeout => 500) {  get_resource }
 #			ActiveOrient.db_pool.collection = :stack
       connect() 
       database_classes # initialize @classes-array and ActiveOrient.database_classes 
@@ -79,7 +80,7 @@ Subsequent initialisations are made to initialise namespaced database classes, i
 
 		# thread safe method to allocate a resource
     def get_resource
-			logger.info {"ALLOCATING NEW RESOURCE --> #{ ActiveOrient.db_pool.size }" }
+			logger.error {"ALLOCATING NEW RESOURCE --> #{ ActiveOrient.db_pool.size }" }
       login = [ActiveOrient.default_server[:user] , ActiveOrient.default_server[:password]]
       server_adress = "http://#{ActiveOrient.default_server[:server]}:#{ActiveOrient.default_server[:port]}"
 			 RestClient::Resource.new(server_adress, *login)
