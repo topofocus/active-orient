@@ -161,7 +161,11 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 		end
 
 		def method_missing method, *arg, &b
-			@misc << method.to_s <<  generate_sql_list(arg) 
+			if @misc[ method.to_s ].present?
+				 @misc[ method.to_s ] =   @misc[ method.to_s ] + 'and '+generate_sql_list(arg) 
+			else	
+				@misc << method.to_s <<  generate_sql_list(arg) 
+			end
 		end
 
 		def misc
@@ -221,7 +225,11 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
   where:[{ a: 2} , 'b > 3',{ c: 'ufz' }]  --> where a = 2 and b > 3 and c = 'ufz'
 =end
 		def method_missing method, *arg, &b   # :nodoc: 
-      @q[:misc] << method.to_s <<  generate_sql_list(arg) 
+			if method ==:while || method=='while'
+				while_s arg.first
+			else
+				@q[:misc] << method.to_s <<  generate_sql_list(arg) 
+			end 
 			self
     end
 
@@ -309,7 +317,7 @@ Parameter (all optional)
 			elsif destination == :rest
 				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
 			else
-				[ kind, projection, from, let, where, subquery,  misc, order, group_by, limit, unwind, skip].compact.join(' ')
+				[ kind, projection, from, let, where, subquery,  while_s,  misc, order, group_by, limit, unwind, skip].compact.join(' ')
 			end
 		end
 		alias :to_s :compose
@@ -369,6 +377,14 @@ Parameter (all optional)
   	  @q[:database] = arg 
     end
 
+		def while_s  value=nil     # :nodoc:
+			if value.present?
+				@q[:while] << value
+				self
+			elsif @q[:while].present?
+				"while #{ generate_sql_list( @q[:while] ) }"
+			end
+		end
 		def where  value=nil     # :nodoc:
 			if value.present?
 				@q[:where] << value

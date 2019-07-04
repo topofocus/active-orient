@@ -118,11 +118,11 @@ Assigns another Vertex via an EdgeClass. If specified, puts attributes on the ed
 Wrapper for 
   Edge.create in: self, out: a_vertex, attributes: { some_attributes on the edge }
 
-returns the assigned vertex, thus enableing to chain vertices through
+returns the assigned vertex, thus enabling to chain vertices through
 
     Vertex.assign() via: E , vertex: VertexClass.create()).assign( via: E, ... )
 or
-	  (1..100).each{|n| vertex = vertex.assign(via: E2, vertext: V2.create(item: n))}
+	  (1..100).each{|n| vertex = vertex.assign(via: E2, vertex: V2.create(item: n))}
 =end
 
   def assign vertex: , via: E , attributes: {}
