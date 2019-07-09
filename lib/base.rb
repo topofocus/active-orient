@@ -245,7 +245,7 @@ The model instance fields are then set automatically from the opts Hash.
 																 if val.keys.include?("@class" )
 																	 OrientSupport::Array.new( work_on: self, work_with: val.from_orient){ key.to_sym }
 																 else
-																	 OrientSupport::Hash.new( self, val  ){ key.to_sym }
+																	 OrientSupport::Hash.new( self, val  )
 																 end
 															 else
 																 val

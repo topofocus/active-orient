@@ -212,7 +212,7 @@ is a walkaround, but using in_- and out_edges is more  elegant.
 =begin
 Human readable represantation of Vertices
 
-Format: < Classname : Edges, Attributes >
+Format: < Classname: Edges, Attributes >
 =end
 	def to_human
 		count_and_display_classes = ->(array){array.map(&:class)&.group_by(&:itself)&.transform_values(&:count)} 
@@ -229,7 +229,7 @@ Format: < Classname : Edges, Attributes >
 		"<#{self.class.to_s.demodulize}[#{rid}]: " + in_and_out  + content_attributes.map do |attr, value|
 			v= case value
 				 when ActiveOrient::Model
-					 "< #{self.class.to_s.demodulize} : #{value.rid} >"
+					 "< #{self.class.to_s.demodulize}: #{value.rid} >"
 				 when OrientSupport::Array
 					 value.to_s
 #					 value.rrid #.to_human #.map(&:to_human).join("::")

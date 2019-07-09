@@ -229,8 +229,8 @@ returns thea modified Array but updates too the variable »t».
 		# Merge does not support assigning Hashes as values
 		def merge **arg
 			super
-			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_orient}" unless y.is_a?(Hash) }.compact.join( ', ' )
-			@orient.update( delete_cach: true ) { updating_string }[@name]
+			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_or}" unless y.is_a?(Hash) }.compact.join( ', ' )
+			@orient.update( delete_cache: true ) { updating_string }[@name]
 		end
 
 		alias  << merge 
