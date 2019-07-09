@@ -31,6 +31,7 @@ module RestChange
   def update record, attributes , version=0   
     r = ActiveOrient::Model.autoload_object record.rid 
     return(false) unless r.is_a?(ActiveOrient::Model)
+		raise "Cannot update the record, version-information missing. please reload ! " if version.nil?
     version = r.version if version.zero?
     result = patch_record(r.rid) do
       attributes.merge({'@version' => version, '@class' => r.class.ref_name })

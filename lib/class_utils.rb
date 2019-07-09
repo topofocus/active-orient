@@ -3,6 +3,8 @@ module ClassUtils
 
 =begin
   Returns a valid database-class name, nil if the class does not exists
+
+	works on the cached hash (ActiveOrient.database_classes)
 =end
 
   def classname name_or_class  # :nodoc:
@@ -21,9 +23,11 @@ module ClassUtils
 	     end
 	   end
   end
-	def allocate_class_in_ruby db_classname, &b
-		# retrieve the superclass recursively
 
+	# Updates ActiveOrient.database_classes
+	def allocate_class_in_ruby db_classname, &b
+		 
+		#  first retrieve the superclass recursively
 		unless ActiveOrient.database_classes[ db_classname ].is_a? Class
 
 			s = get_db_superclass( db_classname )
@@ -46,10 +50,9 @@ module ClassUtils
 									elsif ActiveOrient::Model.namespace.send( :const_get, classname).ancestors.include?( ActiveOrient::Model )
 										ActiveOrient::Model.namespace.send( :const_get, classname)
 									else
-										t= ActiveOrient::Model.send :const_set, classname, Class.new( superclass )
-										logger.warn{ "Unable to allocate class #{classname} in Namespace #{ActiveOrient::Model.namespace}"}
-										logger.warn{ "Allocation took place with namespace ActiveOrient::Model" }
-										t
+										logger.error{ "Unable to allocate class #{classname} in Namespace #{ActiveOrient::Model.namespace}"}
+										logger.error{ "Allocation took place with namespace ActiveOrient::Model" }
+										ActiveOrient::Model.send :const_set, classname, Class.new( superclass )
 									end
 			the_class.ref_name = db_classname
 			keep_the_dataset = block_given? ? yield( the_class ) : true
@@ -70,7 +73,7 @@ module ClassUtils
 				nil  # return-value
 			end
 		else
-			# return previosly allocated ruby-class
+			# return previously allocated ruby-class
 			ActiveOrient.database_classes[db_classname] 
 		end
 	end

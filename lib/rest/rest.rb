@@ -65,7 +65,8 @@ Subsequent initialisations are made to initialise namespaced database classes, i
 																				:user   => defaults[:user].to_s ,
 																				:password => defaults[:password].to_s }
 			# setup connection pool
-			ActiveOrient.db_pool ||= Pond.new( :maximum_size => 15000, :timeout => 500) {  get_resource }
+			# database-settings: client.channel.maxPool = 100
+			ActiveOrient.db_pool ||= Pond.new( :maximum_size => 25, :timeout => 50) {  get_resource }
 #			ActiveOrient.db_pool.collection = :stack
       connect() 
       database_classes # initialize @classes-array and ActiveOrient.database_classes 

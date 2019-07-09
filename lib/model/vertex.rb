@@ -118,11 +118,11 @@ Assigns another Vertex via an EdgeClass. If specified, puts attributes on the ed
 Wrapper for 
   Edge.create in: self, out: a_vertex, attributes: { some_attributes on the edge }
 
-returns the assigned vertex, thus enableing to chain vertices through
+returns the assigned vertex, thus enabling to chain vertices through
 
     Vertex.assign() via: E , vertex: VertexClass.create()).assign( via: E, ... )
 or
-	  (1..100).each{|n| vertex = vertex.assign(via: E2, vertext: V2.create(item: n))}
+	  (1..100).each{|n| vertex = vertex.assign(via: E2, vertex: V2.create(item: n))}
 =end
 
   def assign vertex: , via: E , attributes: {}
@@ -212,7 +212,7 @@ is a walkaround, but using in_- and out_edges is more  elegant.
 =begin
 Human readable represantation of Vertices
 
-Format: < Classname : Edges, Attributes >
+Format: < Classname: Edges, Attributes >
 =end
 	def to_human
 		count_and_display_classes = ->(array){array.map(&:class)&.group_by(&:itself)&.transform_values(&:count)} 
@@ -229,7 +229,7 @@ Format: < Classname : Edges, Attributes >
 		"<#{self.class.to_s.demodulize}[#{rid}]: " + in_and_out  + content_attributes.map do |attr, value|
 			v= case value
 				 when ActiveOrient::Model
-					 "< #{self.class.to_s.demodulize} : #{value.rid} >"
+					 "< #{self.class.to_s.demodulize}: #{value.rid} >"
 				 when OrientSupport::Array
 					 value.to_s
 #					 value.rrid #.to_human #.map(&:to_human).join("::")
@@ -264,7 +264,7 @@ protected
 	def detect_edges kind = :in,  edge_name = nil, expand: true  #:nodoc:
 		## returns a list of inherented classes
 		get_superclass = ->(e) do
-			if ["", "e", "E", E ].include?(e)
+			if [nil,"", "e", "E", E, :e, :E ].include?(e)
 				"E"
 			else
 				n = orientdb.get_db_superclass(e)
@@ -280,7 +280,7 @@ protected
 									 /^in_|^out_/ 
 								 end
 
-		  extract_database_class = ->(c){ y =  c.to_s.gsub(expression, ''); y.empty? ? "E": y   }
+		extract_database_class = ->(c){ y =  c.to_s.gsub(expression, ''); y.empty? ? "E": y   }
 		# get a set of available edge-names 
 		# in_{abc} and out_{abc}
 		# with "out_" and "in_" as placeholder for E itself
@@ -308,11 +308,6 @@ protected
 				result = the_edges.find_all do |x|
 					 get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
 				end
-
-				# this is the same as find_all
-				#result = the_edges.map do |x|
-			#		x if get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
-			#	end.compact
 			end
 		end
 	# if expand = false , return the orientdb-databasename of the edges

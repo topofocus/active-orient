@@ -101,7 +101,7 @@ The model instance fields are then set automatically from the opts Hash.
 		def initialize attributes = {}, opts = {}
 			logger.progname = "ActiveOrient::Base#initialize"
 			@metadata = Hash.new # HashWithIndifferentAccess.new
-			@d =  nil
+			@d =  nil if RUBY_PLATFORM == 'java' && attributes.is_a?( Document )
 			run_callbacks :initialize do
 				if RUBY_PLATFORM == 'java' && attributes.is_a?( Document )
 					@d = attributes
@@ -237,9 +237,9 @@ The model instance fields are then set automatically from the opts Hash.
 															 when Array
 																 if val.first.is_a?(Hash)
 																	 v = val.map{ |x| x }
-																	 OrientSupport::Array.new(work_on: self, work_with: v )
+																	 OrientSupport::Array.new(work_on: self, work_with: v ){ key_to_sym }
 																 else
-																	 OrientSupport::Array.new(work_on: self, work_with: val )
+																	 OrientSupport::Array.new(work_on: self, work_with: val ){ key_to_sym }
 																 end
 															 when Hash
 																 if val.keys.include?("@class" )

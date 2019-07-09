@@ -6,8 +6,23 @@ module OrientSupport
 	# of ActiveOrient
 	#
 	# The Database-Class is available through Array#record
-
-
+#
+# *caution:*
+# Don't mix ActiveOrient::Array's with conventional ones
+#   	> t= G21.first
+#     > t.ll
+#      => ["test", "test_2", 5, 8, 7988, "uzg"]
+#   	> t.ll = [9,6,7]    # This is an assignment of an Array to the variable »ll»
+#													# It does NOT call ActiveOrient::Array#=[]. 
+#   	 => [9, 6, 7]       # Instead an Array is assigned to the variable  »ll»
+#   
+# it is only updated localy, as shown if we reload the document
+#     > t= G21.first.attributes
+#      => {:ll=>["test", "test_2", 5, 8, 7988, "uzg"]} 
+#   
+# Thus its imperativ to safe the changes made.
+   
+   
 	class Array < Array
 		include OrientSupport::Support
 
@@ -33,7 +48,7 @@ module OrientSupport
 			@orient = work_on.class == Class ? work_on.new : work_on
 			super work_with
 			begin
-			@name = @orient.attributes.key(self) 
+			@name =  block_given? ? yield : @orient.attributes.key(self)
 			rescue TypeError => e   #  not defined
 				ActiveOrient::Base.logger.debug{ "--------------------Type Error ----------------------------------" }
 			ActiveOrient::Base.logger.debug("OrientSupport::Array"){ "Attributes  #{@orient.attributes.inspect}" }
@@ -47,7 +62,6 @@ module OrientSupport
 			ActiveOrient::Base.logger.debug{ "due to a bug in ActiveSupport DateTime Calculations" }
 			# we just ignore the error
 			end
-			@name =  yield if @name.nil? && block_given?
 		end
 		def as_json o=nil
 			map{|x| x.rid? ? x.rid : x }
@@ -60,37 +74,102 @@ module OrientSupport
 		def to_human
 			map &:to_human 
 		end
-#		returns the modified array and is chainable
+=begin
+
+Appends the arguments to the Array.
+
+Returns the modified database-document (not the array !!)
+=end
+		def   append *arg
+			
+			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or} "}[@name]
+			@orient.reload!
+		end
+=begin
+Append the argument to the Array, changes the Array itself.
+
+Returns the modified Array ( and is chainable )
 #
 #      i= V.get( '89:0')
 	#    ii=i.zwoebelkuchen <<  'z78' << 6 << [454, 787]
 	#		 => [7, 5, 6, "z78", 78, 45, "z78", 6, 454, 787] 
-=begin
-Append the argument to the Array, changes the Array itself.
 
 The change is immediately transmitted to the database. 
 
+The difference to `append`: that method accepts a komma separated list of arguments
+and returns the modified database-document. `<<` accepts only one argument. An 
+Array  is translated into multi-arguments of `append`
+
+	> t =  G21.create  ll:  ['test','test_2', 5, 8 , 7988, "uzg"]
+	  INFO->CREATE VERTEX ml_g21 CONTENT {"ll":["test","test_2",5,8,7988,"uzg"]}
+	  => #<ML::G21:0x0000000002622cb0 @metadata={:type=>"d", :class=>"ml_g21", :version=>1, 
+	  :fieldTypes=>nil, :cluster=>271, :record=>0}, 
+		@attributes={:ll=>["test", "test_2", 5, 8, 7988, "uzg"]}> 
+ > t.ll << [9,10]
+    INFO->update #271:0 set ll = ll || [9, 10]   return after @this
+     => ["test", "test_2", 5, 8, 7988, "uzg"] 
+ > t.ll << [9,10] << 'u'
+    INFO->update #271:0 set ll = ll || [9, 10]   return after @this
+    INFO->update #271:0 set ll = ll || ['u']   return after @this
+ => ["test", "test_2", 5, 8, 7988, "uzg", 9, 10]
+
+
+The Array can be treated separately
+
+  > z =  t.ll
+	 => ["test", "test_2", 5, 8, 7988, "uzg"] 
+  > z << 78
+  INFO->update #272:0 set ll = ll || [78]   return after @this
+  => ["test", "test_2", 5, 8, 7988, "uzg", 78] 
 
 =end
-		def   append arg
-			
-			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or} "}[@name]
+		def << arg
+			append( *arg).send @name
 		end
 
-		alias  << append 
+=begin
+
+Removes the specified list entries from the Array
+
+Returns the modified Array  (and is chainable).
+
+ > t= G21.first
+ > t.ll
+   => ["test", "test_2", 7988, "uzg", 6789, "xvy"] 
+ > u=  t.ll << 'xvz'
+ # INFO->update #272:0 set ll = ll || ['xvz']   return after @this
+ => ["test", "test_2", 7988, "uzg", 6789, "xvy", "xvz"] 
+ > z=  u.remove 'xvy'
+ # INFO->update #272:0 remove  ll = 'xvy'  return after @this
+ => ["test", "test_2", 7988, "uzg", 6789, "xvz"] 
+
+The ModelInstance is updated, too, as shown by calling 
+
+> t.ll
+ => ["test", "test_2", 7988, "uzg", 6789, "xvz"] 
 
 
+Thus 
+
+ > t.ll.remove 7988
+ # INFO->update #272:0 remove  ll = 7988  return after @this
+ => ["test", "test_2", "uzg", 6789, "xvz"] 
+ 
+returns thea modified Array but updates too the variable »t».
+=end
 		def remove *k
 			# todo combine queries in a transaction
 			ActiveOrient::Base.logger.debug { "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"}
 			k.map{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
 			@orient.reload!
+			@orient.send @name 
 		end
 
 
 =begin
 	Updating of single items
 =end
+
 
 		def []= key, value
 			super
@@ -129,12 +208,9 @@ The change is immediately transmitted to the database.
 		include OrientSupport::Support
 		def initialize modelinstance, args
 			super()
-		#	puts "Hash.new args #{args}"
 			@orient = modelinstance
 			self.merge! args
-			@name = modelinstance.attributes.key(self)
-			@name =  yield if @name.nil? && block_given?
-		#	puts "@name #{@name}"
+			@name =  block_given? ? yield : modelinstance.attributes.key(self)
 			self
 		end
 
@@ -153,8 +229,8 @@ The change is immediately transmitted to the database.
 		# Merge does not support assigning Hashes as values
 		def merge **arg
 			super
-			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_orient}" unless y.is_a?(Hash) }.compact.join( ', ' )
-			@orient.update( delete_cach: true ) { updating_string }[@name]
+			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_or}" unless y.is_a?(Hash) }.compact.join( ', ' )
+			@orient.update( delete_cache: true ) { updating_string }[@name]
 		end
 
 		alias  << merge 

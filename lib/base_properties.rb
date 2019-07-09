@@ -8,19 +8,19 @@ module ActiveOrient
 
 # Default presentation of ActiveOrient::Model-Objects
 
-    def to_human
-      "<#{self.class.to_s.demodulize}: " + content_attributes.map do |attr, value|
-	v= case value
-	   when ActiveOrient::Model
-	     "< #{self.class.to_.demodulize} : #{value.rrid} >"
-		 when OrientSupport::Array
-			 value.rrid #.to_human #.map(&:to_human).join("::")
-	   else
-	     value.from_orient
-	   end
-        "%s : %s" % [ attr, v]  unless v.nil?
-      end.compact.sort.join(', ') + ">".gsub('"' , ' ')
-    end
+		def to_human
+			"<#{self.class.to_s.demodulize}: " + content_attributes.map do |attr, value|
+				v= case value
+					 when ActiveOrient::Model
+						 "< #{self.class.to_.demodulize} : #{value.rrid} >"
+					 when OrientSupport::Array
+						 value.rrid #.to_human #.map(&:to_human).join("::")
+					 else
+						 value.from_orient
+					 end
+				"%s : %s" % [ attr, v]  unless v.nil?
+			end.compact.sort.join(', ') + ">".gsub('"' , ' ')
+		end
 
 # Comparison support
 

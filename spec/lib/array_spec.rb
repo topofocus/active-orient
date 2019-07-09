@@ -68,7 +68,7 @@ describe OrientSupport::Array do
     end
 
 
-    context "Work with arrays containing links" , focus: true do
+    context "Work with arrays containing links", focus: true   do
 #
 		  subject do	
 				new_record = TestModel.create ll: [ ]
@@ -81,10 +81,21 @@ describe OrientSupport::Array do
 				its(:last){ is_expected.to be_a LinkClass }
 				
 
-      it "add and remove records" do
-#        new_record = subject << 9,1,8 
-        expect{ subject << LinkClass.new( new: "Neu" ) }.to change { subject.size }.by 1
+      it "add a record" do
+				record =  subject.record
+				init = subject.size
+				subject << LinkClass.new( new: "Neu" )
+				expect( record.ll.size ).to eq init+1
+			end
 
+			it "remove a record" do
+				record =  subject.record
+				init = subject.size
+				subject << 'abc'
+				new_record =  subject.remove 'abc'
+				puts "New Record"
+				puts new_record.unspect
+				expect( new_record.ll.size ).to eq init -1
 #        expect{ new_record.ll.remove  *LinkClass.where( new: 'Neu' ) }.to change { new_record.ll.size }.by -1
  #       expect{ new_record.ll.remove  9 }.to change { new_record.ll.size }.by -1
   #      expect{ new_record.ll.remove 19 }.not_to change { new_record.ll.size }
