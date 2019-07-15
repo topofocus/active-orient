@@ -102,7 +102,7 @@ Graph-support:
   E.create_class :the_edge
   vertex_1 = TheVertex.create  color: "blue"
   vertex_2 = TheVertex.create  flower: "rose"
-  TheEdge.create_edge attributes: {:birthday => Date.today }, from: vertex_1, to: vertex_2
+  vertex_1.assign via: TheEdge, vertex: vertex_2, attributes: {:birthday => Date.today }
 ```
 It connects the vertices and assigns the attributes to the edge.
 
