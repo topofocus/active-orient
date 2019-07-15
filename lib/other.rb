@@ -159,8 +159,8 @@ class String
   def from_orient
 	  if rid?
 	    ActiveOrient::Model.autoload_object self
-	  elsif  # symbol-representation in the database
-	    self =~ /^:.*:$/
+	  elsif  self =~ /^:.*:$/
+			# symbol-representation in the database
 	    self[1..-2].to_sym
 	  else
 	    self
@@ -214,38 +214,40 @@ class String
 		end
 	end
 
-	def coerce a  #nodoc#
-	 nil	
-	end
+#	def coerce a  #nodoc#
+#	 nil	
+#	end
 
 	def to_human
 		self
 	end
 end
 
-class Hash #WithIndifferentAccess
+class Hash 
 
-	# converts "abc" => {anything} to :abc => {anything}
-	# converts "nn" => {anything} to nn => {anything}
+	# converts :abc => {anything} to "abc" => {anything}
+	#  
+	# converts nn => {anything} to nn => {anything}
+	#
+	# leaves "abc" => {anything} untouched
   def to_orient   # converts hast from activeorient to db
-    substitute_hash =  {} # HashWithIndifferentAccess.new
-#		puts "here to hash"
-    #keys.each{|k| puts self[k].inspect}
-    keys.each do |k| 
+    map do | k, v|
 			orient_k =  case k
 									when Numeric
 										k
 									when Symbol, String
 										k.to_s
 									else
-										nil
+										raise "not supported key: #[k} -- must a sting, symbol or number"
 									end
-			substitute_hash[orient_k] = self[k].to_orient
-		end
-    substitute_hash
+			[orient_k, v.to_orient]
+		end.to_h
   end
 
-  def from_orient   # converts hash from db to activeorient
+ # converts hash from db to activeorient
+	#
+	#
+  def from_orient  
     #puts "here hash.from_orient --> #{self.inspect}"
 		if keys.include?("@class" )
 			ActiveOrient::Model.orientdb_class( name: self["@class"] ).new self
@@ -253,35 +255,22 @@ class Hash #WithIndifferentAccess
 		elsif keys.include?("@type") && self["@type"] == 'd'  
 			ActiveOrient::Model.orientdb_class(name: 'query' ).new self
 		else
-			substitute_hash = Hash.new
-			keys.each do |k| 
+			map do |k,v| 
 				orient_k = if  k.to_s.to_i.to_s == k.to_s
 										 k.to_i
 									 else
 										 k.to_sym
 									 end
 
-				substitute_hash[orient_k] = self[k].from_orient
-			end
-			substitute_hash
+				[orient_k, v.from_orient]
+			end.to_h
 		end
 	end
 
 	# converts a hash to a string appropiate to include in raw queries
 	def to_or
-		"{ " + to_orient.map{|k,v| "#{k.to_s.to_or}: #{v.to_or}"}.join(',') + "}"
+		"{ " + to_orient.map{|k,v| "#{k.to_or}: #{v.to_or}"}.join(',') + "}"
 	end
-## needs testing!!
-#  def as_json o=nli
-#    #puts "here hash"
-#    substitute_hash = Hash.new
-#    keys.each{|k| substitute_hash[k] = self[k].as_json}
-#    substitute_hash
-#  end
-#  def nested_under_indifferent_access
-#    HashWithIndifferentAccess.new self
-#		self
-#  end
 end
 
 #class RecordList

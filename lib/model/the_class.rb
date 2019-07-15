@@ -214,7 +214,7 @@ Examples:
 			    linked_class: nil
 
 supported types: 
-	:bool         :double       :datetime     :float        :decimal      
+	:bool         :double       :datetime  = :date    :float        :decimal      
 	:embedded_list = :list      :embedded_map = :map        :embedded_set = :set          
 	:int          :integer      :link_list    :link_map     :link_set     
 
@@ -238,6 +238,7 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 			:bool          => "BOOLEAN",
 			:double        => "BYTE",
 			:datetime      => "DATE",
+			:date			     => "DATE",
 			:float         => "FLOAT",
 			:decimal       => "DECIMAL",
 			:embedded_list => "EMBEDDEDLIST",
@@ -361,7 +362,6 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 
   def properties
     object = orientdb.get_class_properties self
-    #HashWithIndifferentAccess.new :properties => object['properties'], :indexes => object['indexes']
     {:properties => object['properties'], :indexes => object['indexes']}
   end
   alias get_class_properties properties

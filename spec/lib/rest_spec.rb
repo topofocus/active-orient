@@ -217,6 +217,10 @@ describe ActiveOrient::OrientDB do
 	    expect( json_hash['a'] ).to eq 25
 	  end
   end
+
+	context " check the db_pool " do
+		before(:all){}
+	end
 end
 =begin
           it "get a document through the query-class" , focus: true do
