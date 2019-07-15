@@ -324,7 +324,7 @@ Parameter (all optional)
 				end
 			elsif kind.to_sym == :update
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$this" : @q[:aliases].first.to_s)
-				[ kind, @q[:database], set, where, return_statement ].compact.join(' ')
+				[ kind, @q[:database], set, where, @q[:database].rid? ? return_statement : nil ].compact.join(' ')
 			elsif destination == :rest
 				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
 			else

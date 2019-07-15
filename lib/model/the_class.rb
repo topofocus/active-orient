@@ -182,6 +182,8 @@ returns the affected record
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
 
+returns the count of affected records
+
   IB::Account.update_all connected: false
   IB::Account.update_all where: "account containsText 'F'", set:{ connected: false }
 
@@ -194,7 +196,9 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
     end
 	# the result is a hash. We are intersted in the value only
 		# expected: {"count" => n}
-    db.update_records( self, set: set, where: where).values.first
+		query_database(  OrientSupport::OrientQuery.new( kind: :update, set: set, where: where) ){|y| y.values}.flatten.first
+
+#    db.update_records( self, set: set, where: where).values.first
 
   end
 
