@@ -42,7 +42,7 @@ Upon initialization `ActiveOrient` reads the complete structure of the database,
 The CRUD-Process (create, read = query, update and remove) is performed as
 ```ruby	
     # create the class
-    ORD.create_class :m
+    V.create_class :m   # V is the base »vertex» class. M is a vertex-class.
     # create a record
     M.create name: 'Hugo', age: 46, interests: [ 'swimming', 'biking', 'reading' ]
     # query the database
