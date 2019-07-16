@@ -80,7 +80,7 @@ and the cached obj is returned
 					end
 					@@rid_store[obj.rid] 
 				else
-					nil 
+					obj 
 				end
 			end
 		end
@@ -211,7 +211,17 @@ The model instance fields are then set automatically from the opts Hash.
 
 			iv = attributes[key]
 			if my_metadata( key: key) == "t"
-				iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv)
+				# needed in case of 
+				#  obj.date =  {some-date}
+				#  --> perfrom an action on the date without saving prior
+				case iv
+				when String
+				iv =~ /00:00:00/ ? Date.parse(iv) : DateTime.parse(iv) 
+				when Date, DateTime
+			    iv
+				else
+				raise "incompatable type used: #{iv} (#{iv.class}) -- Date or DateTime required"	 
+				end
 			elsif my_metadata( key: key) == "x"
 				iv = ActiveOrient::Model.autoload_object iv
 			elsif iv.is_a? Array
@@ -290,6 +300,7 @@ The model instance fields are then set automatically from the opts Hash.
 #    end
 #
 =begin
+(Experimental)
 Exclude some properties from loading via get, reload!, get_document, get_record
 =end
     def self.exclude_the_following_properties *args

@@ -125,17 +125,11 @@ describe ActiveOrient::Model do
 				expect( obj.a_hash ).to eq  ah   # Hash-keys are always symbols!!
 			end
 
-			it "a value can be added to the array" do
+			it "a value can be added to the array (append)" do
 				the_updated_object = obj.update a_array: [1,4,'r',:r] 
 				expect(  the_updated_object.a_array).to eq  [1,4,'r',:r]  
-
-				puts "obj : #{the_updated_object}"
-			  the_updated_object.a_array << 56 
-				# object is not changed
-				expect( the_updated_object.a_array).to eq  [ 1,4,'r', :r ] 
-				the_updated_object.reload! 
+			  the_updated_object.a_array.append 56 
 				expect( the_updated_object.a_array).to eq  [ 1,4,'r', :r , 56] 
-				#expect( updated_array).to eq the_updated_object.a_array 
 			end
 		end
 

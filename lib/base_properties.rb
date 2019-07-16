@@ -30,8 +30,9 @@ module ActiveOrient
         attr.to_s =~ /(_count)\z/ || attr.to_s =~ /^in_/ || attr.to_s =~ /^out_/ || [:created_at, :updated_at, :type, :id, :order_id, :contract_id].include?(attr.to_sym)
       end]
     end
-
 # return a string ready to include as embedded document
+# used by Model.to_or 
+#
 		def embedded
 			{ "@type" => 'd', "@class" => self.class.ref_name }
 			            .merge(content_attributes)

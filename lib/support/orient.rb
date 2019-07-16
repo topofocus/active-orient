@@ -194,9 +194,10 @@ returns thea modified Array but updates too the variable »t».
 
 			self.map{|x| x.send *args }
 		rescue NoMethodError => e
-			ActiveOrient::Base.logger.error("OrientSupport::Array"){ "MethodMissing  -> Undefined method: #{args.first} --  Args: #{args[1..-1].inspect}"}
+			ActiveOrient::Base.logger.error("OrientSupport::Array"){ "#{self.inspect} MethodMissing  -> Undefined method: #{args.first} --  Args: #{args[1..-1].inspect}"}
 			ActiveOrient::Base.logger.error {" The Message #{e.message}"}
 			ActiveOrient::Base.logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
+			raise
 		end
 
 	end #Class
@@ -285,12 +286,12 @@ class Hash
 			"{ " + self.map{ |k,v| [k.to_s,": ", v.to_orient].join }.join(', ') + " }"
 		end
 
-		def coerce arg
-			if arg.is_a? DateTime
-				nil
-			else
-				super
-
-			end
-		end
+	#	def coerce arg
+	#		if arg.is_a? DateTime
+	#			nil
+	#		else
+	#			super
+#
+#			end
+#		end
 end

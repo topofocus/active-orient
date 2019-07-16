@@ -146,7 +146,7 @@ Universal method to create a new record.
 It's overloaded to create specific kinds, eg. edge and vertex  and is called only for abstract classes
 
 Example:
-  ORD.create_class :test
+  V.create_class :test
   Test.create string_attribute: 'a string', symbol_attribute: :a_symbol, array_attribute: [34,45,67]
   Test.create link_attribute: Test.create( :a_new_attribute => 'new' )
 
@@ -182,6 +182,8 @@ returns the affected record
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
 
+returns the count of affected records
+
   IB::Account.update_all connected: false
   IB::Account.update_all where: "account containsText 'F'", set:{ connected: false }
 
@@ -194,7 +196,9 @@ Sets a value to certain attributes, overwrites existing entries, creates new att
     end
 	# the result is a hash. We are intersted in the value only
 		# expected: {"count" => n}
-    db.update_records( self, set: set, where: where).values.first
+		query_database(  OrientSupport::OrientQuery.new( kind: :update, set: set, where: where) ){|y| y.values}.flatten.first
+
+#    db.update_records( self, set: set, where: where).values.first
 
   end
 
@@ -205,8 +209,9 @@ Create a Property in the Schema of the Class and optionaly create an automatic i
 
 Examples:
 
-      create_property  :customer_id, type: integer, index: :unique
+      create_property  :customer_id, type: :integer, index: :unique
       create_property(  :name, type: :string ) {  :unique  }
+      create_property(  :name, type: :string ) { name: 'some_index', on: :automatic, type: :unique  }
       create_property  :in,  type: :link, linked_class: V    (used by edges)
 
 :call-seq:  create_property(field (required), 
@@ -214,7 +219,7 @@ Examples:
 			    linked_class: nil
 
 supported types: 
-	:bool         :double       :datetime     :float        :decimal      
+	:bool         :double       :datetime  = :date    :float        :decimal      
 	:embedded_list = :list      :embedded_map = :map        :embedded_set = :set          
 	:int          :integer      :link_list    :link_map     :link_set     
 
@@ -238,6 +243,7 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 			:bool          => "BOOLEAN",
 			:double        => "BYTE",
 			:datetime      => "DATE",
+			:date			     => "DATE",
 			:float         => "FLOAT",
 			:decimal       => "DECIMAL",
 			:embedded_list => "EMBEDDEDLIST",
@@ -352,7 +358,10 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
     query_database( OrientSupport::OrientQuery.new( where: where, order: {"@rid" => 'desc'}, limit: 1)).pop  
 	end
 # Used to count of the elements in the class
-
+# 
+	# Examples
+	#    TestClass.count where: 'last_access is NULL'  # only records where 'last_access' is not set
+	#    TestClass.count                               # all records
   def count **args
     orientdb.count from: self, **args
   end
@@ -361,7 +370,6 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 
   def properties
     object = orientdb.get_class_properties self
-    #HashWithIndifferentAccess.new :properties => object['properties'], :indexes => object['indexes']
     {:properties => object['properties'], :indexes => object['indexes']}
   end
   alias get_class_properties properties

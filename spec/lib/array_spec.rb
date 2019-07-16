@@ -94,8 +94,8 @@ describe OrientSupport::Array do
 				subject << 'abc'
 				new_record =  subject.remove 'abc'
 				puts "New Record"
-				puts new_record.unspect
-				expect( new_record.ll.size ).to eq init -1
+				puts new_record.inspect
+				expect( subject.ll.size ).to eq init -1
 #        expect{ new_record.ll.remove  *LinkClass.where( new: 'Neu' ) }.to change { new_record.ll.size }.by -1
  #       expect{ new_record.ll.remove  9 }.to change { new_record.ll.size }.by -1
   #      expect{ new_record.ll.remove 19 }.not_to change { new_record.ll.size }

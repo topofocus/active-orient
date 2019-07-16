@@ -18,6 +18,7 @@ _Usecase:_
     #
 		def compose_where *arg , &b
 			arg = arg.flatten.compact
+
 			unless arg.blank? 
 				g= generate_sql_list( arg , &b)
 				"where #{g}" unless g.empty?
@@ -30,6 +31,10 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
     => "where = 25 and upper = '65'"
    ORD.generate_sql_list(  con_id: 25 , symbol: :G) { ',' } 
     => "con_id = 25 , symbol = 'G'"
+
+If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (used by set:  in update and upsert),
+{ key: [nil]  } is translated to "key is NULL" ( used by where )
+
 =end
 		def generate_sql_list attributes = {}, &b
 			fill = block_given? ? yield : 'and'
@@ -37,12 +42,18 @@ designs a list of "Key =  Value" pairs combined by "and" or the binding  provide
 			when ::Hash
 				attributes.map do |key, value|
 					case value
+					when nil
+						"#{key} =  NULL"
 					when ActiveOrient::Model
 						"#{key} = #{value.rrid}"
 					when Numeric
 						"#{key} = #{value}"
 					when ::Array
+						if value == [nil]
+						"#{key} is NULL"
+						else	
 						"#{key} in [#{value.to_orient}]"
+						end
 					when Range
 						"#{key} between #{value.first} and #{value.last} " 
 					when DateTime
@@ -313,7 +324,7 @@ Parameter (all optional)
 				end
 			elsif kind.to_sym == :update
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$this" : @q[:aliases].first.to_s)
-				[ kind, @q[:database], set, where, return_statement ].compact.join(' ')
+				[ kind, @q[:database], set, where, @q[:database].rid? ? return_statement : nil ].compact.join(' ')
 			elsif destination == :rest
 				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
 			else
@@ -420,6 +431,8 @@ class << self
 					elsif @q[def_m].present?
 						"let " << @q[def_m].map do |s|
 																		case s
+																		when nil
+																			"NULL"
 																		when String
 																			s
 																		when ::Array
