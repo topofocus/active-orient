@@ -15,7 +15,8 @@ RSpec.describe OrientSupport::OrientQuery do
 #	after(:all){ @db.delete_database database: 'temp' }
   context "Initialize the QueryClass" do
     Given( :query ){  OrientSupport::OrientQuery.new from: TestQuery }
-    Then { expect( query ).to be_a OrientSupport::OrientQuery }
+    Then { expect(query).to be_a OrientSupport::OrientQuery }
+		Then { expect( query.to_s).to eq "select from test_query " }
 
 		Given( :traverse_query ) do
 					OrientSupport::OrientQuery.new from: TestQuery, 
@@ -24,13 +25,28 @@ RSpec.describe OrientSupport::OrientQuery do
 		end
     Then  {  expect(traverse_query.to_s).to eq "traverse from test_query where a = 2 and c = 'ufz' "  }
 
-		Given( :update_query ) do
+		Given( :update_with_class ) do
 					OrientSupport::OrientQuery.new from: TestQuery, 
 																				 where: { a: 2},	
 																				 set: { c: 'ufz' }, 
 																				 kind: 'update'  
 		end
-    Then  {  expect(update_query.to_s).to eq "update test_query set c = 'ufz' where a = 2 return after $this"  }
+    Then  {  expect(update_with_class.to_s).to eq "update test_query set c = 'ufz' where a = 2"  }
+		Given( :update_with_rid ) do
+					OrientSupport::OrientQuery.new from: "#33:0", 
+																				 where: { a: 2},	
+																				 set: { c: 'ufz' }, 
+																				 kind: 'update'  
+		end
+    Then  {  expect(update_with_rid.to_s).to eq "update #33:0 set c = 'ufz' where a = 2 return after $current"  }
+
+		Given( :update_of_an_array ) do
+					OrientSupport::OrientQuery.new from: "#33:0", 
+																				 where: { a: 2},	
+																				 set: { c: [ :a, 'b', 3 ] }, 
+																				 kind: 'update'  
+		end
+    Then  {  expect(update_of_an_array.to_s).to eq "update #33:0 set c = [':a:', 'b', 3] where a = 2 return after $current"  }
   #  it "where with dates" do 
   #    date = Date.today
   #    q = OrientSupport::OrientQuery.new from: :Openinterest, 
@@ -91,7 +107,7 @@ RSpec.describe OrientSupport::OrientQuery do
 
 		end
 
-		context " old stuff,  but still working" do 
+		context " old stuff,  still working" do 
     it "subsequent Initialisation"  do
       q =  OrientSupport::OrientQuery.new
       q.from  'test_query'
