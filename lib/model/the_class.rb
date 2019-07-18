@@ -363,7 +363,10 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 	#    TestClass.count where: 'last_access is NULL'  # only records where 'last_access' is not set
 	#    TestClass.count                               # all records
   def count **args
-    orientdb.count from: self, **args
+		q = OrientSupport::OrientQuery.new args
+    q.projection  'COUNT(*)'
+		query_database( q){ |y| y.values }.flatten.first
+#    orientdb.count from: self, **args
   end
 
 # Get the properties of the class
@@ -575,7 +578,7 @@ query_database is used on model-level and submits
 		query.from self if query.is_a?(OrientSupport::OrientQuery) && query.from.nil?
     result = db.execute{  query.to_s  }
 		result = if block_given?
-							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
+							 result.is_a?(Array) ? result.map{|x| yield(x) } : yield(result)
 						 else
 							 result
 						 end

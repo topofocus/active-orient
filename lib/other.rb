@@ -91,9 +91,9 @@ iv [7, 9, 9, 7, 8, 8, 3, 6, 9, ":zt:", ":zt:", ":zg:", ":zg:", ":tzu:", ":grotte
   ./active-orient-console:51:in `<main>'
 =end
 
-	def coerce a  #nodoc#
-	 nil	
-	end
+	#def coerce a  #nodoc#
+	# nil	
+	#end
 end
 
 class Object
@@ -107,6 +107,11 @@ class Object
 end
 
 
+class NilClass
+	def to_or
+		"NULL"
+	end
+end
 class Date
   def to_orient
     if RUBY_PLATFORM == 'java'
@@ -115,8 +120,16 @@ class Date
       self
     end
   end
+	def to_or
+		"date(\'#{self.to_s}\',\'yyyy-MM-dd\')"
+	end
 end
 
+class DateTime
+ def to_or
+	 "date(\'#{self.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
+ end
+end
 
 class Numeric
 
@@ -255,6 +268,7 @@ class Hash
 		elsif keys.include?("@type") && self["@type"] == 'd'  
 			ActiveOrient::Model.orientdb_class(name: 'query' ).new self
 		else
+			# populate the hash by converting keys: stings to symbols, values: proprocess through :from_orient
 			map do |k,v| 
 				orient_k = if  k.to_s.to_i.to_s == k.to_s
 										 k.to_i

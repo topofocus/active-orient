@@ -36,7 +36,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 { key: [nil]  } is translated to "key is NULL" ( used by where )
 
 =end
-		def generate_sql_list attributes = {}, &b
+		def generate_sql_list attributes = {},  &b
 			fill = block_given? ? yield : 'and'
 			case attributes 
 			when ::Hash
@@ -44,10 +44,6 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 					case value
 					when nil
 						"#{key} =  NULL"
-					when ActiveOrient::Model
-						"#{key} = #{value.rrid}"
-					when Numeric
-						"#{key} = #{value}"
 					when ::Array
 						if value == [nil]
 						"#{key} is NULL"
@@ -56,12 +52,8 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 						end
 					when Range
 						"#{key} between #{value.first} and #{value.last} " 
-					when DateTime
-						"#{key} = date(\'#{value.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
-					when Date
-						"#{key} = date(\'#{value.to_s}\',\'yyyy-MM-dd\')"
 					else #  String, Symbol, Time, Trueclass, Falseclass ...
-						"#{key} = \'#{value.to_s}\'"
+						"#{key} = #{value.to_or}"
 					end
 				end.join(" #{fill} ")
 			when ::Array
@@ -221,6 +213,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 								'',  # database
 								[]   #set
 			  args.each{|k,v| send k, v}
+				@fill = block_given? ?   yield  : 'and'
 		end
 		
 		def start value
@@ -323,8 +316,9 @@ Parameter (all optional)
 					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
 				end
 			elsif kind.to_sym == :update
-				return_statement = "return after " + ( @q[:aliases].empty? ?  "$this" : @q[:aliases].first.to_s)
-				[ kind, @q[:database], set, where, @q[:database].rid? ? return_statement : nil ].compact.join(' ')
+				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
+				[ kind, target, set, where, target.rid? ? return_statement : nil ].compact.join(' ')
+				#[ kind,  where, return_statement ].compact.join(' ')
 			elsif destination == :rest
 				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
 			else
@@ -333,30 +327,45 @@ Parameter (all optional)
 		end
 		alias :to_s :compose
 
+
+		def to_or
+			compose.to_or
+		end
 =begin
 	from can either be a Databaseclass to operate on or a Subquery providing data to query further
 =end
 
+		def target arg =  nil
+			if arg.present?
+				@q[:database] =  arg
+				self # return query-object
+			elsif @q[:database].present? 
+				the_argument =  @q[:database]
+				case @q[:database]
+									when ActiveOrient::Model   # a single record
+										the_argument.rrid
+									when self.class	      # result of a query
+										' ( '+ the_argument.compose + ' ) '
+									when Class
+										the_argument.ref_name
+									else
+										if the_argument.to_s.rid?	  # a string with "#ab:cd"
+											the_argument
+										else		  # a database-class-name
+											the_argument.to_s  
+										end
+									end
+			else
+				raise "cannot complete until a target is specified"
+			end
+		end
 
 		def from arg = nil
 			if arg.present?
-				@q[:database] = case arg
-												when ActiveOrient::Model   # a single record
-													arg.rrid
-												when OrientQuery	      # result of a query
-													' ( '+ arg.to_s + ' ) '
-												when Class
-													arg.ref_name
-												else
-													if arg.to_s.rid?	  # a string with "#ab:cd"
-														arg
-													else		  # a database-class-name
-														arg.to_s  
-													end
-												end
-				self
+				@q[:database] =  arg
+				self # return query-object
 			elsif  @q[:database].present? # read from
-				"from #{@q[:database]}" 
+				"from #{ target }"
 			end
 		end
 
@@ -398,10 +407,14 @@ Parameter (all optional)
 		end
 		def where  value=nil     # :nodoc:
 			if value.present?
-				@q[:where] << value
+				if value.is_a?( Hash ) && value.size >1
+												value.each {| a,b| where( {a => b} ) }
+				else
+					@q[:where] << value
+				end
 				self
 			elsif @q[:where].present?
-				"where #{ generate_sql_list( @q[:where] ) }"
+				"where #{ generate_sql_list( @q[:where] ){ @fill } }"
 			end
 		end
 		def distinct d
@@ -422,33 +435,28 @@ class << self
 				end
 			end
 		end
-		def mk_let_set_setter *m
+		def mk_std_setter *m
 			m.each do |def_m|
 				define_method( def_m  ) do | value = nil |
 					if value.present?
-						@q[def_m] << value
+						@q[def_m] << case value
+													when String
+														value
+													when ::Hash
+														value.map{|k,v| "#{k} = #{v.to_or}"}.join(", ")
+													else
+														raise "Only String or Hash allowed in  #{def_m} statement"
+													end
 						self
 					elsif @q[def_m].present?
-						"let " << @q[def_m].map do |s|
-																		case s
-																		when nil
-																			"NULL"
-																		when String
-																			s
-																		when ::Array
-																			s.join(',  ')
-																		when ::Hash  ### is not recognized in jruby
-																			#	      else
-																			s.map{|x,y| "$#{x} = (#{y})"}.join(', ')
-																		end
-																end.join(', ')
+						"#{def_m.to_s} #{@q[def_m].join(',')}"	
 					end # branch
 				end     # def_method
 			end  # each
-			end  #  def
+		end  #  def
 end # class << self
-		mk_simple_setter :limit, :skip, :unwind , :set
-#		mk_let_set_setter :set
+		mk_simple_setter :limit, :skip, :unwind 
+		mk_std_setter :set
 
 		def let       value = nil
 			if value.present?
@@ -459,16 +467,22 @@ end # class << self
 					case s
 					when String
 						s
-					when ::Array
-						s.join(',  ')
-					when ::Hash  ### is not recognized in jruby
-						#	      else
-						s.map{|x,y| "$#{x} = (#{y})"}.join(', ')
+					when ::Hash  
+						s.map do |x,y| 
+							# if the symbol: value notation of Hash is used, add "$" to the key
+							x =  "$#{x.to_s}"  unless x.is_a?(String) && x[0] == "$"
+							"#{x} = #{ case y 
+																		when self.class
+																			"(#{y.compose})"
+																		else
+																			y.to_orient
+																		end }"
+						end
 					end
 				end.join(', ')
 			end
 		end
-
+#
 		def projection value= nil  # :nodoc:
 			if value.present?
 				@q[:projection] << value
@@ -476,11 +490,11 @@ end # class << self
 			elsif  @q[:projection].present?
 				@q[:projection].compact.map do | s |
 					case s
-					when Array
+					when ::Array
 						s.join(', ')
 					when String, Symbol
 						s.to_s
-					else
+					when ::Hash
 						s.map{ |x,y| "#{x} as #{y}"}.join( ', ')
 					end
 				end.join( ', ' )
