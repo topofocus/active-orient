@@ -213,6 +213,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 								'',  # database
 								[]   #set
 			  args.each{|k,v| send k, v}
+				@fill = block_given? ?   yield  : 'and'
 		end
 		
 		def start value
@@ -406,10 +407,14 @@ Parameter (all optional)
 		end
 		def where  value=nil     # :nodoc:
 			if value.present?
-				@q[:where] << value
+				if value.is_a?( Hash ) && value.size >1
+												value.each {| a,b| where( {a => b} ) }
+				else
+					@q[:where] << value
+				end
 				self
 			elsif @q[:where].present?
-				"where #{ generate_sql_list( @q[:where] ) }"
+				"where #{ generate_sql_list( @q[:where] ){ @fill } }"
 			end
 		end
 		def distinct d
@@ -434,7 +439,6 @@ class << self
 			m.each do |def_m|
 				define_method( def_m  ) do | value = nil |
 					if value.present?
-						puts "VALUE:: #{value}"
 						@q[def_m] << case value
 													when String
 														value
@@ -464,12 +468,16 @@ end # class << self
 					when String
 						s
 					when ::Hash  
-						s.map{|x,y| "$#{x} = #{ case y 
+						s.map do |x,y| 
+							# if the symbol: value notation of Hash is used, add "$" to the key
+							x =  "$#{x.to_s}"  unless x.is_a?(String) && x[0] == "$"
+							"#{x} = #{ case y 
 																		when self.class
 																			"(#{y.compose})"
 																		else
 																			y.to_orient
-																		end }" }.join(', ')
+																		end }"
+						end
 					end
 				end.join(', ')
 			end

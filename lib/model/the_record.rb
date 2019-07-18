@@ -126,18 +126,29 @@ end
 =begin
 Convient update of the dataset 
 
+A) Using PATCH
+
 Previously changed attributes are saved to the database.
 
-Using the optional :set argument ad-hoc attributes can be defined
+Using the optional »:set:« argument ad-hoc attributes can be defined
     V.create_class :contracts
     obj = Contracts.first
     obj.name =  'new_name'
     obj.update set: { yesterdays_event: 35 }
 updates both, the »name« and the »yesterdays_event«-properties
 
-_note:_ The keyword »set« is optional, thus
-    obj.update  yesterdays_event: 35 
-is identical to the update statement above
+B) Manual Modus
+
+Update accepts a Block. The contents are parsed to »set«. Manual conversion of ruby-objects
+to the database-input format is nessesary
+
+i.e.
+	 hct is an Array of ActiveOrient::Model-records. 
+then
+	 obj.update {  "positions =  #{hct.to_or} " }
+translates to
+	 update #83:64 set positions =  [#90:18, #91:18, #92:18]   return after @this
+and returns the modified record.
 =end
 
   def update set:{}, add: nil, to: nil, **args
@@ -154,7 +165,8 @@ is identical to the update statement above
 			#	set.merge updated_at: DateTime.now
 			if rid.rid?
 				db.update( self, set, version )
-				reload!
+			#	query OrientSupport::OrientQuery.new( kind: :update, set: set ){|y| y.first.values.first}
+			reload!	
 			else  # new record
 				@attributes.merge! set
 				save
