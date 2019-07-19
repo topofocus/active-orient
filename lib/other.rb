@@ -106,7 +106,17 @@ class Object
   end
 end
 
+class Time
+	def to_or
+	 "date(\'#{self.strftime("%Y%m%d%H%M%S")}\',\'yyyyMMddHHmmss\')"
+	end
+end
 
+class Object 
+	def to_or
+		self
+	end
+end
 class NilClass
 	def to_or
 		"NULL"
