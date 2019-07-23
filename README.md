@@ -74,18 +74,13 @@ As for ActiveRecord-Tables, the Model-class itself provides methods to inspect a
 
 A »normal« Query is submitted via
 ```ruby
-  M.get_records projection: { projection-parameter },
-		  distinct: { some parameters },
-		  where: { where-parameter },
-		  order: { sorting-parameters },
-		  group_by: { one grouping-parameter},
-		  unwind:  ,
-		  skip:    ,
-		  limit:  
-
-#  or
- query = OrientSupport::OrientQuery.new {paramter}  
- M.query_database query
+  M.query.projection( projection-parameter)
+	  .distinct( some parameters)
+	  .where( where-parameter)
+	  .order( sorting-parameters )
+	  .group_by( one grouping-parameter )
+	  (...)
+	 .execute
 
 ```
 
