@@ -48,33 +48,38 @@ The extended representation of RID (format: *#00:00* )
   def to_or
     rid.rid? ?  rrid : "{ #{embedded} }"
   end
+	
+# returns a OrientSupport::OrientQuery 
+	def query **args
+		OrientSupport::OrientQuery.new( { from: self}.merge args)
+	end
 =begin
-Query uses the current model-record  as origin of the query.
+Execute a Query using the current model-record  as origin.
 
-It sends the OrientSupport::OrientQuery directly to the database and returns an 
+It sends the OrientSupport::OrientQuery to the database and returns an 
 ActiveOrient::Model-Object or an Array of Model-Objects as result. 
 
-*Usage:* Query the Database by traversing through edges and vertices starting at a known location
+*Usage:* Query the Database by traversing through links, edges and vertices starting at a known location
 
 =end
 
-  def query query, delete_cash: false
-    
-    query.from  rrid if query.is_a?( OrientSupport::OrientQuery) && query.from.nil?
-		ActiveOrient::Base.remove_rid( self ) if delete_cash
-    result = orientdb.execute{ query.to_s }
-		result = if block_given?
-							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
-						 else
-							 result
-						 end
-    if result.is_a? Array  
-      OrientSupport::Array.new work_on: self, work_with: result.orient_flatten
-    else
-      result
-    end  # return value
-   end
-
+#  def execute query, delete_cash: false
+#    
+#    query.from  rrid if query.is_a?( OrientSupport::OrientQuery) && query.from.nil?
+#		ActiveOrient::Base.remove_rid( self ) if delete_cash
+#    result = orientdb.execute{ query.to_s }
+#		result = if block_given?
+#							 result.is_a?(Array)? result.map{|x| yield x } : yield(result)
+#						 else
+#							 result
+#						 end
+#    if result.is_a? Array  
+#      OrientSupport::Array.new work_on: self, work_with: result.orient_flatten
+#    else
+#      result
+#    end  # return value
+#   end
+#
 =begin
 Fires a »where-Query» to the database starting with the current model-record.
 
@@ -149,24 +154,41 @@ then
 translates to
 	 update #83:64 set positions =  [#90:18, #91:18, #92:18]   return after @this
 and returns the modified record.
+
+The manual modus accepts the keyword »remove«. 
+
+	 obj.update(remove: true) {  "positions =  #{hct.first.to_or} " }
+translates to
+	 update #83:64  remove  positions =  #90:18   return after @this
+
+This can be achieved by
+   obj.positions
 =end
 
-  def update set:{}, add: nil, to: nil, **args
+  def update set: {}, remove: {}, **args
     logger.progname = 'ActiveOrient::Model#Update'
-
+	#	query( kind: update,  )
 		if block_given?			# calling vs. a block is used internally
 			# to remove an Item from lists and sets call update(remove: true){ query }
 			set_or_remove =  args[:remove].present? ? "remove" : "set"
 			#transfer_content from: 	 
-			updated_record = 	query( "update #{rrid} #{set_or_remove} #{ yield }  return after @this", delete_cash: true )&.first
+			updated_record = 	db.execute{  "update #{rrid}  #{ yield }  return after @this" } &.first
 			transfer_content from: updated_record  if updated_record.present?
 		else
-			set.merge! args
+			set = if remove.present?
+				puts "remove: #{remove.inspect}"
+				{ remove: remove.merge!( args) }
+			elsif set.present?
+				{ set: set.merge!( args) }
+			else
+				 { set: args }
+			end
 			#	set.merge updated_at: DateTime.now
 			if rid.rid?
-				db.update( self, set, version )
-			#	query OrientSupport::OrientQuery.new( kind: :update, set: set ){|y| y.first.values.first}
-			reload!	
+			#	puts "args: #{{kind: :update}.merge(  set )}"
+			#	puts "set: #{set.inspect}"
+				q= query( {kind: :update, }.merge(  set, remove ) ).execute(reduce: true){ |y| y[:$current].reload! }
+				transfer_content from: q if q.present?
 			else  # new record
 				@attributes.merge! set
 				save
@@ -176,7 +198,7 @@ and returns the modified record.
 
 # mocking active record  
   def update_attribute the_attribute, the_value # :nodoc:
-    update( delete_cash: true ){ " #{the_attribute} = #{the_value.to_or} " }
+    update the_attribute => the_value.to_or
   end
 
   def update_attributes **args    # :nodoc:

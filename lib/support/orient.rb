@@ -82,7 +82,7 @@ Returns the modified database-document (not the array !!)
 =end
 		def   append *arg
 			
-			@orient.update { "#{@name.to_s} = #{@name} || #{arg.to_or} "}[@name]
+			@orient.update { "set #{@name.to_s} = #{@name} || #{arg.to_or} "}[@name] if check_if_complete
 			@orient.reload!
 		end
 =begin
@@ -124,7 +124,7 @@ The Array can be treated separately
 
 =end
 		def << arg
-			append( *arg).send @name
+			append( *arg).send @name 
 		end
 
 =begin
@@ -155,25 +155,31 @@ Thus
  # INFO->update #272:0 remove  ll = 7988  return after @this
  => ["test", "test_2", "uzg", 6789, "xvz"] 
  
-returns thea modified Array but updates too the variable »t».
+returns thea modified Array 
 =end
 		def remove *k
 			# todo combine queries in a transaction
 			ActiveOrient::Base.logger.debug { "delete: #{@name} --< #{k.map(&:to_or).join( ' :: ' )}"}
-			k.map{|item| @orient.update( remove: true ){" #{@name} = #{item.to_or}"} }
-			@orient.reload!
-			@orient.send @name 
+		 k.map{|l|	@orient.update( {remove: { @name => l} } ) }
+	#		@orient.reload!
+	#		@orient.send @name 
 		end
 
 
+def check_if_complete
+	if @name.blank?
+		@orient.logger.warn{ "Database is uneffected. Operation is incomplete/ not allowed" }
+		false
+	else
+		true
+	end
+end
 =begin
 	Updating of single items
 =end
-
-
 		def []= key, value
 			super
-			@orient.update set: {@name => self} if @name.present?
+			@orient.update set: {@name => self} if @name.present?  if check_if_complete
 		end
 
 
@@ -183,7 +189,7 @@ returns thea modified Array but updates too the variable »t».
 			where_string = item.map{|m| where_string = compose_where( m ) }.join(' and ')
 			subquery= OrientSupport::OrientQuery.new from: @orient, projection: "expand( #{@name})"
 			q= OrientSupport::OrientQuery.new from: subquery, where: item
-			@orient.query q.to_s 
+			@orient.db.execute{  q.to_s } if check_if_complete
 
 		end
 
@@ -218,7 +224,8 @@ returns thea modified Array but updates too the variable »t».
 
 		def store  k, v
 			super
-			 @orient.update{ "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }[@name]
+			 @orient.update set:{ @name => {k => v} }# { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }[@name]
+			 @orient.send @name.to_sym
 		end
 
 		alias []= store
@@ -228,10 +235,11 @@ returns thea modified Array but updates too the variable »t».
 		# Keys are translated to symbols 
 		#
 		# Merge does not support assigning Hashes as values
+		# ** incomplete **
 		def merge **arg
 			super
 			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_or}" unless y.is_a?(Hash) }.compact.join( ', ' )
-			@orient.update( delete_cache: true ) { updating_string }[@name]
+	#		@orient.update( {  } delete_cache: true ) { updating_string }[@name]
 		end
 
 		alias  << merge 
@@ -243,7 +251,8 @@ returns thea modified Array but updates too the variable »t».
 # returns the removed items 
 		def remove *k
 			# todo combine queries in a transaction
-			r= k.map{ |key| @orient.update( remove: true ) { "#{@name.to_s}.#{key} " } }.last
+			r= k.map{ |key| @orient.update remove:  "#{@name}.#{key} "  }.last
+
 		end
 	#	def delete *key
 #

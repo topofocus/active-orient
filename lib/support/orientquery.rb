@@ -191,7 +191,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 
 	QueryAttributes =  Struct.new( :kind, :projection, :where, :let, :order, :while, :misc, 
 																:match_statements, :class, :return,  :aliases, :database, 
-																:set, :group, :skip, :limit, :unwind  )
+																:set, :remove, :group, :skip, :limit, :unwind )
 	
 	class OrientQuery
     include Support
@@ -211,7 +211,8 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 								'',  #  return
 								[],   # aliases
 								'',  # database
-								[]   #set
+								[],   #set,
+								[]  # remove
 			  args.each{|k,v| send k, v}
 				@fill = block_given? ?   yield  : 'and'
 		end
@@ -316,8 +317,9 @@ Parameter (all optional)
 					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
 				end
 			elsif kind.to_sym == :update 
+				puts "conf: #{q.inspect}"
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
-				[ 'update', target, set, return_statement , where, limit, misc ].compact.join(' ')
+				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
 			elsif kind.to_sym == :update!
 				[ 'update', target, set,  where, limit, misc ].compact.join(' ')
 			#	[ kind, target, set,  return_statement ,where,  limit, misc ].compact.join(' ')
@@ -462,7 +464,7 @@ class << self
 		end  #  def
 end # class << self
 		mk_simple_setter :limit, :skip, :unwind 
-		mk_std_setter :set
+		mk_std_setter :set, :remove
 
 		def let       value = nil
 			if value.present?
@@ -557,16 +559,15 @@ end # class << self
 			result = V.orientdb.execute{ compose }
 			result =  result.map{|x| yield x } if block_given?
 			result =  result.first if reduce && result.size == 1
-			if result.is_a? Array
+			if result.is_a? ::Array
 				OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
 			else
 				result
 			end
 		end
-			private
+:protected
 		def resolve_target
-			case  @q[:database]
-			when OrientSupport::OrientQuery
+			if @q[:database].is_a? OrientSupport::OrientQuery
 				@q[:database].resolve_target
 			else
 				@q[:database]

@@ -169,7 +169,7 @@ RSpec.describe OrientSupport::OrientQuery do
 
 
 		context "execute" do
-			context "simple queries" do 
+			context "class based queries" do 
 				before(:all) do
 					(1..200).each{|y| TestQuery.create c: y }
 				end
@@ -218,6 +218,36 @@ RSpec.describe OrientSupport::OrientQuery do
 
 
 
+			end
+
+			context "model record based queries" , focus: true do
+				before( :all ) do
+					TestQuery.delete all: true
+				 @the_record =  TestQuery.create c:1 
+				end
+
+				it " simple update " do
+					r = @the_record.update d:[ 1, 2, 3]
+					expect(r).to be_a TestQuery
+					expect(r.c).to eq 1
+					expect(r.d).to eq [1,2,3]
+					expect( TestQuery.count ).to eq 1
+				end
+				it " simple remove " do
+					r = @the_record.update remove:{ d:1}
+					puts r.inspect
+					expect(r).to be_a TestQuery
+					expect(r.c).to eq 1
+					expect(r.d).to  eq [ 2,3 ]
+				end
+
+				it "store a value in a hash" do 
+					r =  @the_record.update( {h: { a: 'b' }} )
+					expect(r.h).to eq  a: 'b' 
+					updated_hash = @the_record.h.store :c,10
+					expect(@the_record.reload!.h).to eq  a: 'b' , c: 10
+					#r = @the_record.update remove:{ d:1}
+				end
 			end
 
 		end
