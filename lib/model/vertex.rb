@@ -74,10 +74,10 @@ List edges
 	def nodes in_or_out = :out, via:  nil, where: nil, expand:  false
 			edges =  detect_edges( in_or_out, via, expand: false )
 			return [] if edges.empty?
-			q = OrientSupport::OrientQuery.new 
+			q = query
 			edges = nil if via.nil?
 			q.nodes in_or_out, via:  edges , where: where, expand: expand
-			detected_nodes=	query( q ){| record | record.is_a?(Hash)?  record.values.first : record  }
+			detected_nodes=	q.execute{| record | record.is_a?(Hash)?  record.values.first : record  }
 	end
 
 
@@ -96,14 +96,13 @@ List edges
 	def traverse in_or_out = :out, via: nil,  depth: 1, execute: true, start_at: 0, where: nil
 
 			edges = detect_edges( in_or_out, via, expand: false)
-			the_query = OrientSupport::OrientQuery.new kind: 'traverse' 
+			the_query = query kind: 'traverse' 
 			the_query.where where if where.present?
 			the_query.while "$depth < #{depth} " unless depth <=0
-			the_query.from   self
 			edges.each{ |ec| the_query.nodes in_or_out, via: ec, expand: false }
 			outer_query = OrientSupport::OrientQuery.new from: the_query, where: "$depth >= #{start_at}"
 			if execute 
-				query( outer_query ) 
+			   outer_query.execute
 				else
 		#			the_query.from self  #  complete the query by assigning self 
 					the_query            #  returns the OrientQuery  -traverse object

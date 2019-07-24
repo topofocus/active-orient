@@ -163,46 +163,52 @@ Example:
 		end
 	end
 
+
+	# returns a OrientSupport::OrientQuery 
+	def query **args
+		OrientSupport::OrientQuery.new( {from: self}.merge args)
+	end
+
 =begin 
-Creates or updates a record.
+Creates or updates  records.
 Parameter: 
 - set: A hash of attributes to insert or update unconditionally
 - where: A string or hash as condition which should return just one record.
 
 The where-part should be covered with an unique-index.
 
-returns the affected record
+
+returns the affected record, if the where-condition is set properly.
+Otherwise upsert acts as »update« and returns all updated records (as array).
 =end
-  def upsert set: nil, where: 
+  def upsert set: nil, where: , **args
 		set = where if set.nil?
-	# the result is a hash. We are intersted in the value only
-		# expected: {"@rid" => "#aa:bb"}
-    db.upsert( self, set: set, where: where) &.values.first.reload!
+		query( args.merge( kind: :upsert, set: set, where: where )).execute(reduce: true){|y| y[:$current].reload!}
   end
 =begin
 Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
 
 returns the count of affected records
 
-  IB::Account.update_all connected: false
-  IB::Account.update_all where: "account containsText 'F'", set:{ connected: false }
-
-**note: By calling UpdateAll, all records of the Class previously stored in the rid-cache are removed from the cache. Thus autoload gets the updated records.
+  IB::Account.update connected: false
+  IB::Account.update where: "account containsText 'F'", set:{ connected: false }
+#	or
+  IB::Account.update  connected: false, where: "account containsText 'F'"
 =end
 
-  def update_all where: {} , set: {},  **arg
-    if where.empty?
-      set.merge! arg
-    end
-	# the result is a hash. We are intersted in the value only
-		# expected: {"count" => n}
-		query_database(  OrientSupport::OrientQuery.new( kind: :update, set: set, where: where) ){|y| y.values}.flatten.first
-
-#    db.update_records( self, set: set, where: where).values.first
-
+  def update! where: nil , set: {},  **arg
+		query( kind: :update!, set: set.merge(arg), where: where).execute(reduce: true){|y| y[:count]}
   end
 
-	alias update update_all
+	alias update_all update!
+
+
+# same as update!, but returns a list of  updated records
+	def update where:  , set: {},  **arg
+		# In OrientDB V.3 the database only returns the affected rid's 
+		# We have to update the contents manually, this is done in the execute-block
+		query( kind: :update, set: set.merge(arg), where: where).execute{|y| y[:$current].reload!}
+	end
 
 =begin
 Create a Property in the Schema of the Class and optionaly create an automatic index
@@ -343,30 +349,29 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 # get all the elements of the class
 
   def all
-    db.get_records from: self
+		query.execute
   end
 
 # get the first element of the class
 
-  def first where: {}
-    db.get_records(from: self, where: where, limit: 1).pop
-  end
+  def first **args
+    query( { order: "@rid" , limit: 1 }.merge args).execute(reduce: true)
+	end
+   # db.get_records(from: self, where: where, limit: 1).pop
+  #end
 
 # get the last element of the class
-
-  def last where: {}
-    query_database( OrientSupport::OrientQuery.new( where: where, order: {"@rid" => 'desc'}, limit: 1)).pop  
+  def last **args
+    query( { order: {"@rid" => 'desc'} , limit: 1 }.merge args).execute(reduce: true)
 	end
+
 # Used to count of the elements in the class
 # 
 	# Examples
 	#    TestClass.count where: 'last_access is NULL'  # only records where 'last_access' is not set
 	#    TestClass.count                               # all records
   def count **args
-		q = OrientSupport::OrientQuery.new args
-    q.projection  'COUNT(*)'
-		query_database( q){ |y| y.values }.flatten.first
-#    orientdb.count from: self, **args
+		query( { projection:  'COUNT(*)' }.merge args ).execute(reduce: true){|x|  x[:"COUNT(*)"]}
   end
 
 # Get the properties of the class
@@ -478,14 +483,14 @@ instead of links.
 =end
 
   def where *attributes 
-    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }.merge( where: attributes )
+    q= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }.merge( where: attributes )
 #    query.match_statements[0].where   attributes unless attributes.empty?
 		# the block contains a result-record : 
 		#<ActiveOrient::Model:0x0000000003972e00 
 		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
 		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
 		#		             ^...........° -> classname.pluralize
-    query_database( query) { | record | record[classname.pluralize.to_sym] }
+    query_database( q) { | record | record[classname.pluralize.to_sym] }
 #			record.map do | key, value | 
 
 #			record.is_a?(ActiveOrient::Model) ? record : record.send( self.classname.pluralize.to_sym ) }

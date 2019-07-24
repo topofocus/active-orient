@@ -50,7 +50,7 @@ describe ActiveOrient::OrientDB do
   end
 
 
-	context " embedd  records,"  do
+	context " embedd  records,", focus: true  do
 		before(:all) do
 
 			the_structure = [{ :key=>"WarrantValue", :value=>"8789", :currency=>"HKD"},
@@ -59,16 +59,18 @@ describe ActiveOrient::OrientDB do
 
 
 			@b =  Base.create( a_set: {}) 
-			@c=			@b.a_set << Hash[  the_structure.map{|x| [x[:key] , [x[:value], x[:currency] ] ] } ] 
+	the_hash= 	Hash[  the_structure.map{|x| [x[:key].underscore.to_sym, [x[:value], x[:currency] ] ] } ] 
+	puts "the_hash:  #{the_hash}"
+	@c=			@b.a_set << the_hash
 		end
 		context "the default embedded set" do
 			subject { @b.a_set }
 
 			its(:size){ is_expected.to eq 3 }
-			its(:keys){ is_expected.to include :WhatIfPMEnabled  }
+			its(:keys){ is_expected.to include :what_if_pm_enabled  }
 			its(:values){ is_expected.to include ["8789","HKD"]  }
 			it "can be accessed by key" do
-				expect( subject[:WarrantValue].first ).to eq "8789"
+				expect( subject[:warrant_value].first ).to eq "8789"
 			end
 		end
 		context "simple operations" do

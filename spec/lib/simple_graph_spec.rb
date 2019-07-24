@@ -77,7 +77,7 @@ after(:all){ @db.delete_database database: 'temp' }
 		end
 
 
-		context "linear graph" do
+		context "linear graph"  do
 
 			before(:all) do
 				start_node =  Base.create( item: 'l' ) 
@@ -92,13 +92,17 @@ after(:all){ @db.delete_database database: 'temp' }
 				Then {  expect( hundred_elements.size ).to eq 100 }
 			end
 
-			context ", get decent elements of the collection" do
+			context ", get decent elements of the collection"  do
 				Given( :hundred_elements ) { start_point.traverse :out, via: /con/, depth: 100, execute: false }
-				Given( :fetch_elements ) { start_point.query hundred_elements }
-				Then {  expect( fetch_elements.size ).to eq 100 }  
+				Then { expect(hundred_elements).to be_a OrientSupport::OrientQuery }
+#				it{ puts "hundred_elements #{hundred_elements.to_s}" }
+#				Given( :fetch_elements ) { start_point.execute }
+#				Then {  expect( fetch_elements.size ).to eq 100 }  
 
 				Given( :fifty_elements ) { start_point.traverse :out, via: /con/, depth: 100, start_at: 50}
 				Then { expect( fifty_elements.size).to  eq 50 }
+				Then { expect( fifty_elements).to  be_a OrientSupport::Array }
+				it{ puts "hundred_elements #{fifty_elements.class}" }
 				Then { expect( fifty_elements.note_count ).to eq (51 .. 100).to_a }
 
 				context "and apply median to the set" do
@@ -112,6 +116,13 @@ after(:all){ @db.delete_database database: 'temp' }
 					Given( :median_q ){ @db.execute{ median.to_s }.first }
 					Then {  median_q.keys == ["median(note_count)".to_sym] }
 					Then {  expect( median_q.values).to eq [75.5] }
+				end
+
+				context "use nodes" do
+					Given( :start ){ Node.where( note_count: 67).first }
+					Then { expect( start.nodes ).to be_a OrientSupport::Array }
+					Then { expect( start.nodes.first ).to be_a ExtraNode }
+					Then { expect( start.nodes.count ).to eq 1 }
 				end
 
 			end

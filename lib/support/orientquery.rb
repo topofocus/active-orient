@@ -191,7 +191,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 
 	QueryAttributes =  Struct.new( :kind, :projection, :where, :let, :order, :while, :misc, 
 																:match_statements, :class, :return,  :aliases, :database, 
-																:set, :group, :skip, :limit, :unwind  )
+																:set, :remove, :group, :skip, :limit, :unwind )
 	
 	class OrientQuery
     include Support
@@ -211,7 +211,8 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 								'',  #  return
 								[],   # aliases
 								'',  # database
-								[]   #set
+								[],   #set,
+								[]  # remove
 			  args.each{|k,v| send k, v}
 				@fill = block_given? ?   yield  : 'and'
 		end
@@ -315,9 +316,15 @@ Parameter (all optional)
 					match_query << @q[:match_statements][1..-1].map( &:compose ).join
 					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
 				end
-			elsif kind.to_sym == :update
+			elsif kind.to_sym == :update 
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
-				[ kind, target, set, where, target.rid? ? return_statement : nil ].compact.join(' ')
+				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
+			elsif kind.to_sym == :update!
+				[ 'update', target, set,  where, limit, misc ].compact.join(' ')
+			#	[ kind, target, set,  return_statement ,where,  limit, misc ].compact.join(' ')
+			elsif kind.to_sym == :upsert 
+				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
+				[ "update", target, set,"upsert",  return_statement , where, limit, misc  ].compact.join(' ')
 				#[ kind,  where, return_statement ].compact.join(' ')
 			elsif destination == :rest
 				[ kind, projection, from, let, where, subquery,  misc, order, group_by, unwind, skip].compact.join(' ')
@@ -373,6 +380,7 @@ Parameter (all optional)
 		def order  value = nil
 			if value.present?
 				@q[:order] << value
+				self
 			elsif @q[:order].present?
 
 				"order by " << @q[:order].compact.flatten.map do |o|
@@ -456,7 +464,7 @@ class << self
 		end  #  def
 end # class << self
 		mk_simple_setter :limit, :skip, :unwind 
-		mk_std_setter :set
+		mk_std_setter :set, :remove
 
 		def let       value = nil
 			if value.present?
@@ -546,6 +554,27 @@ end # class << self
 			 self
 		end
 
+
+		def execute(reduce: false)
+			result = V.orientdb.execute{ compose }
+			result =  result.map{|x| yield x } if block_given?
+			result =  result.first if reduce && result.size == 1
+			if result.is_a?( ::Array) && result.detect{|o| o.respond_to?( :rid?) && o.rid? }  
+				OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
+			else
+				result
+			end
+		end
+:protected
+		def resolve_target
+			if @q[:database].is_a? OrientSupport::OrientQuery
+				@q[:database].resolve_target
+			else
+				@q[:database]
+			end
+		end
+
+	#	end
 	end # class
 
 

@@ -17,6 +17,7 @@ describe ActiveOrient::Model do
 		@db.create_class :work 
     V.create_class :test_model, :test_model2, :my_node  # creates class TestModel, TestModel2
 		E.create_class :my_edge 
+		TestModel2.create_property :c, type: :integer, index: :unique
   end
 	after(:all){ @db.delete_database database: 'temp' }
 
@@ -228,7 +229,7 @@ let( :node_3) { TestModel.where( test: 16 ).first }
 					
 				subject{ TestModel2.upsert set: { a: 6, b:7 }, where: { c: 9 } }
 				it_behaves_like 'a valid record'
-				its( :version ){ is_expected.to be > 1 }
+				its( :version ){ is_expected.to be > 1}
 				its( :a ){ is_expected.to eq 6 }
 			end
 		end
