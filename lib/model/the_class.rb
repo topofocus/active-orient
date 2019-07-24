@@ -196,7 +196,7 @@ returns the count of affected records
   IB::Account.update  connected: false, where: "account containsText 'F'"
 =end
 
-  def update! where:  , set: {},  **arg
+  def update! where: nil , set: {},  **arg
 		query( kind: :update!, set: set.merge(arg), where: where).execute(reduce: true){|y| y[:count]}
   end
 

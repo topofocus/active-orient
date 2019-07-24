@@ -317,7 +317,6 @@ Parameter (all optional)
 					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
 				end
 			elsif kind.to_sym == :update 
-				puts "conf: #{q.inspect}"
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
 				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
 			elsif kind.to_sym == :update!
