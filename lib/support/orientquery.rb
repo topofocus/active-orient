@@ -380,6 +380,7 @@ Parameter (all optional)
 		def order  value = nil
 			if value.present?
 				@q[:order] << value
+				self
 			elsif @q[:order].present?
 
 				"order by " << @q[:order].compact.flatten.map do |o|
@@ -558,7 +559,7 @@ end # class << self
 			result = V.orientdb.execute{ compose }
 			result =  result.map{|x| yield x } if block_given?
 			result =  result.first if reduce && result.size == 1
-			if result.is_a? ::Array
+			if result.is_a?( ::Array) && result.detect{|o| o.respond_to?( :rid?) && o.rid? }  
 				OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
 			else
 				result
