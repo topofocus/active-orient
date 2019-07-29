@@ -19,8 +19,8 @@ Gem::Specification.new do |s|
   s.bindir        = "exe"
   s.executables   = s.files.grep(%r{^exe/}) { |f| File.basename(f) }
    
-  s.add_development_dependency "bundler", "~> 1.8"
-  s.add_development_dependency "rake", "~> 10.0"
+  s.add_development_dependency "bundler"
+  s.add_development_dependency "rake"
   s.add_dependency 'activesupport'#, "~> 4.2"
   s.add_dependency 'activemodel'#, "~> 4.2"
   s.add_dependency 'rest-client'  

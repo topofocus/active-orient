@@ -91,7 +91,7 @@ describe ActiveOrient::OrientDB do
       attributes = { uwe: 34 }
       expect( @db.compose_where( attributes ) ).to eq "where uwe = 34"
       attributes = { uwe: 34 , hans: :trz }
-      expect( @db.compose_where( attributes ) ).to eq "where uwe = 34 and hans = 'trz'"
+      expect( @db.compose_where( attributes ) ).to eq "where uwe = 34 and hans = ':trz:'"
       attributes = { uwe: 34 , hans: 'trzit'}
       expect( @db.compose_where( attributes ) ).to eq "where uwe = 34 and hans = 'trzit'"
     end

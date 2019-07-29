@@ -1,6 +1,10 @@
 class E  < ActiveOrient::Model
   ## class methods
   class << self
+      def naming_convention name=nil
+          name.present? ? name.upcase : ref_name.upcase
+      end
+
 =begin
 Establish constrains on Edges
 

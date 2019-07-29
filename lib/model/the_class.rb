@@ -59,7 +59,7 @@ Override to change its behavior
 
   def orientdb_class name:, superclass: nil  # :nodoc:    # public method: autoload_class
 
-    ActiveOrient.database_classes[name].presence || ActiveOrient::Model
+    ActiveOrient.database_classes[name.to_s].presence || ActiveOrient::Model
   rescue NoMethodError => e
     logger.error { "Error in orientdb_class: is ActiveOrient.database_classes initialized ? \n\n\n" }
     logger.error{ e.backtrace.map {|l| "  #{l}\n"}.join  }
@@ -329,6 +329,30 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 # list all Indexes
 	def indexes
 		properties[:indexes]
+	end
+
+
+	def migrate_property property, to: , linked_class: nil, via: 'tzr983'
+		if linked_class.nil?
+			create_property  via, type: to
+		else
+			create_property  via, type: to, linked_class: linked_class
+		end
+#			my_count = query.kind(:update!).set( "#{via} = #{property} ").execute(reduce: true){|c| c[:count]}
+#			logger.info{" migrate property: #{count} records prosessed"}
+		  all.each{ |r| r.update set:{ via => r[property.to_sym] }}
+			nullify =  query.kind(:update!).set( property: nil ).execute(reduce: true){|c| c[:count]}
+#		  raise "migrate property: count of erased items( #{nullify} differs from total count (#{my_count}) " if nullify != my_count
+			db.execute{" alter property #{ref_name}.#{via} name '#{property}' "}
+			logger.info{ "successfully migrated #{property} to #{:to} " }
+
+
+
+
+
+
+
+
 	end
   ########## GET ###############
 
@@ -665,7 +689,7 @@ To get their value you can do:
  See http://orientdb.com/docs/2.1/SQL-Alter-Property.html
 =end
 
-  def alter_property property:, attribute: "DEFAULT", alteration:  # :nodoc:
+  def alter_property property, attribute: "DEFAULT", alteration:  # :nodoc:
     orientdb.alter_property self, property: property, attribute: attribute, alteration: alteration
   end
 

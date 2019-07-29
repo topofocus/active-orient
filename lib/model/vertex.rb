@@ -5,19 +5,7 @@ class V   < ActiveOrient::Model
 specialized creation of vertices, overloads model#create
 =end
 	def self.create set: {},  **attributes
-	
-		new_vert = db.execute( transaction: false, tolerated_error_code: /found duplicated key/) do
-			"CREATE VERTEX #{ref_name} CONTENT #{set.merge(attributes).to_orient.to_json}"
-		end
-
-		new_vert =  new_vert.pop if new_vert.is_a?( Array) && new_vert.size == 1
-		if new_vert.nil?
-			logger.error('Vertex'){ "Table #{ref_name} ->>  create failed:  #{set.merge(attributes).inspect}" } 
-		elsif block_given?
-			yield new_vert
-		else
-			new_vert # returns the created vertex (or an array of created vertices)
-		end
+		query.kind(:create).set( set.merge(attributes) ).execute(reduce: true)
   end
 =begin
 Vertex#delete fires a "delete vertex" command to the database.
