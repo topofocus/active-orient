@@ -321,6 +321,8 @@ Parameter (all optional)
 				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
 			elsif kind.to_sym == :update!
 				[ 'update', target, set,  where, limit, misc ].compact.join(' ')
+			elsif kind.to_sym == :create
+				[ "CREATE VERTEX", target, set ].compact.join(' ')
 			#	[ kind, target, set,  return_statement ,where,  limit, misc ].compact.join(' ')
 			elsif kind.to_sym == :upsert 
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
@@ -559,7 +561,7 @@ end # class << self
 			result = V.orientdb.execute{ compose }
 			result =  result.map{|x| yield x } if block_given?
 			result =  result.first if reduce && result.size == 1
-			if result.is_a?( ::Array) && result.detect{|o| o.respond_to?( :rid?) && o.rid? }  
+			if result.is_a?( ::Array)# && result.detect{|o| o.respond_to?( :rid?) && o.rid? }  
 				OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
 			else
 				result

@@ -101,7 +101,8 @@ after(:all){ @db.delete_database database: 'temp' }
 
 				Given( :fifty_elements ) { start_point.traverse :out, via: /con/, depth: 100, start_at: 50}
 				Then { expect( fifty_elements.size).to  eq 50 }
-				Then { expect( fifty_elements).to  be_a OrientSupport::Array }
+				Then { expect( fifty_elements).to  be_a Array }
+				#Then { expect( fifty_elements).to  be_a OrientSupport::Array }
 				it{ puts "hundred_elements #{fifty_elements.class}" }
 				Then { expect( fifty_elements.note_count ).to eq (51 .. 100).to_a }
 
