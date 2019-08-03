@@ -7,7 +7,7 @@ describe ActiveOrient::OrientDB do
   before( :all ) do
     @db = connect database: 'temp'
 		@db.create_class :emb, :a_set, :a_list
-		@db.create_vertex_class :base 
+		V.create_class :base 
       Base.create_property  :a_list,  type: :list, linked_class: :a_list 
       Base.create_property  :label, type: :string, index: :unique 
       Base.create_property  :a_set, type: :map
@@ -28,7 +28,7 @@ describe ActiveOrient::OrientDB do
     context "query for an embedded map" do
 
       ### query for :currency => {"EUR" => something }
-      subject{  Base.custom_where(  "a_set.currency containskey 'EUR'" ) }
+      subject{  Base.query.where(  "a_set.currency containskey 'EUR'" ).execute }
       it { is_expected.to  be_a Array }
       it { is_expected.to have(1).item }
 			it { expect(subject.first.a_set[:currency][:EUR]).to eq 4.32 }
@@ -50,7 +50,7 @@ describe ActiveOrient::OrientDB do
   end
 
 
-	context " embedd  records,", focus: true  do
+	context " embedd  records,"  do
 		before(:all) do
 
 			the_structure = [{ :key=>"WarrantValue", :value=>"8789", :currency=>"HKD"},
