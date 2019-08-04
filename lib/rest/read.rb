@@ -117,6 +117,13 @@ The rid-cache is not used or updated
 			logger.error { "RID: #{rid} ---> No Record present " }
 			ActiveOrient::Model.remove_rid rid      #  remove rid from cache
 			nil
+		rescue NoMethodError => e
+			logger.fatal { "---------------- Serious Trouble ----------------" }
+			logger.fatal { "GetRecord  raw-data: #{raw_data}" }
+			logger.error { "GetRecord  could not allocate Model-Instance" }
+			logger.error { "is a model file required but missing?" }
+			raise
+
 		rescue Exception => e
 			logger.error { "Something went wrong" }
 			logger.error { "RID: #{rid} - #{e.message}" }

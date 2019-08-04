@@ -48,7 +48,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 						if value == [nil]
 						"#{key} is NULL"
 						else	
-						"#{key} in [#{value.to_orient}]"
+						"#{key} in #{value.to_orient}"
 						end
 					when Range
 						"#{key} between #{value.first} and #{value.last} " 
