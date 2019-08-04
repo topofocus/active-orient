@@ -55,7 +55,7 @@ i.e.
   #or
   ActiveOrient.Init.define_namespace namespace: :self | :object | :active_orient
 	#or
-	module IBi; end # first declare the Module-Const
+	module IB; end # first declare the Module-Const
   # then assign to the namespace
   ActiveOrient.Init.define_namespace { IB } 
 		

@@ -98,7 +98,6 @@ The rid-cache is not used or updated
 					 conn["/document/#{ActiveOrient.database}/#{rid.to_orient[1..-1]}"].get
 				end
 				raw_data = JSON.parse(response.body) 
-				puts "rawDATA: #{raw_data}"
 				#	ActiveOrient::Model.use_or_allocate( raw_data['@rid'] ) do 
 				the_object=   ActiveOrient::Model.orientdb_class(name: raw_data['@class']).new raw_data
 				ActiveOrient::Base.store_rid( the_object )   # update cache
