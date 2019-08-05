@@ -14,13 +14,16 @@ The method does not accept further arguments.
 =end
   def like operation, order: 'asc'
     # remove all spaces and split the resulting word
-    p, s = operation.gsub(/\s+/, "").split("=")
+		case operation
+		when Hash
+			p,s = operation.keys.first, operation.values.first
+		else
+			p, s = operation.gsub(/\s+/, "").split("=")
+		end
     if ["%","*"].include?(s[-1])
       s.chop! 
     end
 
-    q =  OrientSupport::OrientQuery.new where: { "#{p}.left(#{s.length})" => s } ,order: { p => order }
-    query_database q
-
+    query( where: { "#{p}.left(#{s.length})" => s } ,order: { p => order }).execute
   end
 end
