@@ -172,7 +172,7 @@ This can be achieved by
 			# to remove an Item from lists and sets call update(remove: true){ query }
 			set_or_remove =  args[:remove].present? ? "remove" : "set"
 			#transfer_content from: 	 
-			updated_record = 	db.execute{  "update #{rrid}  #{ yield }  return after @this" } &.first
+			updated_record = 	db.execute{  "update #{rrid}  #{ yield }  return after $current" } &.first
 			transfer_content from: updated_record  if updated_record.present?
 		else
 			set = if remove.present?
@@ -187,8 +187,14 @@ This can be achieved by
 			if rid.rid?
 			#	puts "args: #{{kind: :update}.merge(  set )}"
 			#	puts "set: #{set.inspect}"
-				q= query( {kind: :update, }.merge(  set, remove ) ).execute(reduce: true){ |y| y[:$current].reload! }
-				transfer_content from: q if q.present?
+				q= query.kind(:update)
+				if remove.present?
+					q.remove(remove)
+				else
+					q.set(set)
+				end
+				q.execute(reduce: true){ |y| y[:$current].reload! }
+#				transfer_content from: q if q.present?
 			else  # new record
 				@attributes.merge! set
 				save
