@@ -220,7 +220,7 @@ RSpec.describe OrientSupport::OrientQuery do
 
 			end
 
-			context "model record based queries" , focus: true do
+			context "model record based queries"  do
 				before( :all ) do
 					TestQuery.delete all: true
 				 @the_record =  TestQuery.create c:1 
@@ -228,6 +228,7 @@ RSpec.describe OrientSupport::OrientQuery do
 
 				it " simple update " do
 					r = @the_record.update d:[ 1, 2, 3]
+		#			puts "RR:: #{r}"
 					expect(r).to be_a TestQuery
 					expect(r.c).to eq 1
 					expect(r.d).to eq [1,2,3]

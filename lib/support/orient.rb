@@ -165,6 +165,9 @@ returns thea modified Array
 	#		@orient.send @name 
 		end
 
+		def remove_by_index index
+			@orient.update( { remove: { @name => "#{@name[index]}" } } )
+		end
 
 def check_if_complete
 	if @name.blank?
@@ -223,9 +226,11 @@ end
 
 
 		def store  k, v
-			super
-			 @orient.update set:{ @name => {k => v} }# { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }[@name]
-			 @orient.send @name.to_sym
+#			super
+#			 @orient.update set:{ @name => {k => v} }# { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }[@name]
+#			 @orient.send @name.to_sym
+			@orient.update { "set #{@name.to_s}[#{k.to_s.to_or}] = #{v.to_or} "}[@name] #if check_if_complete
+	#		@orient.reload!
 		end
 
 		alias []= store
@@ -237,21 +242,31 @@ end
 		# Merge does not support assigning Hashes as values
 		# ** incomplete **
 		def merge **arg
-			super
-			updating_string =  arg.map{|x,y| "#{@name}.#{x} = #{y.to_or}" unless y.is_a?(Hash) }.compact.join( ', ' )
-	#		@orient.update( {  } delete_cache: true ) { updating_string }[@name]
+			self.to_h.merge arg
+#			@orient.update @name => self.to_h.merge( arg ) 
+#			arg.each{|a,b| self.store a,b}
 		end
 
 		alias  << merge 
 
 # removes a key-value entry from the hash. 
 # 
-# parameter: list of key's (duplicate values are removed)
+# parameter: list of key's 
 #
-# returns the removed items 
+# returns the modified OrientSupport::Hash 
+		#
+		# ie, given
+		#  b =>  <Base[51:0]: < Base: 51:0 >, a_set : {:warrant_value=>["8789", "HKD"], :what_if_pm_enabled=>["true", ""], :t_bill_value=>["0", "HKD"]}>
+		# c= b.a_set.remove :warrant_value
+		# INFO->update #51:0  remove a_set = 'warrant_value'   return after $current
+		# c =>  {:what_if_pm_enabled=>["true", ""], :t_bill_value=>["0", "HKD"]}
+
+
 		def remove *k
 			# todo combine queries in a transaction
-			r= k.map{ |key| @orient.update remove:  "#{@name}.#{key} "  }.last
+				
+			r=  k.map{|key|	@orient.update{   "remove #{@name} = #{key.to_s.to_or} "  } }
+			@orient.reload!.send @name
 
 		end
 	#	def delete *key
