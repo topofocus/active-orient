@@ -242,7 +242,9 @@ end
 		# Merge does not support assigning Hashes as values
 		# ** incomplete **
 		def merge **arg
-			arg.each{|a,b| store a,b}
+			self.to_h.merge arg
+#			@orient.update @name => self.to_h.merge( arg ) 
+#			arg.each{|a,b| self.store a,b}
 		end
 
 		alias  << merge 

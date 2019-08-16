@@ -86,8 +86,8 @@ Deletes the actual ActiveOrient::Model-Edge-Object
 		db.execute{ "delete edge #{ref_name} #{rrid}" }
 	end
 	def to_human
-		displayed_attributes =  content_attributes.reject{|k,_| [:in, :out].include?(k) }
-		"<#{self.class.to_s.demodulize}[#{rrid}] -i-> ##{ attributes[:in].rid} #{displayed_attributes.to_human} -o-> #{out.rrid}>"
+		displayed_attributes =  attributes.reject{|k,_| [:in, :out].include?(k) }
+		"<#{self.class.to_s.demodulize}[#{rrid}] :.: #{ attributes[:out].rid}->#{displayed_attributes.to_human}->#{attributes[:in].rid}>"
 	end
 
 end
