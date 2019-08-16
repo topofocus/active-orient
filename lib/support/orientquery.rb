@@ -544,9 +544,21 @@ end # class << self
 
 		def nodes in_or_out = :out, via: nil, where: nil, expand: true
 			 condition = where.present? ?  "[ #{generate_sql_list(where)} ]" : ""
-			 start =  in_or_out 
-			 the_end =  in_or_out == :in ? :out : :in
-			 argument = " #{start}E(#{[via].flatten.map(&:to_or).join(',') if via.present?}).#{the_end}#{condition} "
+			 start =  if in_or_out  == :in
+									'inE'
+								elsif in_or_out ==  :out
+									'outE'
+								else
+									"both"
+								end
+			 the_end =  if in_or_out == :in 
+										'.out' 
+									elsif in_or_out == :out
+										'.in'
+									else
+										''
+									end
+			 argument = " #{start}(#{[via].flatten.map(&:to_or).join(',') if via.present?})#{the_end}#{condition} "
 
 			 if expand.present?
 				 send :expand, argument
