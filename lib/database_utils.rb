@@ -13,7 +13,7 @@ if abstract: true is given, only basic classes (Abstact-Classes) are returend
 		## "ORid" dropped in V2.2
 		extended = ["OIdentity","ORole",  "OUser", "OFunction", "_studio"]
 		v3 = ["OGeometryCollection", "OLineString", "OMultiLineString", "OMultiPoint", "OMultiPolygon",
-		"OPoint", "OPolygon", "ORectangle", "OShape"] ## added in Orentdb 3.0
+		"OPoint", "OPolygon", "ORectangle", "OShape", 'OSecurityPolicy'] ## added in Orentdb 3.0 and 3.1
 		if abstract
 			basic
 		else
@@ -81,19 +81,19 @@ preallocate classes reads any class from the  @classes-Array and allocates adequ
 
 		ActiveOrient.database_classes.each do | db_name, the_class |
 			allocate_class_in_ruby( db_name ) do |detected_class|
-			keep_the_dataset =  true
-			# keep the class if it is already noted in database_classes 
-			if	![E,V].include?(detected_class) &&
-				!ActiveOrient.database_classes.key( detected_class) && 
-				!detected_class.require_model_file(from_model_dir) &&
-				!ActiveOrient::Model.keep_models_without_file  
+				keep_the_dataset =  true
+				# keep the class if it is already noted in database_classes 
+				if	![E,V].include?(detected_class) &&
+					!ActiveOrient.database_classes.key( detected_class) && 
+					!detected_class.require_model_file(from_model_dir) &&
+					!ActiveOrient::Model.keep_models_without_file  
 
-				logger.info{ "#{detected_class.name} -->  Class NOT allocated"}
-				ActiveOrient.database_classes[ detected_class.ref_name ] = "no model file"
-				keep_the_dataset = false 
-			end
-			keep_the_dataset # return_value
-		end  # block
+					logger.info{ "#{detected_class.name} -->  Class NOT allocated"}
+					ActiveOrient.database_classes[ detected_class.ref_name ] = "no model file"
+					keep_the_dataset = false 
+				end
+				keep_the_dataset # return_value
+			end  # block
 		end  # each iteration
 	end	# def
 

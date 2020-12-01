@@ -37,7 +37,7 @@ returns the active OrientDB-Instance
 		def self.connect **defaults
 				define_namespace  namespace: :object 
 				ActiveOrient::OrientDB.configure_logger defaults[:logger]
-        ao = ActiveOrient::OrientDB.new  defaults.merge preallocate: false
+        ao = ActiveOrient::OrientDB.new  **(defaults.merge( preallocate: false))
 				ao.create_class 'E'
 				ao.create_class 'V'
 				ao  # return client instance

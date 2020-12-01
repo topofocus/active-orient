@@ -13,7 +13,7 @@ describe OrientSupport::MatchStatement do
   context "Initialize the QueryClass" do
     Given( :simple ){ OrientSupport::MatchStatement.new @db.classname(TestQuery), where: { a:2 } }
       Then { expect( simple ).to be_a OrientSupport::MatchStatement }
-      Then { simple.to_s  == '{class: test_query, as: test_queries, where:( a = 2)}'}
+      Then { simple.to_s  == '{class: test_query, as: test_queries, where: ( a = 2) }'}
       Then { simple.compose  ==  simple.compose_simple }
       Then { simple.as  == 'test_queries' }
     end
@@ -47,19 +47,19 @@ RSpec.describe OrientSupport::MatchConnection do
 
 
      context "includes edges" do
-     Given( :ie ) { OrientSupport::MatchConnection.new  edge: MyEdge, direction: :out }
+     Given( :ie ) { OrientSupport::MatchConnection.new  edge: MY_EDGE, direction: :out }
      Then { ie.compose  == " -my_edge-> " }
 
     end
 
     context "includes a ministatement " do
-     Given( :icm  ) { OrientSupport::MatchConnection.new  edge: MyEdge, direction: :out, as: "friend" }
+     Given( :icm  ) { OrientSupport::MatchConnection.new  edge: MY_EDGE, direction: :out, as: "friend" }
      Then { icm.compose  == " -my_edge-> { as: friend } " }
 
     end
 
 		context "traverses throught the graph" do
-     Given( :ttg  ) { OrientSupport::MatchConnection.new  edge: MyEdge, direction: :out, while: '$depth < 6' }
+     Given( :ttg  ) { OrientSupport::MatchConnection.new  edge: MY_EDGE, direction: :out, while: '$depth < 6' }
      Then { ttg.compose  == " -my_edge-> { as: friend } " }
 
 		end
