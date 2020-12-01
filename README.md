@@ -1,14 +1,10 @@
 # ActiveOrient
 Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
-datasets. **OrientDB Version 3 is required**
+datasets. **OrientDB Version 3 is required**,  OrientDB 3.1 is supported
 
-> Note: The branch "match" includes a thread-safe version, currently testing the appraoach 
-
-
-For changes from Version OrientDB 2.2 -> [Wiki](../..//wiki/Changes-2.2--to------3.0)
 ### Quick Start
 
-You need a ruby 2.5/2.6  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
+You need a ruby 2.6 / 2.7  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
 
 - clone the project, 
  - run bundle install ; bundle update, 
