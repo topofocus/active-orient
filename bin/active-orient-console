@@ -17,7 +17,7 @@ connectyml = if File.exist?(config_file)
 							 puts "config/connect.yml not found "
 							 puts "using defaults"
 							 {  server: 'localhost', port: 2480, 
-									database: {  development: 'GratefulDeadConcerts',
+									database: {  development: 'demodb',
 															 production: 'hcn_data',
 															 test:  'temp'},
 								  admin:	{	user: 'root', pass: 'root' } } 
@@ -37,8 +37,11 @@ begin
 		password: connectyml[:admin][:pass].to_s,
 		server: connectyml[:server].to_s
 	ActiveOrient::Base.logger.level = Logger::INFO
-	ActiveOrient::Model.keep_models_without_file = true
-	ActiveOrient::OrientDB.new  model_dir: 'lib/model'
+#	module HH; end
+#	 ActiveOrient::Init.define_namespace { HH  }
+	ActiveOrient::Model.keep_models_without_file =  true
+	ActiveOrient::OrientDB.new  model_dir: '../lib/model'
+	 ActiveOrient::OrientDB.new preallocate: true
 rescue RestClient::Unauthorized
 	puts "Cannot connect to the server. Wrong credentials"
 	Kernel.exit
@@ -80,6 +83,8 @@ puts ActiveOrient::show_classes
 
 include OrientDB
 
-require 'irb'
+require 'pry'
+#require 'irb'
 ARGV.clear
-IRB.start(__FILE__)
+#IRB.start(__FILE__)
+Pry.start(__FILE__)

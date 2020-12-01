@@ -51,7 +51,7 @@ The extended representation of RID (format: *#00:00* )
 	
 # returns a OrientSupport::OrientQuery 
 	def query **args
-		OrientSupport::OrientQuery.new( { from: self}.merge args)
+		OrientSupport::OrientQuery.new( **{ from: self}.merge(args))
 	end
 =begin
 Execute a Query using the current model-record  as origin.
@@ -129,7 +129,7 @@ end
 ########### UPDATE ############
 
 =begin
-Convient update of the dataset 
+Convenient update of the dataset 
 
 A) Using PATCH
 
@@ -145,7 +145,7 @@ updates both, the »name« and the »yesterdays_event«-properties
 B) Manual Modus
 
 Update accepts a Block. The contents are parsed to »set«. Manual conversion of ruby-objects
-to the database-input format is nessesary
+to the database-input format is necessary
 
 i.e.
 	 hct is an Array of ActiveOrient::Model-records. 
@@ -241,10 +241,10 @@ Saves the record  by calling update  or  creating the record
 
 =begin
   An Edge is defined
-  * when inherented from the superclass »E» (formal definition)
+  * when inherent from the superclass »E» (formal definition)
   * if it has an in- and an out property
 
-  Actually we just check the second term as we trust the constuctor to work properly
+  Actually we just check the second term as we trust the constructor to work properly
 =end
 
   def is_edge? # :nodoc:
@@ -296,12 +296,15 @@ Automatic database-updates are deactivated for now
 		# a hash containing {"@type"=>"d", "@rid"=>"#xx:yy", "@version"=>n, "@class"=>'a_classname'} 
 		# and a list of updated properties (in case of db.update). Then  update the version field and the 
 		# attributes.
+		#puts "---transfer_content"
+    #puts from.inspect
+
 			if from.is_a? ActiveOrient::Model
        @metadata = from.metadata
        self.attributes =  from.attributes
 			else
 				self.version =  from['@version']
-				# throw from["@..."] away and convert keys to symbols, merge that into attributes
+				# throw away from["@..."] and convert keys to symbols, finally merge to attributes
 				@attributes.merge! Hash[ from.delete_if{|k,_| k =~ /^@/}.map{|k,v| [k.to_sym, v.from_orient]}]
 			end
 			self  # return the modified object

@@ -9,17 +9,22 @@ require 'pp'
 ## There is no Action on the database
 ## These tests ensure that Namespacing is fully supported on the ruby-side
 ## and that proper database-class-names are generated
+
+module HH; end
+module HY; end
+
 describe ActiveOrient::OrientDB do
     before(:all) do 
-    @db = connect database: 'temp'
- #     initialize_database
       read_etl_data
-    end
+			connect database: 'temp'
+
+	end
 
 #	after(:all){ @db.delete_database database: 'temp' }
     context "analyse initialized database" do
+       before(:all){ActiveOrient::OrientDB.new  preallocate: true }
       it "classes array has the appropiate classes" do
-	expect( ORD.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
+	expect( V.db.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
       end
       it "ActiveOrient handles model-files strict" do
 	expect( ActiveOrient::Model.keep_models_without_file ).to be_nil
@@ -30,11 +35,7 @@ describe ActiveOrient::OrientDB do
     end
 
     context "assign to the proper context" do
-      before( :all) do
-	module HH; end
-	module HY; end
       
-      end
      it "change namespace to HH and allocate classes" do
        # allocate Object-Spaced Classes
        ActiveOrient::OrientDB.new  preallocate: true 
@@ -47,7 +48,7 @@ describe ActiveOrient::OrientDB do
        ActiveOrient::Init.define_namespace { HY }
        ActiveOrient::OrientDB.new  preallocate: true 
 
-       expect( ORD.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
+       expect( V.db.class_hierarchy ).to eq ["E", ["V", ["hh_hipp_hurra", "hh_hurra", "hipp_hurra", "hurra", "hy_hipp_hurra", "hy_hurra"]]]
        [ HH::HippHurra, HH::Hurra, HippHurra, Hurra, HY::Hurra, HY::HippHurra ].each do |m|
 	 expect( m.new ).to be_a V 
        end	

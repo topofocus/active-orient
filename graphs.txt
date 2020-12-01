@@ -1,0 +1,70 @@
+Graphen
+======
+
+Die Felder `in` und   `out` bündeln die Verknüpfungen zu anderen Vertices.
+
+Die Verknüpfungen erfolgen über `Edges`, die wiederum Eigenschaften haben. Zuerst sind die `Edges` Klassen und
+unterscheiden sich üder den Namen. Zusätzlich besteht Vererbung. 
+
+Beispielgraph
+    @db.create_vertex_class  :v1 
+    @db.create_class( :v2 ){ V1 } 
+		@db.create_edge_class "e1"
+		@db.create_class( :e2 ){ E1 }
+		@db.create_class( :e3 ){ E1 }
+
+		vertices =  (1..10).map{|y| V2.create node: y}
+		E2.create from: V1.create( item: 1  ), to: vertices
+
+    v1 = V.first.to_human => "<V1[#25:0]: out: {E2=>10}, item : 1>" 
+		v2 = V.last.to_human  => "<V2[#40:0]: in: {E2=>1}, node : 8>" 
+  
+Boardmittel von ActiveOrient
+----------------------------
+    
+##  Edges anlisten
+		
+	#### Nur Links
+		
+		v1.edges  => ["#49:0", "#50:0", "#51:0", "#52:0", "#53:0", "#54:0", "#55:0", "#56:0", "#49:1", "#50:1"]
+		v2.edges  => ["#56:0"] 
+
+
+	#### Auflösung der Objekte
+
+		v2.in.map &:to_human => ["<E2: in : #<V2:0x000000000397fcb8>, out : #<V1:0x0000000002ed0060>>"] 
+
+  ####  Verfügbare Methoden
+		v2.in      v2.in_e   v2.in_e2		v2.in_e2= 	v2.in_edges 
+
+
+  ### Selektive Auswahl
+
+	Beispiel: TimeGrid
+
+	Der Vertex hat folgende Struktur
+
+		t.to_human
+		 => "<Tag[82:8927]: in: {TG::DAY_OF=>1, TG::GRID_OF=>1}, out: {ML::L_OHLC=>1, TG::GRID_OF=>1}, value : 25>" 
+
+	dann listet t.detect_edges :out, /ml/ die Edges der ML-Klassen auf:
+	 
+		t.detect_edges( :out , /ml/).to_human
+		 => ["<L_OHLC[#151:16] -i-> #161:22 {  } -o-> #82:8927>"] 
+		
+
+	#### Node
+	
+	Ein Node ist ein direkt über eine Edge verbundener Vertex
+
+		 Q =  OrientSupport::OrientQuery
+	   s= Q.new projection: "expand( outE('e1').in[node <5])"
+		 s.from = '#25:0'
+		 s.to_s => select expand( outE('v1').in[node <5]) from #25:0 
+	
+	Aufruf in OrientQuery:  Q.node Edge_class, condition
+	
+	Fügt den Node in das Porjections-Array ein.
+  
+		 
+

@@ -11,6 +11,8 @@ require 'pp'
 describe ActiveOrient::OrientDB do
 	before(:all) do 
     @db = connect database: 'temp'
+		ActiveOrient::Model.keep_models_without_file = false
+
 	end
 
 	#after(:all){ @db.delete_database database: 'temp' }

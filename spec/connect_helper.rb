@@ -3,29 +3,13 @@ require 'rspec/expectations'
 
 def connect database: 'MyTest'
  config_file = File.expand_path('../../config/connect.yml', __FILE__)
- if config_file.present?
-   connectyml  = YAML.load_file( config_file )[:orientdb]
- else
-   puts "config/connect.yml not found or misconfigurated"
-   puts "expected: "
-   puts <<EOS
-:orientdb:
- :server: localhost
- :port: 2480
- :database: some_database
- :admin:
-   :user: hctw
-   :pass: hc
-EOS
-  Kernel.exit
- end
 	
 		ActiveOrient::Init.connect  database: database,
-											#					logger:  mock_logger,
-																server:  connectyml[:server],
-																port:    2480,
-																user:   connectyml[:admin][:user], 
-																password: connectyml[:admin][:pass] 
+																logger:  mock_logger,
+																server:  OPT[:orientdb][:server],
+																port:    OPT[:orientdb][:port],
+																user:   OPT[:admin][:user], 
+																password: OPT[:admin][:pass] 
 			# returns an instance to the database-client
 end
 

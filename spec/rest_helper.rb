@@ -31,22 +31,16 @@ def destroy_database
 end
 
 =begin
-Delete the temp-database,
+uses the database 'localhost:temp'  (defined in *json-files)
 initialize classes using etl (spec/etl/*.json)
-and initialize orientDB without reading the database-classes (this will be tested!)
 =end
 def read_etl_data
-  ### TODO:: change to custom paths  
-  ActiveOrient.database = 'temp'
-  destroy_database
 
   ###     CHANGE CUSTOM PATHS
-  ###	  absolute path to the spec-etl-dir                       place to etl-bin of orientdb
-  Dir[ "/home/topo/activeorient/spec/etl/*json" ].each{| f | `cd /opt/orientdb/bin; ./oetl.sh #{f} ` }
-
-  ActiveOrient.database = 'temp'
-  ActiveOrient::Model.keep_models_without_file = nil
-  initialize_database
+	oetl_script = OPT[:oetl]
+	etl_dir =  Pathname.new File.expand_path("./spec/etl/")
+  #etl_dir.children.each{|f| puts  "#{oetl_script}  #{f} " if f.extname == '.json' }  # debugging
+  etl_dir.children.each{ |f|   `#{oetl_script}  #{f} ` if f.extname == '.json' }
 
 end
 def reset_database

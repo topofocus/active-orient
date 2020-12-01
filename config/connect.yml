@@ -1,17 +1,19 @@
 ---
 :orientdb:
- :server: 172.28.50.25 # localhost # 172.28.50.109 # localhost   #mailout.halfgarten-capital.de
+ :server: 10.222.148.109 # 172.28.50.25 
+  #:server:  172.28.50.25 
+  #:server: localhost  # 172.28.50.109 #  #mailout.halfgarten-capital.de
  :port: 2480
  :logger: stdout           # 'file' or 'stdout'
  :database: 
-   :development: GratefulDeadConcerts
+   :development: ml_data
    :production: hcn_data
    :test:  temp
  :admin:
-   :user: hctw
-   :pass: hc
+   :user: ***w
+   :pass: ***c
  :auth:
-   :user: topo
-   :pass: focus
+   :user: root
+   :pass: ****s
 
 # hfx: 101

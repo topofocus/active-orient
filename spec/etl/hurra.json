@@ -1,5 +1,5 @@
 {
-    "source": { "file": { "path": "/home/topo/activeorient/spec/etl/hurra.csv" } },
+    "source": { "file": { "path": "/home/dev/activeorient/spec/etl/hurra.csv" } },
     "extractor": { "csv": {} },
     "transformers": [
        { 

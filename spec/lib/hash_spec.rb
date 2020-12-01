@@ -52,7 +52,7 @@ describe 'Properties and Application of Hashes' do
 	end
 
 	context "a Hash with links "   do
-		it{ sleep 1.5 }  #  to synchonize threaded allocation of datasets in |before :all|
+		it{ sleep 2.0 }  #  to synchonize threaded allocation of datasets in |before :all|
 		Given( :linked_items ) { TestModel.last.ll }
 
 		Then { linked_items.size == 100 }

@@ -7,6 +7,33 @@ require 'yaml'
 require 'active_support'
 
 require 'active-orient'
+
+read_yml = -> (key) do
+	YAML::load_file( File.expand_path('../spec.yml',__FILE__))[key]
+end
+OPT ||= {}
+[:oetl,:orientdb, :admin].each{|kw| OPT[kw] =  read_yml[kw] }
+
+
+ if OPT.empty?
+   puts "spec/spec.yml not found or misconfigurated"
+   puts "expected: "
+   puts <<EOS
+:orientdb:
+ :server: localhost
+ :port: 2480
+ :database: some_database
+ :admin:
+   :user: hctw
+   :pass: hc
+EOS
+  Kernel.exit
+ else 
+	 puts "OPT: #{OPT.inspect}"
+ end
+
+
+
 RSpec.configure do |config|
 	config.mock_with :rspec
 	config.color = true

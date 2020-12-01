@@ -91,7 +91,7 @@ In fact, the model-files are loaded instead of required.
 Thus, even after recreation of a class (Class.delete_class, ORD.create_class classname) 
 custom methods declared in the model files are present. 
 
-Required modelfiles are gone, if the class is destroyed. 
+Required modelfiles are gone if a class is destroyed. 
 
 The directory specified is expanded by the namespace. The  parameter itself is the base-dir.
 
@@ -101,31 +101,43 @@ Example:
   searched directory: 'lib/model/hc'
 
 =end
-	def require_model_file  the_directory = nil
-		logger.progname = 'ModelClass#RequireModelFile'
-		the_directory = Pathname( the_directory.presence ||  ActiveOrient::Model.model_dir ) rescue nil  # the_directory is a Pathname
-		return nil if the_directory.nil?
+def require_model_file  dir = nil
+	logger.progname = 'ModelClass#RequireModelFile'
+	default =  ActiveOrient::Model.model_dir.is_a?( String ) ? [ActiveOrient::Model.model_dir] : ActiveOrient::Model.model_dir
+	# access the default dir's first
+	the_directories = case dir
+										when String
+										  default.present? ? 	default  + [dir] : [dir]
+										when Array
+											default.present? ? default  + dir : dir
+										else
+											default.present? ? default : []
+										end.uniq
+
+	the_directories.each do |raw_directory|
+		the_directory = Pathname( raw_directory )
 		if File.exists?( the_directory )
 			model= self.to_s.underscore + ".rb"
 			filename =   the_directory +  model
-			if  File.exists?(filename )
-				if load filename
-					logger.info{ "#{filename} sucessfully loaded"  }
-					self #return_value
-				else
-					logger.error{ "#{filename} load error" }
-					nil #return_value
-				end
-			else
-				logger.info{ "model-file not present: #{filename}" }
-				nil #return_value
-			end
+			 if  File.exists?(filename )
+				 if load filename
+					 logger.info{ "#{filename} sucessfully loaded"  }
+					 self #return_value
+				 else
+					 logger.error{ "#{filename} load error" }
+					 nil #return_value
+				 end
+			 else
+				 logger.info{ "model-file not present: #{filename}  --> skipping" }
+				 nil #return_value
+			 end
 		else
-			logger.info{ "Directory #{ the_directory  } not present " }
+			logger.error{ "Directory #{ the_directory  } not present " }
 			nil  #return_value
 		end
+	end
 	rescue TypeError => e
-		puts "TypeError:  #{e.message}" 
+		puts "THE CLASS#require_model_file -> TypeError:  #{e.message}" 
 		puts "Working on #{self.to_s} -> #{self.superclass}"
 		puts "Class_hierarchy: #{orientdb.class_hierarchy.inspect}."
 		print e.backtrace.join("\n") 
@@ -166,7 +178,7 @@ Example:
 
 	# returns a OrientSupport::OrientQuery 
 	def query **args
-		OrientSupport::OrientQuery.new( {from: self}.merge args)
+		OrientSupport::OrientQuery.new( **( {from: self}.merge args))
 	end
 
 =begin 
@@ -379,14 +391,14 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 # get the first element of the class
 
   def first **args
-    query( { order: "@rid" , limit: 1 }.merge args).execute(reduce: true)
+    query( **( { order: "@rid" , limit: 1 }.merge args)).execute(reduce: true)
 	end
    # db.get_records(from: self, where: where, limit: 1).pop
   #end
 
 # get the last element of the class
   def last **args
-    query( { order: {"@rid" => 'desc'} , limit: 1 }.merge args).execute(reduce: true)
+    query( **( { order: {"@rid" => 'desc'} , limit: 1 }.merge args)).execute(reduce: true)
 	end
 
 # Used to count of the elements in the class
@@ -395,7 +407,7 @@ a `linked_class:` parameter can be specified. Argument is the OrientDB-Class-Con
 	#    TestClass.count where: 'last_access is NULL'  # only records where 'last_access' is not set
 	#    TestClass.count                               # all records
   def count **args
-		query( { projection:  'COUNT(*)' }.merge args ).execute(reduce: true){|x|  x[:"COUNT(*)"]}
+		query( **( { projection:  'COUNT(*)' }.merge args )).execute(reduce: true){|x|  x[:"COUNT(*)"]}
   end
 
 # Get the properties of the class
