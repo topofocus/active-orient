@@ -1,6 +1,5 @@
 # ActiveOrient
-Use OrientDB to persistently store dynamic Ruby-Objects and use database queries to manage even very large
-datasets.   
+Use OrientDB to persistently store Ruby-Objects and use database queries to manage even very large datasets.   
 **OrientDB Version 3 is required**,  OrientDB 3.1 is supported
 
 ### Quick Start
