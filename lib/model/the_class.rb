@@ -114,28 +114,29 @@ def require_model_file  dir = nil
 											default.present? ? default : []
 										end.uniq
 
-	the_directories.each do |raw_directory|
+	the_directories.map do |raw_directory|
 		the_directory = Pathname( raw_directory )
 		if File.exists?( the_directory )
 			model= self.to_s.underscore + ".rb"
 			filename =   the_directory +  model
-			 if  File.exists?(filename )
-				 if load filename
-					 logger.info{ "#{filename} sucessfully loaded"  }
-					 self #return_value
-				 else
-					 logger.error{ "#{filename} load error" }
-					 nil #return_value
-				 end
-			 else
-				 logger.info{ "model-file not present: #{filename}  --> skipping" }
-				 nil #return_value
-			 end
+			if  File.exists?(filename )
+				if load filename
+					logger.debug{ "#{filename} sucessfully loaded"  }
+					self #return_value
+				else
+					logger.error{ "#{filename} load error" }
+					nil #return_value
+				end
+			else
+				logger.debug{ "model-file not present: #{filename}  --> skipping" }
+				nil #return_value
+			end
 		else
 			logger.error{ "Directory #{ the_directory  } not present " }
 			nil  #return_value
 		end
-	end
+	end.compact.present?  # return true only if at least one model-file is present
+
 	rescue TypeError => e
 		puts "THE CLASS#require_model_file -> TypeError:  #{e.message}" 
 		puts "Working on #{self.to_s} -> #{self.superclass}"
@@ -146,7 +147,7 @@ def require_model_file  dir = nil
 	end
 
 
-  # creates an inherented class
+  # creates an inherent class
 	def create_class *c
 		orientdb.create_class( *c ){ self }
 	end
