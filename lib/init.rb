@@ -45,7 +45,8 @@ returns the active OrientDB-Instance
 =begin
 Parameters: 
  yml: hash from config.yml , 
- namespace: Class to use as Namespace
+ namespace: Class to use as Namespace, one of [ :self, :object, :active_orient ]
+
 
 A custom Constant can be provided via Block
 
