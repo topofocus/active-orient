@@ -192,8 +192,8 @@ def update set: {}, remove: {}, **args
 			end
 		transfer_content from: 	q.execute(reduce: true){ |y| y[:$current].reload! }
 		else  # new record
-			@attributes.merge! set
-			save
+			 self.attributes.merge!  set
+			 save
 		end
 	end
 end
