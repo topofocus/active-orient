@@ -111,7 +111,7 @@ The parameter `dir` is used internally and by gems to ensure that basic methods 
 def require_model_file  dir = nil
 	logger.progname = 'ModelClass#RequireModelFile'
 	# model-dir can either be a string or an array of string or pathnames
-	default =  [ActiveOrient::Model.model_dir.is_a?( Array )].flatten
+	default =  [ActiveOrient::Model.model_dir].flatten
 	# access the default dir's first
 	the_directories = case dir
 										when String, Pathname
@@ -120,8 +120,7 @@ def require_model_file  dir = nil
 											default.present? ? dir + default  : dir
 										else
 											default.present? ? default : []
-										end.uniq
-
+										end.uniq.compact
 	the_directories.uniq.map do |raw_directory|
 		the_directory = Pathname( raw_directory )
 		if File.exists?( the_directory )
