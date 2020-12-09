@@ -91,7 +91,7 @@ In fact, the model-files are loaded instead of required.
 Thus, even after recreation of a class (Class.delete_class, ORD.create_class classname) 
 custom methods declared in the model files are present. 
 
-Required modelfiles are gone if a class is destroyed. 
+If a class is destroyed (i.e. the database class is deleted), the ruby-class and its methods vanish, too.
 
 The directory specified is expanded by the namespace. The  parameter itself is the base-dir.
 
@@ -100,21 +100,29 @@ Example:
   model_dir : 'lib/model'
   searched directory: 'lib/model/hc'
 
+
+ActiveOrient::Model.modeldir is aimed to be set to the application dir. It may be a String, Pathname or
+an array of strings or pathnames. 
+
+The parameter `dir` is used internally and by gems to ensure that basic methods are loaded first. 
+
+
 =end
 def require_model_file  dir = nil
 	logger.progname = 'ModelClass#RequireModelFile'
-	default =  ActiveOrient::Model.model_dir.is_a?( String ) ? [ActiveOrient::Model.model_dir] : ActiveOrient::Model.model_dir
+	# model-dir can either be a string or an array of string or pathnames
+	default =  [ActiveOrient::Model.model_dir.is_a?( Array )].flatten
 	# access the default dir's first
 	the_directories = case dir
-										when String
-										  default.present? ? 	default  + [dir] : [dir]
+										when String, Pathname
+										  default.present? ? 	[dir] + default : [dir]
 										when Array
-											default.present? ? default  + dir : dir
+											default.present? ? dir + default  : dir
 										else
 											default.present? ? default : []
 										end.uniq
 
-	the_directories.map do |raw_directory|
+	the_directories.uniq.map do |raw_directory|
 		the_directory = Pathname( raw_directory )
 		if File.exists?( the_directory )
 			model= self.to_s.underscore + ".rb"
