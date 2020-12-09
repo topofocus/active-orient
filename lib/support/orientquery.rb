@@ -90,6 +90,18 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 				" <-#{fillup}- "
 			when :out
 				" -#{fillup}-> "
+      when :both_vertex
+				".bothV() "
+			when :out_vertex
+				".outV() "
+			when :in_vertex
+				".inV() "
+     when :both_edge
+			 ".bothE(#{fillup}) "
+			when :out_edge
+				".outE(#{fillup}) "
+			when :in_edge
+				".inE(#{fillup}) "
 			end
 
 		end
@@ -267,6 +279,8 @@ The connection method adds a connection to the statement-stack.
 
 Parameters:
   direction: :in, :out, :both
+          	 :in_edge, :out_edge, :both_edge, 
+						 :in_vertex, :out_vertex, :both_vertex
   edge_class: to restrict the Query on a certain Edge-Class
   count: To repeat the connection
   as:  Includes a micro-statement to finalize the Match-Query
@@ -277,8 +291,8 @@ It is compiled by calling compose
 =end
 
 		def connect direction, edge_class: nil, count: 1, as: nil
-			direction= :both unless [ :in, :out].include? direction
-			match_statements <<  OrientSupport::MatchConnection.new( direction: direction, count: count, as: as)
+			 direction= :both unless [ :in, :out, :in_edge, :out_edge, :both_edge, :in_vertex, :out_vertex, :both_vertex].include? direction
+			match_statements <<  OrientSupport::MatchConnection.new( direction: direction, edge: edge_class,  count: count, as: as)
 			self  #  return the object
 		end
 
