@@ -2,6 +2,14 @@
 Use OrientDB to persistently store Ruby-Objects and use database queries to manage even very large datasets.   
 **OrientDB Version 3 is required**,  OrientDB 3.1 is supported
 
+---
+**Status**
+
+* Preparing for a gem release in Dec. 2020
+
+* Recent updates: concurrent database queries, multiple model-dirs 
+
+---
 ### Quick Start
 
 You need a ruby 2.6 / 2.7  Installation and a working OrientDB-Instance (Version 3.0.17 or above).
