@@ -120,13 +120,13 @@ describe ActiveOrient::OrientDB do
     
     it "populate database-table with data and subsequent delete them" do
       records = (1 .. 100).map{|y| Vertex1.create testentry: y }
-      cachesize= ActiveOrient::Base.display_rid.size
+#      cachesize= ActiveOrient::Base.display_rid.size
       expect( Vertex1.count ).to eq 100
       expect( records ).to have(100).items
       Vertex1.delete_record  *records
       expect( Vertex1.count ).to be_zero
-      newcachesize= ActiveOrient::Base.display_rid.size
-      expect( cachesize - newcachesize).to eq 100
+#      newcachesize= ActiveOrient::Base.display_rid.size
+#      expect( cachesize - newcachesize).to eq 100
    end
 
     it "populate database with data and connect them via an edge"  do
@@ -139,11 +139,11 @@ describe ActiveOrient::OrientDB do
 
       expect {
 	 ('a'.ord .. 'z'.ord).map do |o| 
-	      TheEdge.create from: record1.find{|x| x.testentry == o },
+	      THE_EDGE.create from: record1.find{|x| x.testentry == o },
 					to: record2.find{ |x| x.testentry.to_s.ord == o } ,
 					attributes: {  key: o.chr } 
 	  end
-      }.to change{ TheEdge.count }
+      }.to change{ THE_EDGE.count }
 
    #   newcachesize= ActiveOrient::Base.display_rid.size
    #   expect( cachesize - newcachesize).to  be > 0

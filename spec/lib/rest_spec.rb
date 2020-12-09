@@ -140,9 +140,9 @@ describe ActiveOrient::OrientDB do
 #      expect( ds.exchange ).to be_a OrientSupport::Array
       expect( Property.custom_where( "'Stuttgart' in exchange.label").first ).to eq ds
       expect( Property.custom_where( "'Hamburg' in exchange.label") ).to  be_empty
-      dr = ds.exchange.remove( b,s )
+			puts "DS: #{ds.inspect}"
+      ds.exchange.remove( b,s )
       expect( ds.exchange ).to have(1).items
-      expect( dr.exchange ).to have(1).items
     end
 
    it "add  an embedded linkmap- entry " do # , :pending => true do

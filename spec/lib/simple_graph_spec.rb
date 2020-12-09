@@ -13,7 +13,7 @@ def linear_elements start, count  #returns the edge created
 #	(2..count).each do |m|
 #		e= Connects.create from: e.first.in , to: new_vertex[m]
 #	end
-	(2..count).each{|n| start = start.assign vertex: new_vertex[n], via: Connects }
+	(2..count).each{|n| start = start.assign vertex: new_vertex[n], via: CONNECTS }
 end
 
 RSpec.describe "E" do
@@ -34,8 +34,8 @@ after(:all){ @db.delete_database database: 'temp' }
 			b =	 Base.create( item: 'b' )
 			(1..10).map do |n| 
 				new_node =  Node.create( item: n)   
-				(1..10).map{|i|	Connects.create from: new_node, to: ExtraNode.create( item: new_node.item**2), attributes:{ extra: true } }
-				Connects.create from: b, to: new_node, attributes: {basic: true}
+				(1..10).map{|i|	CONNECTS.create from: new_node, to: ExtraNode.create( item: new_node.item**2), attributes:{ extra: true } }
+				CONNECTS.create from: b, to: new_node, attributes: {basic: true}
 			end
 		end
 		Given( :first_item ){ Base.where(item: 'b').first }
@@ -69,9 +69,9 @@ after(:all){ @db.delete_database database: 'temp' }
 			it "create the structue" do
 				central_node =  Node.create item: 'center'
 				peripherie_nodes =  (1..20).map{ |y|  ExtraNode.create item: y }
-				Connects.create from: central_node, to: peripherie_nodes
+				CONNECTS.create from: central_node, to: peripherie_nodes
 				central_node.reload!
-				expect(Connects.count).to be > 19
+				expect(CONNECTS.count).to be > 19
 				expect(central_node.out_connects.count).to be >19
 			end
 		end

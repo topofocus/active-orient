@@ -80,7 +80,7 @@ Subsequent initialisations are made to initialise namespaced database classes, i
 
 		# thread safe method to allocate a resource
     def get_resource
-			logger.info {"ALLOCATING NEW RESOURCE --> #{ ActiveOrient.db_pool.size }" }
+			logger.debug {"ALLOCATING NEW RESOURCE --> #{ ActiveOrient.db_pool.size }" }
       login = [ActiveOrient.default_server[:user] , ActiveOrient.default_server[:password]]
       server_adress = "http://#{ActiveOrient.default_server[:server]}:#{ActiveOrient.default_server[:port]}"
 			 RestClient::Resource.new(server_adress, *login)
