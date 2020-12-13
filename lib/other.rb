@@ -2,7 +2,11 @@
 class Array
 # Class  extentions to manage to_orient and from_orient
   def to_orient
-    map( &:to_orient) # .join(',')
+   if all?{ |x| x.respond_to?(:rid?)}  && any?( &:rid? )
+		"["+ map{|x| x.rid? ? x.rid : x.to_or }.join(', ') + ']'
+		else
+	  	map(&:to_orient) # .join(',')
+		end
   end
 
   def to_or
@@ -105,6 +109,8 @@ class Object
     self
   end
 end
+
+
 
 class Time
 	def to_or

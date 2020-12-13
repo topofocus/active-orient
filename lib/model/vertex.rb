@@ -130,6 +130,7 @@ or
 
 =begin
 »in« and »out« provide the main access to edges.
+
 »in» is a reserved keyword. Therfore its only an alias to `in_e`.
 
 If called without a parameter, all connected edges  are retrieved.

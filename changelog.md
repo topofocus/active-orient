@@ -15,7 +15,12 @@ Changelog
 
 						 The change is backward compatible, the method accepts single directories as well.
 
-2929/12/01   Ruby 2.7 (3.0) Compatibiltiy
+2020/12/01   Ruby 2.7 (3.0) Compatibiltiy
              file: /lib/init.rb         ** Hash-notation as method parameter
 						 file: /lib/model/the_record.rb   
 
+2020/12/13   file /lib/other.rb
+             method: Array#to_orient
+						 If all members of the array respond to `rid?`  and any of them is a reference
+						 to a database-record, put it without quotes into the serialized string.
+						 This enables:  where: { contract: ['#194:0','208:0'] } => .in[ contract in [194:0, 208:0] ]
