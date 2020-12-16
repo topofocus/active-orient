@@ -354,9 +354,6 @@ Parameter (all optional)
 		def to_or
 			compose.to_or
 		end
-=begin
-	from can either be a Databaseclass to operate on or a Subquery providing data to query further
-=end
 
 		def target arg =  nil
 			if arg.present?
@@ -383,6 +380,9 @@ Parameter (all optional)
 			end
 		end
 
+=begin
+	from can either be a Databaseclass to operate on or a Subquery providing data to query further
+=end
 		def from arg = nil
 			if arg.present?
 				@q[:database] =  arg

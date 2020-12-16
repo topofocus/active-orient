@@ -24,3 +24,11 @@ Changelog
 						 If all members of the array respond to `rid?`  and any of them is a reference
 						 to a database-record, put it without quotes into the serialized string.
 						 This enables:  where: { contract: ['#194:0','208:0'] } => .in[ contract in [194:0, 208:0] ]
+
+2020/12/14   file /lib/other.rb
+             method: Array#orient_flatten
+						 The method flattens the Array and removes nil-values. The array itself is modified
+
+2020/12/16   file /lib/model/vertex.rb
+             method detect_edges
+						 If no informations about edges are present, reload the vertex 
