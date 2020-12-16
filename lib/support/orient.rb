@@ -196,12 +196,14 @@ end
 
 		end
 
-		def method_missing *args
-			if @orient.is_a? V
-
+		def method_missing method, *args
+			return if empty?
+			if @orient.is_a?  IB::Model
+				# delegate to public methods
+				self.map{|x| x.public_send(method, *args)}
+			else
+				self.map{|x| x.send method, *args }
 			end
-
-			self.map{|x| x.send *args }
 		rescue NoMethodError => e
 			ActiveOrient::Base.logger.error("OrientSupport::Array"){ "#{self.inspect} MethodMissing  -> Undefined method: #{args.first} --  Args: #{args[1..-1].inspect}"}
 			ActiveOrient::Base.logger.error {" The Message #{e.message}"}

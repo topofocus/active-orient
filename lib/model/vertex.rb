@@ -130,6 +130,7 @@ or
 
 =begin
 »in« and »out« provide the main access to edges.
+
 »in» is a reserved keyword. Therfore its only an alias to `in_e`.
 
 If called without a parameter, all connected edges  are retrieved.
@@ -248,6 +249,8 @@ protected
 # v.detect_edges( :in, /e/).to_human
 # => ["<E2: in : #<V2:0x0000000002e66228>, out : #<V1:0x0000000002ed0060>>"] 
 #
+#
+#  returns a OrientSupport::Array
 	def detect_edges kind = :in,  edge_name = nil, expand: true  #:nodoc:
 		## returns a list of inherented classes
 		get_superclass = ->(e) do
@@ -258,6 +261,7 @@ protected
 				n =='E' ? e : e + ',' + get_superclass[n]
 			end
 		end
+	
 		expression = case kind
 								 when :in
 									 /^in_/ 
@@ -268,11 +272,24 @@ protected
 								 end
 
 		extract_database_class = ->(c){ y =  c.to_s.gsub(expression, ''); y.empty? ? "E": y   }
-		# get a set of available edge-names 
-		# in_{abc} and out_{abc}
-		# with "out_" and "in_" as placeholder for E itself
-	  # populate result in case no further action is required
-		result = the_edges = attributes.keys.find_all{ |x|  x =~  expression }
+		result, the_edges  = []   #  we have to declare result prior to its usage in the loop to make
+					  		              #  its content robust 
+		attempt =  0
+		loop do
+			# get a set of available edge-names 
+			# in_{abc} and out_{abc}
+			# with "out_" and "in_" as placeholder for E itself
+			# populate result in case no further action is required
+			result = the_edges = attributes.keys.find_all{ |x|  x =~  expression }
+			# eager reloading
+			if result.empty? && attempt.zero?
+				reload!
+				attempt = 1
+			else
+				break
+			end
+		end
+
 		if edge_name.present?
 			# if a class is provided, match for the ref_name only
 			if edge_name.is_a?(Class) 
@@ -282,28 +299,28 @@ protected
 									 edge_name
 								 else
 									 Regexp.new  case  edge_name
-						#				 when  Class
-						#					 edge_name.ref_name 
-										 when String
-											 edge_name
-										 when Symbol
-											 edge_name.to_s 
-										 when Numeric
-											 edge_name.to_i.to_s
-									 end
-						end	
+																			 #				 when  Class
+																			 #					 edge_name.ref_name 
+																		 when String
+																			 edge_name
+																		 when Symbol
+																			 edge_name.to_s 
+																		 when Numeric
+																			 edge_name.to_i.to_s
+																		 end
+								end	
 				result = the_edges.find_all do |x|
-					 get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
+					get_superclass[extract_database_class[x] ].split(',').detect{|x| x =~ e_name } 
 				end
 			end
 		end
-	# if expand = false , return the orientdb-databasename of the edges
-	#  this is used by  Vertex#nodes 
-	#  it avoids communications with the database prior to submitting the nodes-query
-	# if expand = true (default) load the edges instead
+		# if expand = false , return the orientdb-databasename of the edges
+		#  this is used by  Vertex#nodes 
+		#  it avoids communications with the database prior to submitting the nodes-query
+		# if expand = true (default) load the edges instead
 		if expand
 			OrientSupport::Array.new work_on: self, 
-					work_with: 	result.compact.map{|x| attributes[x]}.map(&:expand).orient_flatten
+				work_with: 	result.compact.map{|x| attributes[x]}.map(&:expand).orient_flatten
 		else
 			result.map{|x|	extract_database_class[x] }
 		end
