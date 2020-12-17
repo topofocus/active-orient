@@ -77,12 +77,20 @@ describe ActiveOrient::OrientDB do
 				expect{ b.a_set << { :new_entry  => 45 }}.to change{ b.a_set.size }.by 1
 			end
 
+
+			it "store and delete some items" do
+				b = @b.reload!
+				expect{ b.a_set[:futures_value] =  56 }.to change{ b.a_set.size }.by 1
+				expect{ b.a_set[:futures_value] =  "zu" }.not_to change{ b.a_set.size }
+				expect{ b.a_set.delete_if{|x,y| y == "zu"} }.to change{ b.a_set.size }.by -1
+
+			end
 		end
 	end
 end
 
 #  working: 
-#  select from base where  a_set containskey 'currency' 
+#  select from base where  a_set containskey '"currency' 
 #  select from base where  a_set.currency containskey 'EUR'
 #  not working
 #  select from base where a_set.currency = "EUR"
