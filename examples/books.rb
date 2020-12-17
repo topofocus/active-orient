@@ -46,7 +46,8 @@ require 'active-orient'
 		 end
 	 end
 
-
+   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+	 #################  read samples  ##############
 	 def read_samples
 		 print "\n === READ SAMPLES === \n"
 		 ## Lambda fill databasea
@@ -71,8 +72,9 @@ require 'active-orient'
 		 puts "#{Keyword.count} keywords inserted into Database" 
 	 end
 
+   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+	 #################  display books ##############
 	 def display_books_with *desired_words
-
 		 ## Each serach criteria becomes a subquery
 		 ## This is integrated into the main_query using 'let'.
 		 ## Subquery:  let ${a-y} = select expand(in('has_content')) from keyword where item = {search_word} 
@@ -80,20 +82,32 @@ require 'active-orient'
 		 ##  Main Query is just
 		 ##  select expand( $z )  followed by all let-statements and finalized by "intercect"
 		 #
+
+		  # lambda to create subqueries
+      word_query = -> (arg) do
+				 q= Keyword.query  where: arg
+    		 q.nodes :in, via: HAS_CONTENT		
+			end
+
+			## We just create "select expand($z)"
+      main_query =  OrientSupport::OrientQuery.new
+			main_query.expand( '$z' )
+
+
 		 print("\n === display_books_with » #{ desired_words.join "," } « === \n")
-		 main_query =  Keyword.query  projection: 'expand( $z )'
 
 		 intersects = Array.new
+		 ## Now, add subqueries to the main-query
 		 desired_words.each_with_index do | word, i |
 			 symbol = ( i+97 ).chr   #  convert 1 -> 'a', 2 -> 'b' ...
-			 subquery = Keyword.query  projection: "expand(in('has_content'))"
-			 subquery.where   item: word  
-			 main_query.let  symbol =>  subquery 
+			 main_query.let   symbol =>  word_query[ item: word  ]
 			 intersects << "$#{symbol}"
 		 end
+		 ## Finally add the intersects statement
 		 main_query.let   "$z = Intersect(#{intersects.join(', ')}) "
 		 puts "generated Query:"
-		 puts main_query.compose
+		 puts main_query.to_s
+		 puts "\n\n\n"
 		 result = main_query.execute
 		 puts '-' * 23 
 		 puts "found books: "

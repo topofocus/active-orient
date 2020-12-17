@@ -47,14 +47,12 @@ describe ActiveOrient::OrientDB do
 
 
 			@b =  Base.create( a_set: {}) 
-	the_hash= 	Hash[  the_structure.map{|x| [x[:key].underscore.to_sym, [x[:value], x[:currency] ] ] } ] 
-	puts "the_hash:  #{the_hash}"
-	@c=			@b.a_set << the_hash
+			@the_hash= 	Hash[  the_structure.map{|x| [x[:key].underscore.to_sym, [x[:value], x[:currency] ] ] } ] 
+			@b.a_set << @the_hash
 		end
 		context "the default embedded set" do
-			subject { @c }
-			it{ puts "A_SET: #{@c}"}
-			it{	puts @b.reload!.to_human }
+			subject { @b.a_set }
+			it{ is_expected.to be_a OrientSupport::Hash }
 			its(:size){ is_expected.to eq 3 }
 			its(:keys){ is_expected.to include :what_if_pm_enabled  }
 			its(:values){ is_expected.to include ["8789","HKD"]  }
@@ -64,16 +62,20 @@ describe ActiveOrient::OrientDB do
 		end
 		context "simple operations" do
 			it " remove an entry " do
-				@b.reload!
-				expect( @b.a_set.size ).to eq 3
-				c= @b.a_set.remove :warrant_value
-				#puts c.inspect
-				@b.reload!
-				expect( @b.a_set.size ).to eq 2
+				b=  @b.reload!
+				unless b.a_set.size ==3
+					b.a_set << @the_hash
+				end
+
+				expect{ b.a_set.remove :warrant_value}.to change{ b.a_set.size }.by -1
 
 			end
-		
 
+
+			it "add an entry"  do
+				b = @b.reload!
+				expect{ b.a_set << { :new_entry  => 45 }}.to change{ b.a_set.size }.by 1
+			end
 
 		end
 	end
