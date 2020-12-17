@@ -11,8 +11,8 @@ require 'rspec/given'
 ####
 
 describe V do
-	before(:all){  @db = connect database: 'tema1p' }
-	after(:all){ @db.delete_database database: 'tema1p' }
+	before(:all){  @db = connect database: 'temp' }
+	after(:all){ @db.delete_database database: 'temp' }
 
 	context "schemaless environment"  do
 		before(:all) { V.create_class :schemaless }
@@ -25,7 +25,7 @@ describe V do
 		Then{ expect( a_record.attributes).to eq attr.map{|x,y| [x,y.to_orient]}.to_h}
 		# in schemaless modus, fieldtypes are not used.
 		Then{ expect( a_record.metadata[:fieldTypes] ).to be_nil }
-		it{ puts a_record.metadata }
+#		it{ puts a_record.metadata }
 	end
 
 	context "insert a link and follow by querying " do

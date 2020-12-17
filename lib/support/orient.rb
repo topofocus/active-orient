@@ -198,7 +198,7 @@ end
 
 		def method_missing method, *args
 			return if empty?
-			if @orient.is_a?  IB::Model
+			if @orient.is_a? ActiveOrient::Model  #  IB::Model
 				# delegate to public methods
 				self.map{|x| x.public_send(method, *args)}
 			else
