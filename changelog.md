@@ -30,5 +30,19 @@ Changelog
 						 The method flattens the Array and removes nil-values. The array itself is modified
 
 2020/12/16   file /lib/model/vertex.rb
-             method detect_edges
+             method: detect_edges
 						 If no informations about edges are present, reload the vertex 
+
+						 file /example/books.rb
+						 updated together with the spec-file
+
+2020/12/17   file /lib/support/orient.rb
+             class: OrientSupport::Hash
+						 method: merge (alias << ) 
+						 calls super (Hash#merge) and stores the result in the database, reloads the record
+
+						 method: remove
+						 performs the database-operation and reloads the record
+
+						 deleted methods: store, delete_if 
+

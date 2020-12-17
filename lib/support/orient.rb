@@ -227,26 +227,14 @@ end
 		end
 
 
-		def store  k, v
-#			super
-#			 @orient.update set:{ @name => {k => v} }# { "#{@name.to_s}.#{k.to_s} = #{v.to_or}" }[@name]
-#			 @orient.send @name.to_sym
-			@orient.update { "set #{@name.to_s}[#{k.to_s.to_or}] = #{v.to_or} "}[@name] #if check_if_complete
-	#		@orient.reload!
-		end
 
-		alias []= store
-
-# Inserts the provided Hash to the (possibly empty) list-property and returns the modified hash	
+# Inserts the provided Hash to the (possibly empty) list-property and updates the dataset
 		#
 		# Keys are translated to symbols 
 		#
-		# Merge does not support assigning Hashes as values
-		# ** incomplete **
 		def merge **arg
-			self.to_h.merge arg
-#			@orient.update @name => self.to_h.merge( arg ) 
-#			arg.each{|a,b| self.store a,b}
+			@orient.update @name => super(**arg)
+			@orient.reload!
 		end
 
 		alias  << merge 
@@ -269,24 +257,6 @@ end
 				
 			r=  k.map{|key|	@orient.update{   "remove #{@name} = #{key.to_s.to_or} "  } }
 			@orient.reload!.send @name
-
-		end
-	#	def delete *key
-#
-#			key.each do | k |
-#				o = OrientSupport::OrientQuery.new from: @orient, 
-#																						kind: 'update', 
-#																						set: "#{@name}.#{k.to_s}",
-#																					return: "$current.#{@name}"
-#			@orient.db.execute{  o.to_s.gsub( 'set ', 'remove ' ) }.first.send( @name )  # extracts the modified array (from DB)  from the result
-#			end
-#			@orient.reload!
-#			@orient.send @name  # return value
-#	end
-
-		def delete_if &b
-			super &b
-			@orient.update set:{ @name => self}
 
 		end
 
