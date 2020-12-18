@@ -28,6 +28,13 @@ The rid-cache is reset, too
 
 
 =begin
+Creates a new Match-Statement
+=end
+	def self.start **args
+		OrientSupport::MatchStatement.new self,  **args
+	end
+
+=begin
 List edges
 
 1. call without any parameter:  list all edges present
@@ -227,6 +234,10 @@ Format: < Classname: Edges, Attributes >
 			"%s : %s" % [ attr, v]  unless v.nil?
 		end.compact.sort.join(', ') + ">".gsub('"' , ' ')
 	end
+
+
+
+
 
 protected
 #Present Classes (Hierarchy) 
