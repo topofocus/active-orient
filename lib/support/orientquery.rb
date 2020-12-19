@@ -187,11 +187,11 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 	MatchSAttributes = Struct.new(:match_class, :as, :where )
   class MatchStatement
     include Support
-    def initialize match_class, **args
+    def initialize match_class, as: 0,  **args
 			reduce_class = ->(c){ c.is_a?(Class) ? c.ref_name : c.to_s }
 
 			@q =  MatchSAttributes.new( reduce_class[match_class],  # class
-								args[ :as ]  || reduce_class[match_class].pluralize,				
+								as.respond_to?(:zero?) && as.zero? ?  reduce_class[match_class].pluralize : as	,			
 								args[ :where ])
 
 			@query_stack = [ self ]
@@ -219,7 +219,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 		end
 		#
 		def compile &b
-     "match " + @query_stack.map( &:to_s ).join + return_statement( &b  )
+     "match " + @query_stack.map( &:to_s ).join + return_statement( &b )
 		end
 #		def compose
 #
@@ -230,13 +230,17 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 
 		alias :to_s :compose_simple
 
-
+##  return statement
+		#
+		# The block provides found as-statements ( as  array)
+		# They can be modified and returned either as array or as string ready to include in the query
 		def return_statement
+			resolve_as = ->{  		@query_stack.map{|s| s.as.split(':').last unless s.as.nil? }.compact }
 			" return " + statement = if block_given? 
-										a= yield @query_stack.map{|s| s.as.split(':').last }
-										a.is_a?(Array) ? a.join(', '): a
+										a= yield resolve_as[] 
+										a.is_a?(Array) ? a.join(', ') :  a
 									else
-										@query_stack.map{|s| s.as.split(':').last }.join(', ')
+										resolve_as[].join(', ')
 									end
 
 			
