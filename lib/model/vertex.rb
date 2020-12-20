@@ -28,6 +28,27 @@ The rid-cache is reset, too
 
 
 =begin
+Creates a new Match-Statement
+=end
+	def self.match **args
+		OrientSupport::MatchStatement.new self,  **args
+	end
+
+
+
+
+def self.where **attributes 
+    q = match where: attributes
+#    query.match_statements[0].where   attributes unless attributes.empty?
+		# the block contains a result-record : 
+		#<ActiveOrient::Model:0x0000000003972e00 
+		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
+		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
+		#		             ^...........° -> classname.pluralize
+    query_database( q.compile ) { | record | record[classname.pluralize.to_sym] }
+end
+
+=begin
 List edges
 
 1. call without any parameter:  list all edges present
@@ -227,6 +248,10 @@ Format: < Classname: Edges, Attributes >
 			"%s : %s" % [ attr, v]  unless v.nil?
 		end.compact.sort.join(', ') + ">".gsub('"' , ' ')
 	end
+
+
+
+
 
 protected
 #Present Classes (Hierarchy) 
