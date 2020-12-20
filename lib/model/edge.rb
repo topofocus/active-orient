@@ -85,6 +85,8 @@ to_do: Implement :all=> true directive
 											:out
 										when '<-'
 											:in
+										when Symbol
+											dir
 										end
 				args[:direction] ||= direction
 
