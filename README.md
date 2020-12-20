@@ -7,8 +7,7 @@ Use OrientDB to persistently store Ruby-Objects and use database queries to mana
 
 * Preparing for a gem release in Dec. 2020
 
-* Recent updates: concurrent database queries, multiple model-dirs 
-                  match-statements
+* Recent updates: concurrent database queries, multiple model-dirs, match-statements
 
 ---
 ### Quick Start
