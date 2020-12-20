@@ -332,7 +332,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 	######################## OrientQuery ###################################
 
 	QueryAttributes =  Struct.new( :kind,  :projection, :where, :let, :order, :while, :misc, 
-																:match_statements, :class, :return,  :aliases, :database, 
+																:class, :return,  :aliases, :database, 
 																:set, :remove, :group, :skip, :limit, :unwind )
 	
 	class OrientQuery
@@ -348,7 +348,6 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 								[], # :order,
 								[], # :while,
 								[] , # misc
-								[],  # match_statements
 								'',  # class
 								'',  #  return
 								[],   # aliases
@@ -359,12 +358,6 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 				@fill = block_given? ?   yield  : 'and'
 		end
 		
-		def start value
-					@q[:kind] = :match
-					@q[:match_statements] = [ MatchStatement.new( value) ]
-					#  @match_statements[1] = MatchConnection.new
-					self
-		end
 
 =begin
   where: "r > 9"                          --> where r > 9
@@ -398,68 +391,12 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 			end
 		end
 =begin
-(only if kind == :match): connect
-
-Add a connection to the match-query
-
-A Match-Query always has an Entry-Statement and maybe other Statements.
-They are connected via " -> " (outE), "<-" (inE) or "--" (both).
-
-The connection method adds a connection to the statement-stack. 
-
-Parameters:
-  direction: :in, :out, :both
-          	 :in_edge, :out_edge, :both_edge, 
-						 :in_vertex, :out_vertex, :both_vertex
-  edge_class: to restrict the Query on a certain Edge-Class
-  count: To repeat the connection
-  as:  Includes a micro-statement to finalize the Match-Query
-       as: defines a output-variable, which is used later in the return-statement
-
-The method returns the OrientSupport::MatchConnection object, which can be modified further.
-It is compiled by calling compose
-=end
-
-		def connect direction, edge_class: nil, count: 1, as: nil
-			 direction= :both unless [ :in, :out, :in_edge, :out_edge, :both_edge, :in_vertex, :out_vertex, :both_vertex].include? direction
-			match_statements <<  OrientSupport::MatchConnection.new( direction: direction, edge: edge_class,  count: count, as: as)
-			self  #  return the object
-		end
-
-=begin
-(only if kind == :match): statement
-
-A Match Query consists of a simple start-statement
-( classname and where-condition ), a connection followed by other Statement-connection-pairs.
-It performs a sub-query starting at the given entry-point.
-
-Statement adds a statement to the statement-stack.
-Statement returns the created OrientSupport::MatchStatement-record for further modifications. 
-It is compiled by calling »compose«. 
-
-OrientSupport::OrientQuery collects any "as"-directive for inclusion  in the return-statement
-
-Parameter (all optional)
- Class: classname, :where: {}, while: {}, as: string, maxdepth: >0 , 
-
-=end
-	def statement match_class= nil, **args
-		match_statements <<  OrientSupport::MatchStatement.new( match_class, args )
-		self  #  return the object
-	end
-=begin
   Output the compiled query
   Parameter: destination (rest, batch )
   If the query is submitted via the REST-Interface (as get-command), the limit parameter is extracted.
 =end
 
 		def compose(destination: :batch)
-			if kind.to_sym == :match
-				unless @q[:match_statements].empty?
-					match_query =  kind.to_s.upcase + " "+ @q[:match_statements][0].compose 
-					match_query << @q[:match_statements][1..-1].map( &:compose ).join
-					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
-				end
 			elsif kind.to_sym == :update 
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
 				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
