@@ -79,16 +79,18 @@ todo: remove all instances of the class
 
 =begin
   Deletes a single Record when providing a single rid-link (#00:00) or a record
+
   Deletes multible Records when providing a list of rid-links or a record
-  Todo: implement delete_edges after querying the database in one statement
+  
+	Todo: implement delete_edges after querying the database in one statement
 
   Example:
-		ORD.create_class :test
+		V.create_class :test
 		record =  Test.new  something: 'something' 
-		ORD.delete_record record
+		V.db.delete_record record
 
 		records= (1..100).map{|x| Test.create  something: x } 
-		ORD.delete_record *records
+		V.db.delete_record *records
 
   delete_records provides the removal of datasets after quering the database.
 =end
@@ -97,6 +99,7 @@ todo: remove all instances of the class
     logger.progname = "ActiveOrient::RestDelete#DeleteRecord"
 		#o.map( &:to_orient ).map do |r|
 		o.orient_flatten.map do |r|
+			rr =  r.to_human
 			begin
 				ActiveOrient::Base.remove_rid r 
 #				rest_resource["/document/#{ActiveOrient.database}/#{r[1..-1].to_or}"].delete
@@ -105,14 +108,14 @@ todo: remove all instances of the class
 				end
 
 			rescue RestClient::InternalServerError => e
-				logger.error{"Record #{r} NOT deleted"}
+				logger.error{"Record #{rr} NOT deleted"}
 			rescue RestClient::ResourceNotFound
-				logger.error{"Record #{r} does not exist in the database"}
+				logger.error{"Record #{rr} does not exist in the database"}
 			rescue RestClient::BadRequest => e
-				logger.error{"tried to delete RID: #{r[1..-1]}, but something went wrong"}
-				logger.error e.inspect
+				logger.error{"tried to delete  #{rr}, but something went wrong"}
+				raise
 			else
-				logger.info{"Record #{r} deleted"}
+				logger.info{"Record #{rr} deleted"}
 			end
 		end
 	end
