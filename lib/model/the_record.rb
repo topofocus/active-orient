@@ -163,6 +163,9 @@ translates to
 
 This can be achieved by
    obj.positions
+
+
+If the update process is not successful, nil is returned
 =end
 
 def update set: {}, remove: {}, **args
@@ -296,9 +299,7 @@ Automatic database-updates are deactivated for now
 		# a hash containing {"@type"=>"d", "@rid"=>"#xx:yy", "@version"=>n, "@class"=>'a_classname'} 
 		# and a list of updated properties (in case of db.update). Then  update the version field and the 
 		# attributes.
-		#puts "---transfer_content"
-    #puts from.inspect
-
+			return nil if from.nil?	
 			if from.is_a? ActiveOrient::Model
        @metadata = from.metadata
        self.attributes =  from.attributes

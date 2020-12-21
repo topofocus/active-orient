@@ -19,7 +19,7 @@ describe ActiveOrient::Model do
 		E.create_class :my_edge 
 		TestModel2.create_property :c, type: :integer, index: :unique
   end
-	after(:all){ @db.delete_database database: 'temp' }
+#	after(:all){ @db.delete_database database: 'temp' }
 
   context "create standalone ActiveOrient::Model classes" do
     subject { ActiveOrient::Model.orientdb_class name: 'Test' }
@@ -83,51 +83,55 @@ describe ActiveOrient::Model do
 	end
 
 
-  context "Add and modify documents"   do
-		before(:all){ Work.delete all: true }  # empty the class
+  context "Add and modify documents"  do
+		before(:all){  TestModel.delete all: true }  # empty the class (focus: true is possible)
 	
-		it{ expect( Work.count ).to   eq 0}
-
     it "put some data into the class"  do
-			Work.delete all: true 
-			(0..45).each{|x|  Work.create  test_cont: x  }
-			expect( Work.count ).to eq 46
+			TestModel.delete all: true 
+			(0..45).each{|x| TestModel.create(  test: x ) }
+			
+			expect( TestModel.count ).to eq 46
 		end
 
 		it "the database is empty before we start"  do
+			TestModel.delete all: true
       expect( TestModel.all ).to be_empty
       expect( @db.get_documents  from: TestModel ).to be_empty
       expect( TestModel.count ).to be_zero
     end
 
-		context " create an document" do
-			Given( :obj ){ TestModel.create test: 45  }
-			Then { obj.test == 45 }
+		context " create an document"  do
+			Given( :obj ){ TestModel.create test: 145  }
+			Then { obj.test == 145 }
 			Then { expect(obj).to be_a ActiveOrient::Model }
-			context "the document can be retrieved by first" do
-				Given( :first_document ){ TestModel.first }
-				Then { expect(first_document ).to be_a ActiveOrient::Model }
-				Then { first_document.test == 45 }
-			end
 			##### Method Missing [:to_ary] ---> Dokumente werden wahrscheinlich aus dem Cash genommen
 			#und nicht von der Datenbank abgefragt
-			context "the document can be updated " do
-				Given( :updated_document ){ obj.update set: { test: 76, new_entry: "This is a new Entry" } }
-				Then{ updated_document.test == 76 }
-				Then{ expect( updated_document.new_entry).to be_a String }
+	  	it "the document can be updated " do
+				the_object =  TestModel.create( test: 144 )
+				expect( the_object.attributes ).to eq test: 144
+				o= the_object.update test: 177, new_entry: "This is a new Entry"   
+				expect( the_object).to eq  o                          # flags: update was successful
+				expect( the_object.test).to eq  177                    # confirmation, attributes have changed
+				expect( the_object.new_entry).to be_a String 
 			end
 
 			it "various Properties can be added to the document" do
 				aa = [ 1,4,'r', :r ]  
 				ah = { :a => 'b', b: 2, c: :d } 
 				eh = { "a" => "b" , "b" => 2, "c" => :d  }
-				obj.update set: { a_array: aa  , a_hash: eh }   
-				expect( obj.a_array ).to eq aa
-				expect( obj.a_hash ).to eq  ah   # Hash-keys are always symbols!!
+
+				the_object =  TestModel.create( test: 146)
+				the_object.update set: { a_array: aa  , a_hash: eh }   
+				#puts  the_object.inspect
+				expect( the_object.a_array ).to eq aa
+				expect( the_object.a_hash ).to eq  ah   # Hash-keys are always symbols!!
 			end
 
 			it "a value can be added to the array (append)" do
-				the_updated_object = obj.update a_array: [1,4,'r',:r] 
+
+				the_object =  TestModel.create( test: 147, aa: [ 1,4,'r', :r ]  )
+
+				the_updated_object = the_object.update a_array: [1,4,'r',:r] 
 				expect(  the_updated_object.a_array).to eq  [1,4,'r',:r]  
 			  the_updated_object.a_array.append 56 
 				expect( the_updated_object.a_array).to eq  [ 1,4,'r', :r , 56] 
@@ -135,7 +139,7 @@ describe ActiveOrient::Model do
 		end
 
     it "the document can be deleted"  do
-			d =  TestModel.create test: 56  # does not work using obj
+			d =  TestModel.create test: 156  # does not work using obj
 			puts "d: #{d.to_human}"
 			c = TestModel.count
       d.delete  
@@ -143,7 +147,7 @@ describe ActiveOrient::Model do
     end
   end #context
 
-  context "ActiveRecord mimics"  do
+  context "ActiveRecord mimics"   do
 		before(:all) do 
 			TestModel.delete all: true
 			TestModel.create_property :test, type: :integer,   index: :unique
@@ -158,7 +162,7 @@ describe ActiveOrient::Model do
       Then { all_documents.each{|x| expect(x).to be_a ActiveOrient::Model }  }
     end
 
-    context "get a set of documents queried by where"  do
+    context "get a set of documents queried by where"   do
       Given( :nr_23 ) {  TestModel.where  test: 23 }
       Then { expect( nr_23 ).to have(1).element }
       Then { expect( nr_23.first.test).to eq 23 }

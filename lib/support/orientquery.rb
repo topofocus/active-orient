@@ -1,13 +1,5 @@
 require 'active_support/inflector'
 
-module StringExt
-	refine String do
-		def execute
-			V.db.execute{ self  }
-		end
-	end
-end
-
 module OrientSupport
   module Support
 
@@ -90,7 +82,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 				if value.is_a?( Hash ) && value.size >1
 												value.each {| a,b| where( {a => b} ) }
 				else
-					@q[:where].merge! value
+					@q[:where] <<  value
 				end
 				self
 			elsif @q[:where].present?
@@ -119,7 +111,6 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 	# direction, as, connect and edge cannot be changed after initialisation
   class MatchConnection
     include Support
-		using StringExt
 
     def initialize edge= nil, direction: :both, as: nil, count: 1, **args
 
@@ -223,7 +214,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 
 		# used for the first compose-statement of a compose-query
 		def compose_simple
-				where_statement = where.size <5 ?  nil :  "where: ( #{ generate_sql_list( @q[:where] ) })"
+				where_statement = where.is_a?(String) && where.size <3 ?  nil :  "where: ( #{ generate_sql_list( @q[:where] ) })"
 			'{'+ [ "class: #{@q[:match_class]}",  as , where_statement].compact.join(', ') + '}'
 		end
 
@@ -397,7 +388,7 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 =end
 
 		def compose(destination: :batch)
-			elsif kind.to_sym == :update 
+			if kind.to_sym == :update 
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
 				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
 			elsif kind.to_sym == :update!
@@ -630,15 +621,15 @@ end # class << self
 		end
 
 
+		# returns nil if the query was not sucessfully executed
 		def execute(reduce: false)
+			#puts "Compose: #{compose}"
 			result = V.orientdb.execute{ compose }
+			return nil unless result.is_a?(::Array)
 			result =  result.map{|x| yield x } if block_given?
-			result =  result.first if reduce && result.size == 1
-			if result.is_a?( ::Array)# && result.detect{|o| o.respond_to?( :rid?) && o.rid? }  
-				OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
-			else
-				result
-			end
+			return  result.first if reduce && result.size == 1
+			## standard case: return Array
+			OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
 		end
 :protected
 		def resolve_target

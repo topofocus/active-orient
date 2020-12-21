@@ -13,7 +13,7 @@ include OrientSupport::Support
 NamingConvention provides a translation from database-names to class-names.
 
 It can be overwritten to provide different conventions for different classes, eg. Vertexes or edges
-and to introduce distinct naming-conventions in differrent namespaces
+and to introduce distinct naming-conventions in different namespaces
 
 To overwrite use 
   class Model # < ActiveOrient::Model[:: ...]
@@ -203,10 +203,10 @@ Otherwise upsert acts as »update« and returns all updated records (as array).
 =end
   def upsert set: nil, where: , **args
 		set = where if set.nil?
-		query( args.merge( kind: :upsert, set: set, where: where )).execute(reduce: true){|y| y[:$current].reload!}
+		query( **args.merge( kind: :upsert, set: set, where: where )).execute(reduce: true){|y| y[:$current].reload!}
   end
 =begin
-Sets a value to certain attributes, overwrites existing entries, creates new attributes if nessesary
+Sets a value to certain attributes, overwrites existing entries, creates new attributes if necessary
 
 returns the count of affected records
 
@@ -231,7 +231,7 @@ returns the count of affected records
 	end
 
 =begin
-Create a Property in the Schema of the Class and optionaly create an automatic index
+Create a Property in the Schema of the Class and optionally create an automatic index
 
 Examples:
 
@@ -443,8 +443,8 @@ The method requires a hash of arguments. The following keys are supported:
 
 SQL-Queries use »select« to specify a projection (ie. `select sum(a), b+5 as z from class where ...`)
 
-In ruby »select« is a method of enumeration. To specify anything etween »select« and »from« in the query-string
-we use  »projection«, which acceps different arguments
+In ruby »select« is a method of enumeration. To specify what to »select« from  in the query-string
+we use  »projection«, which accepts different arguments
 
     projection: a_string --> inserts the sting as it appears
     projection: an OrientSupport::OrientQuery-Object --> performs a sub-query and uses the result for further querying though the given parameters.
@@ -499,100 +499,39 @@ tested prior to the method-call. The OrientQuery-Object is then provided with th
   alias get_documents get_records
 
 
-  def custom_where search_string
-    q = OrientSupport::OrientQuery.new from: self, where: search_string
-    #puts q.compose
-    query_database q
-  end
 =begin
 Performs a query on the Class and returns an Array of ActiveOrient:Model-Records.
 
+Fall-back method, is overloaded by Vertex.where 
+
+Is aliased by »custom_where»
+
 Example:
     Log.where priority: 'high'
-    --> submited database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
+    --> submitted database-request: query/hc_database/sql/select from Log where priority = 'high'/-1
     => [ #<Log:0x0000000480f7d8 @metadata={ ... },  ...
   
-Multible arguments are joined via "and" eg
+Multiple arguments are joined via "and" eg:
     Aktie.where symbol: 'TSL, exchange: 'ASX'
     ---> select  from aktie where symbol = 'TLS' and exchange = 'ASX'
-
-
-Where performs a »match-Query« that returns only links to the queries records.
-These are autoloaded (and reused from the cache). If changed database-records should  be obtained,
-custom_query should be used. It performs a "select form class where ... " query which returns  records
-instead of links.
-
-    Property.custom_where( "'Hamburg' in exchanges.label")
 
 =end
 
   def where *attributes 
-    q= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname }.merge( where: attributes )
-#    query.match_statements[0].where   attributes unless attributes.empty?
-		# the block contains a result-record : 
-		#<ActiveOrient::Model:0x0000000003972e00 
-		#		@metadata={:type=>"d", :class=>nil, :version=>0, :fieldTypes=>"test_models=x"}, @d=nil, 
-		#		@attributes={:test_models=>"#29:3", :created_at=>Thu, 28 Mar 2019 10:43:51 +0000}>]
-		#		             ^...........° -> classname.pluralize
-    query_database( q) { | record | record[classname.pluralize.to_sym] }
-#			record.map do | key, value | 
-
-#			record.is_a?(ActiveOrient::Model) ? record : record.send( self.classname.pluralize.to_sym ) }
-  end
-=begin
-Performs a Match-Query
-
-The Query starts at the given ActiveOrient::Model-Class. The where-cause narrows the sample to certain 
-records. In the simplest version this can be returned:
-  
-  Industry.match where:{ name: "Communications" }
-  => #<ActiveOrient::Model::Query:0x00000004309608 @metadata={"type"=>"d", "class"=>nil, "version"=>0, "fieldTypes"=>"Industries=x"}, @attributes={"Industries"=>"#21:1", (...)}>
-
-The attributes are the return-Values of the Match-Query. Unless otherwise noted, the pluralized Model-Classname is used as attribute in the result-set.
-
-  I.match( where: { name: 'Communications' }).first.Industries
-
-is the same then
-  Industry.where name: "Communications" 
-
-  
-The Match-Query uses this result-set as start for subsequent queries on connected records.
-These connections are defined in the Block
-
-  var = Industry.match do | query |
-    query.connect :in, count: 2, as: 'Subcategories'
-    puts query.to_s  # print the query before sending it to the database
-    query            # important: block has to return the query 
-  end
-  => MATCH {class: Industry, as: Industries} <-- {} <-- { as: Subcategories }  RETURN Industries, Subcategories
-
-The result-set has two attributes: Industries and Subcategories, pointing to the filtered datasets.
-
-By using subsequent »connect« and »statement« method-calls even complex Match-Queries can be clearly constructed. 
-
-=end
-
-  def match where: {}
-    query= OrientSupport::OrientQuery.new kind: :match, start:{ class: self.classname } 
-    query.match_statements[0].where =  where unless where.empty?
-    if block_given?
-      query_database yield(query), set_from: false
-    else
-      send :where, where
-    end
-
+    q= OrientSupport::OrientQuery.new  where: attributes 
+    query_database( q)
   end
 
-
+	alias custom_where where
 =begin
 QueryDatabase sends the Query directly to the database.
 
-The query returns a hash if a resultset is expected
+The query returns a hash if a result set is expected
   select  {something} as {result} (...) 
 leads to
   [ { :{result}  =>  {result of query} } ]
 
-It can be modified further by passing a block, ie
+It can be modified further by passing a block, ie.
 
   	q =  OrientSupport::OrientQuery.new( from: :base )
 		                               .projection( 'first_list[5].second_list[9] as second_list' )
