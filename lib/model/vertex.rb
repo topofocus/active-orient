@@ -92,6 +92,7 @@ def edges *args
 end
 
 	# Lists all connected Vertices
+  # ( returns a OrientSupport::Array )
 	#
 	# The Edge-classes can be specified via Classname or a regular expression. 
 	#
@@ -100,7 +101,7 @@ end
 	def nodes in_or_out = :out, via:  nil, where: nil, expand:  false
 			edges =  detect_edges( in_or_out, via, expand: false )
 			return [] if edges.empty?
-			q = query
+			q = query			# q.to_s  => "select from #0x:0x "
 			edges = nil if via.nil?
 			q.nodes in_or_out, via:  edges , where: where, expand: expand
 			detected_nodes=	q.execute{| record | record.is_a?(Hash)?  record.values.first : record  }
@@ -360,7 +361,6 @@ Format: < Classname: Edges, Attributes >
 		#  this is used by  Vertex#nodes 
 		#  it avoids communications with the database prior to submitting the nodes-query
 		# if expand = true (default) load the edges instead
-		puts "result prior expanding: #{result}"
 		if expand
 			OrientSupport::Array.new work_on: self, 
 				work_with: 	result.compact.map{|x| attributes[x]}.map(&:expand).orient_flatten
