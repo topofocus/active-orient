@@ -87,10 +87,14 @@ Creates a Record with the attributes provided in the attributes-hash e.g.
 
 Puts the database-response into the cache by default
 
+Argument: silence
+  if silence is specified, no Error-Messages are raised. Instead 
+  
+	* if a record failes to be created, because an index-error occured,  it is replaced by that specified in the database response
 
 =end
 
-  def create_record o_class, attributes: {}, cache: true    # use Model#create instead
+  def create_record o_class, attributes: {}, cache: true, silence: true    # use Model#create instead
     logger.progname = 'RestCreate#CreateRecord'
     attributes = yield if attributes.empty? && block_given?
     # @class must not quoted! Quote only attributes(strings)
@@ -109,8 +113,8 @@ Puts the database-response into the cache by default
       end
     rescue RestClient::InternalServerError => e
       sentence=  JSON.parse( e.response)['errors'].last['content']
-#      puts sentence.to_s
       if sentence =~ /found duplicated key/
+				raise "Duplicate Key" unless silence
 				rid = sentence.split("#").last
 				logger.info{ "found duplicated Key --> loaded #{rid} instead of creating "}
 				## reading database content -- maybe update attributes?

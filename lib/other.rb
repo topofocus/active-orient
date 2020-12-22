@@ -1,5 +1,19 @@
 
 class Array
+	
+	@@accepted_methods = []
+	## dummy for refining
+
+	def method_missing method, *args, &b
+		return if [:to_hash, :to_str].include? method
+		if @@accepted_methods.include? method
+			self.map{|x| x.public_send(method, *args, &b)}
+		else
+			raise ArgumentError.new("Method #{method} does not exist")
+		end
+	end
+
+
 # Class  extentions to manage to_orient and from_orient
   def to_orient
    if all?{ |x| x.respond_to?(:rid?)}  && any?( &:rid? )
@@ -20,6 +34,7 @@ class Array
 	def to_human
 		map &:to_human
 	end
+
   # used to enable 
   # def abc *key
   # where key is a Range, an comma separated List or an item
@@ -38,7 +53,8 @@ class Array
 		while( first.is_a?(Array) )
 			self.flatten!(1)
 		end
-		self
+		self.compact!
+		self ## return object
 	end
 end
 

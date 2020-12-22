@@ -1,4 +1,5 @@
 require 'active_support/inflector'
+
 module OrientSupport
   module Support
 
@@ -64,145 +65,265 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 				attributes.to_s
 			end		
 		end
+
+
+    # used both in OrientQuery and MatchConnect
+		# while and where depend on @q, a struct
+		def while_s  value=nil     # :nodoc:
+			if value.present?
+				@q[:while] << value
+				self
+			elsif @q[:while].present?
+				"while #{ generate_sql_list( @q[:while] ) }"
+			end
+		end
+		def where  value=nil     # :nodoc:
+			if value.present?
+				if value.is_a?( Hash ) && value.size >1
+												value.each {| a,b| where( {a => b} ) }
+				else
+					@q[:where] <<  value
+				end
+				self
+			elsif @q[:where].present?
+				"where #{ generate_sql_list( @q[:where] ){ @fill || 'and' } }"
+			end
+		end
+
+		def as a=nil
+			if a
+				@q[:as] = a   # subsequent calls overwrite older entries
+			else
+				if @q[:as].blank?
+					nil
+				else
+					"as: #{ @q[:as] }"
+				end
+			end
+		end
 	end  # module 
 
+	######################## MatchConnection ###############################
 
+	MatchAttributes = Struct.new(:edge, :direction, :as, :count, :where, :while, :max_depth , :depth_alias, :path_alias, :optional )
+
+	# where and while can be composed incremental
+	# direction, as, connect and edge cannot be changed after initialisation
   class MatchConnection
-    attr_accessor :as
-    def initialize edge: nil, direction: :both, as: nil, count: 1
-      @edge = edge.is_a?( Class ) ?  edge.ref_name : edge.to_s
-      @direction = direction  # may be :both, :in, :out
-      @as =  as
-      @count =  count
+    include Support
+
+    def initialize edge= nil, direction: :both, as: nil, count: 1, **args
+
+      the_edge = edge.is_a?( Class ) ?  edge.ref_name : edge.to_s   unless edge.nil? || edge == E
+			@q =  MatchAttributes.new  the_edge ,  # class
+								direction, #		  may be :both, :in, :out
+								as,				 #      a string
+								count,     #      a number 
+								args[:where],
+								args[:while],
+								args[:max_depth],
+								args[:depth_alias],      # not implemented
+								args[:path_alias],       # not implemented
+								args[:optional]          # not implemented
     end
 
     def direction= dir
-      @direction =  dir
+      @q[:direction] =  dir
     end
 
 
 		def direction
-			fillup =  @edge.present? ? @edge : ''
-			case @direction
+			fillup =  @q[:edge].present? ? @q[:edge] : ''
+			case @q[:direction]
 			when :both
-				" -#{fillup}- "
+				".both(#{fillup})"
 			when :in
-				" <-#{fillup}- "
+				".in(#{fillup})"
 			when :out
-				" -#{fillup}-> "
-      when :both_vertex
-				".bothV() "
-			when :out_vertex
-				".outV() "
-			when :in_vertex
-				".inV() "
-     when :both_edge
-			 ".bothE(#{fillup}) "
-			when :out_edge
-				".outE(#{fillup}) "
-			when :in_edge
-				".inE(#{fillup}) "
+				".out(#{fillup})"
+      when :both_vertex, :bothV
+				".bothV()"
+			when :out_vertex, :outV
+				".outV()"
+			when :in_vertex, :inV
+				".inV()"
+     when :both_edge, :bothE
+			 ".bothE(#{fillup})"
+			when :out_edge, :outE
+				".outE(#{fillup})"
+			when :in_edge, :outE
+				".inE(#{fillup})"
 			end
 
 		end
 
-    def compose
-      ministatement = @as.present? ? "{ as: #{@as} } " : "" 
-     (1 .. @count).map{|x| direction }.join("{}") << ministatement
-
-    end
-    
-  end  # class
-
-  class MatchStatement
-    include Support
-    attr_accessor :as
-    def initialize match_class=nil, **args
-			reduce_class = ->(c){ c.is_a?(Class) ? c.ref_name : c.to_s }
-      @misc  = []
-      @where = []
-      @while = []
-      @maxdepth = 0
-      @as =  nil
-
-
-      @match_class = reduce_class[match_class]
-      @as = @match_class.pluralize if @match_class.is_a?(String)
-
-			args.each do |k, v|
-				case k
-				when :as
-					@as = v
-				when :while
-					@while << v
-				when :where
-					@where << v
-				when :class
-					@match_class = reduce_class[v]
-
-					@as = @match_class.pluralize
-				else
-					self.send k, v
-				end
-			end
-		end
-    
-
-		def match_alias
-			"as: #{@as }"
-		end
-		def while_s  value=nil
-				if value.present?
-					@while << value
-					self
-				elsif @while.present?
-					"while: ( #{ generate_sql_list( @where ) }) "
-				end
-		end
-
-#		alias while while_s
-		
-		def where  value=nil
-				if value.present?
-					@where << value
-					self
-				elsif @where.present?
-					"where: ( #{ generate_sql_list( @where ) }) "
-				end
-		end
-
-		def maxdepth=x
-			@maxdepth = x
-		end
-
-		def method_missing method, *arg, &b
-			if @misc[ method.to_s ].present?
-				 @misc[ method.to_s ] =   @misc[ method.to_s ] + 'and '+generate_sql_list(arg) 
-			else	
-				@misc << method.to_s <<  generate_sql_list(arg) 
+		def count c=nil
+			if c
+				@q[:count] = c
+			else
+				@q[:count]
 			end
 		end
 
-		def misc
-			@misc.join(' ') unless @misc.empty?
+		def max_depth d=nil
+			if d.nil?
+				@q[:max_depth].present? ? "maxDepth: #{@q[:max_depth] }" : nil
+			else
+				@q[:max_depth] = d
+			end
 		end
-		# used for the first compose-statement of a compose-query
-		def compose_simple
-			'{'+ [ "class: #{@match_class}", "as: #{@as}" , where ].compact.join(', ') + '}'
+		def edge
+			@q[:edge]
 		end
 
 		def compose
+				where_statement =( where.nil? || where.size <5 ) ? nil : "where: ( #{ generate_sql_list( @q[:where] ) })"
+				while_statement =( while_s.nil? || while_s.size <5) ? nil : "while: ( #{ generate_sql_list( @q[:while] )})"
+				
+				ministatement = "{"+ [ as, where_statement, while_statement, max_depth].compact.join(', ') + "}"
+				ministatement = "" if ministatement=="{}"
 
-			'{'+ [ "class: #{@match_class}", 
-					"as: #{@as}" , where, while_s, 
-						@maxdepth >0 ? "maxdepth: #{maxdepth}": nil  ].compact.join(', ')+'}'
-		end
+     (1 .. count).map{|x| direction }.join("") + ministatement
+
+    end
 		alias :to_s :compose
+    
+  end  # class
+
+
+	######################## MatchStatement ################################
+
+	MatchSAttributes = Struct.new(:match_class, :as, :where )
+  class MatchStatement
+    include Support
+    def initialize match_class, as: 0,  **args
+			reduce_class = ->(c){ c.is_a?(Class) ? c.ref_name : c.to_s }
+
+			@q =  MatchSAttributes.new( reduce_class[match_class],  # class
+								as.respond_to?(:zero?) && as.zero? ?  reduce_class[match_class].pluralize : as	,			
+								args[ :where ])
+
+			@query_stack = [ self ]
+		end
+
+		def match_alias
+			"as: #{@q[:as]}"
+		end
+
+
+
+		# used for the first compose-statement of a compose-query
+		def compose_simple
+				where_statement = where.is_a?(String) && where.size <3 ?  nil :  "where: ( #{ generate_sql_list( @q[:where] ) })"
+			'{'+ [ "class: #{@q[:match_class]}",  as , where_statement].compact.join(', ') + '}'
+		end
+
+
+		def << connection
+			@query_stack << connection
+			self  # return MatchStatement
+		end
+		#
+		def compile &b
+     "match " + @query_stack.map( &:to_s ).join + return_statement( &b )
+		end
+
+
+		# executes the standard-case.
+		# returns
+		#  * as: :hash   : an array of  hashes
+		#  * as: :array  : an array of hash-values 
+		#  * as  :flatten: a simple array of hash-values
+		#
+		# The optional block is used to customize the output. 
+		# All previously defiend »as«-Statements are provided though the control variable.
+		#
+		# Background
+		# A match query   "Match {class aaa, as: 'aa'} return aa "  
+		#
+		# returns [ aa: { result of the query, a Vertex or a value-item  }, aa: {}...}, ...] ]
+		# (The standard case)
+		#
+		# A match query   "Match {class aaa, as: 'aa'} return aa.name "  
+		# returns [ aa.name: { name  }, aa.name: { name }., ...] ]
+		# 
+		# Now, execute( as: :flatten){ "aa.name" }  returns
+		#  [name1, name2 ,. ...]
+		#
+		#
+		# Return statements  (examples from https://orientdb.org/docs/3.0.x/sql/SQL-Match.html)
+		#  "person.name as name, friendship.since as since, friend.name as friend"
+		#
+		#  " person.name + \" is a friend of \" + friend.name as friends"
+		#
+		#  "$matches"
+		#  "$elements"
+		#  "$paths"
+		#  "$pathElements"
+		#
+		#    
+		#
+		def execute as: :hash, &b 
+			r = V.db.execute{ compile &b }
+			case as
+			when :hash
+				r
+			when :array
+			 r.map{|y| y.values}
+			when :flatten
+			 r.map{|y| y.values}.orient_flatten 
+			else
+				raise ArgumentError, "Specify parameter «as:» with :hash, :array, :flatten"
+		 end
+		end
+#		def compose
+#
+#			'{'+ [ "class: #{@q[:match_class]}", 
+#					"as: #{@as}" , where, while_s, 
+#						@maxdepth >0 ? "maxdepth: #{maxdepth}": nil  ].compact.join(', ')+'}'
+#		end
+
+		alias :to_s :compose_simple
+
+
+##  return_statement
+		#
+		# summarizes defined as-statements ready to be included as last parameter
+		# in the match-statement-stack
+		#
+		# They can be modified through a block.
+		#
+		# i.e
+		#
+		# t= TestQuery.match(  where: {a: 9, b: 's'}, as: nil ) << E.connect("<-", as: :test) 
+		# t.return_statement{|y| "#{y.last}.name"} 
+		#
+		# =>> " return  test.name"
+		#
+		#return_statement is always called through compile
+		#
+		# t.compile{|y| "#{y.last}.name"} 
+
+ private		
+		def return_statement
+			resolve_as = ->{  		@query_stack.map{|s| s.as.split(':').last unless s.as.nil? }.compact }
+			" return " + statement = if block_given? 
+										a= yield resolve_as[] 
+										a.is_a?(Array) ? a.join(', ') :  a
+									else
+										resolve_as[].join(', ')
+									end
+
+			
+		end
+		
 	end  # class
 
 
-	QueryAttributes =  Struct.new( :kind, :projection, :where, :let, :order, :while, :misc, 
-																:match_statements, :class, :return,  :aliases, :database, 
+	######################## OrientQuery ###################################
+
+	QueryAttributes =  Struct.new( :kind,  :projection, :where, :let, :order, :while, :misc, 
+																:class, :return,  :aliases, :database, 
 																:set, :remove, :group, :skip, :limit, :unwind )
 	
 	class OrientQuery
@@ -218,7 +339,6 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 								[], # :order,
 								[], # :while,
 								[] , # misc
-								[],  # match_statements
 								'',  # class
 								'',  #  return
 								[],   # aliases
@@ -229,12 +349,6 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 				@fill = block_given? ?   yield  : 'and'
 		end
 		
-		def start value
-					@q[:kind] = :match
-					@q[:match_statements] = [ MatchStatement.new( value) ]
-					#  @match_statements[1] = MatchConnection.new
-					self
-		end
 
 =begin
   where: "r > 9"                          --> where r > 9
@@ -268,69 +382,13 @@ If »NULL« should be addressed, { key: nil } is translated to "key = NULL"  (us
 			end
 		end
 =begin
-(only if kind == :match): connect
-
-Add a connection to the match-query
-
-A Match-Query alwas has an Entry-Stratement and maybe other Statements.
-They are connected via " -> " (outE), "<-" (inE) or "--" (both).
-
-The connection method adds a connection to the statement-stack. 
-
-Parameters:
-  direction: :in, :out, :both
-          	 :in_edge, :out_edge, :both_edge, 
-						 :in_vertex, :out_vertex, :both_vertex
-  edge_class: to restrict the Query on a certain Edge-Class
-  count: To repeat the connection
-  as:  Includes a micro-statement to finalize the Match-Query
-       as: defines a output-variablet, which is used later in the return-statement
-
-The method returns the OrientSupport::MatchConnection object, which can be modified further.
-It is compiled by calling compose
-=end
-
-		def connect direction, edge_class: nil, count: 1, as: nil
-			 direction= :both unless [ :in, :out, :in_edge, :out_edge, :both_edge, :in_vertex, :out_vertex, :both_vertex].include? direction
-			match_statements <<  OrientSupport::MatchConnection.new( direction: direction, edge: edge_class,  count: count, as: as)
-			self  #  return the object
-		end
-
-=begin
-(only if kind == :match): statement
-
-A Match Query consists of a simple start-statement
-( classname and where-condition ), a connection followd by other Statement-connection-pairs.
-It performs a sub-query starting at the given entry-point.
-
-Statement adds a statement to the statement-stack.
-Statement returns the created OrientSupport::MatchStatement-record for further modifications. 
-It is compiled by calling »compose«. 
-
-OrientSupport::OrientQuery collects any "as"-directive for inclusion  in the return-statement
-
-Parameter (all optional)
- Class: classname, :where: {}, while: {}, as: string, maxdepth: >0 , 
-
-=end
-	def statement match_class= nil, **args
-		match_statements <<  OrientSupport::MatchStatement.new( match_class, args )
-		self  #  return the object
-	end
-=begin
   Output the compiled query
   Parameter: destination (rest, batch )
   If the query is submitted via the REST-Interface (as get-command), the limit parameter is extracted.
 =end
 
 		def compose(destination: :batch)
-			if kind.to_sym == :match
-				unless @q[:match_statements].empty?
-					match_query =  kind.to_s.upcase + " "+ @q[:match_statements][0].compose 
-					match_query << @q[:match_statements][1..-1].map( &:compose ).join
-					match_query << " RETURN "<< (@q[:match_statements].map( &:as ).compact | @q[:aliases]).join(', ')
-				end
-			elsif kind.to_sym == :update 
+			if kind.to_sym == :update 
 				return_statement = "return after " + ( @q[:aliases].empty? ?  "$current" : @q[:aliases].first.to_s)
 				[ 'update', target, set, remove, return_statement , where, limit ].compact.join(' ')
 			elsif kind.to_sym == :update!
@@ -421,26 +479,6 @@ Parameter (all optional)
   	  @q[:database] = arg 
     end
 
-		def while_s  value=nil     # :nodoc:
-			if value.present?
-				@q[:while] << value
-				self
-			elsif @q[:while].present?
-				"while #{ generate_sql_list( @q[:while] ) }"
-			end
-		end
-		def where  value=nil     # :nodoc:
-			if value.present?
-				if value.is_a?( Hash ) && value.size >1
-												value.each {| a,b| where( {a => b} ) }
-				else
-					@q[:where] << value
-				end
-				self
-			elsif @q[:where].present?
-				"where #{ generate_sql_list( @q[:where] ){ @fill } }"
-			end
-		end
 		def distinct d
 			@q[:projection] << "distinct " +  generate_sql_list( d ){ ' as ' }
 			self
@@ -583,15 +621,15 @@ end # class << self
 		end
 
 
+		# returns nil if the query was not sucessfully executed
 		def execute(reduce: false)
+			#puts "Compose: #{compose}"
 			result = V.orientdb.execute{ compose }
+			return nil unless result.is_a?(::Array)
 			result =  result.map{|x| yield x } if block_given?
-			result =  result.first if reduce && result.size == 1
-			if result.is_a?( ::Array)# && result.detect{|o| o.respond_to?( :rid?) && o.rid? }  
-				OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
-			else
-				result
-			end
+			return  result.first if reduce && result.size == 1
+			## standard case: return Array
+			OrientSupport::Array.new( work_on: resolve_target, work_with: result.orient_flatten)   
 		end
 :protected
 		def resolve_target

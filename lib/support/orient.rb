@@ -226,6 +226,12 @@ end
 			self
 		end
 
+		def store  k, v
+			@orient.update { "set #{@name}[#{k.to_s.to_or}] = #{v.to_or} "}[@name] #if check_if_complete
+			@orient.reload!
+		end
+
+		alias []= store
 
 
 # Inserts the provided Hash to the (possibly empty) list-property and updates the dataset
@@ -254,9 +260,15 @@ end
 
 		def remove *k
 			# todo combine queries in a transaction
-				
+
 			r=  k.map{|key|	@orient.update{   "remove #{@name} = #{key.to_s.to_or} "  } }
 			@orient.reload!.send @name
+
+		end
+
+		def delete_if &b
+			super &b
+			@orient.update set:{ @name => self}
 
 		end
 

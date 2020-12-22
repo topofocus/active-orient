@@ -3,13 +3,27 @@ class V   < ActiveOrient::Model
  
 =begin
 specialized creation of vertices, overloads model#create
+
+  Vertex.create set: { a: 1, b: "2", c: :r }
+
+or
+
+  Vertex.create  a: 1, b: "2", c: :r 
+
+	If a record cannot be created, because an index inhibits it, the original record is
+	silently loaded instead. 
+	To avoid this behavior, call create_record and specify »silence: false«
+
 =end
 	def self.create set: {},  **attributes
-		query.kind(:create).set( set.merge(attributes) ).execute(reduce: true)
+		db.create_record self, attributes: set.merge(attributes)
+	#	query.kind(:create).set( set.merge(attributes) ).execute(reduce: true)
   end
 =begin
-Vertex#delete fires a "delete vertex" command to the database.
-The where statement can be empty ( "" or {}"), then all vertices are removed 
+Vertex.delete fires a "delete vertex" command to the database.
+
+To remove all records of a class, use  »all: true« as argument
+
 
 The rid-cache is reset, too
 =end
@@ -28,6 +42,30 @@ The rid-cache is reset, too
 
 
 =begin
+Creates a new Match-Statement
+=end
+	def self.match  **args
+		OrientSupport::MatchStatement.new self,  **args
+	end
+
+=begin
+Performs a Where-Query on the vertex-class
+
+The where-cause narrows the sample to certain records. 
+
+They are returned as OrientSupport::Array
+ 
+Internally a match-query is fired. 
+
+To fire a »select from class where« query, use »Class.custom_where«.
+=end
+
+
+def self.where *attributes 
+    query_database( match(where: attributes).compile ) { | record | record[classname.pluralize.to_sym] }
+end
+
+=begin
 List edges
 
 1. call without any parameter:  list all edges present
@@ -38,22 +76,23 @@ List edges
   :call-seq:
   edges in_or_out, pattern 
 =end
-	def edges *args
-		if args.empty?
+def edges *args
+	if args.empty?
 		detect_edges  :both
+	else
+		kind =   [:in, :out, :both, :all].detect{|x|  args.include? x }
+		if kind.present?
+			args =  args - [ kind ]
 		else
-			kind =   [:in, :out, :both, :all].detect{|x|  args.include? x }
-			if kind.present?
-				args =  args - [ kind ]
-			else
-				kind = :both
-			end
+			kind = :both
+		end
 		detect_edges  kind, args.first
 
-		end
 	end
+end
 
 	# Lists all connected Vertices
+  # ( returns a OrientSupport::Array )
 	#
 	# The Edge-classes can be specified via Classname or a regular expression. 
 	#
@@ -62,7 +101,7 @@ List edges
 	def nodes in_or_out = :out, via:  nil, where: nil, expand:  false
 			edges =  detect_edges( in_or_out, via, expand: false )
 			return [] if edges.empty?
-			q = query
+			q = query			# q.to_s  => "select from #0x:0x "
 			edges = nil if via.nil?
 			q.nodes in_or_out, via:  edges , where: where, expand: expand
 			detected_nodes=	q.execute{| record | record.is_a?(Hash)?  record.values.first : record  }
@@ -119,11 +158,11 @@ or
 		vertex
   end
 
-## optimisation
+## Optimisation (not implemented jet)
 	#
 	#         "LET $a = CREATE VERTEX VTest SET name = 'John';" +
- #                      "CREATE EDGE ETest FROM :ParentRID TO $a;" +
- #                       "RETURN $a;", params)
+	#                      "CREATE EDGE ETest FROM :ParentRID TO $a;" +
+	#                      "RETURN $a;", params)
 
 
 
@@ -131,11 +170,11 @@ or
 =begin
 »in« and »out« provide the main access to edges.
 
-»in» is a reserved keyword. Therfore its only an alias to `in_e`.
+»in» is a reserved keyword. Therefor its only an alias to `in_e`.
 
 If called without a parameter, all connected edges  are retrieved.
 
-If called with a string, symbol or class, the edge-class is resolved and even inherented 
+If called with a string, symbol or class, the edge-class is resolved and even inherent 
 edges are retrieved.
 
 =end
@@ -152,7 +191,7 @@ edges are retrieved.
 =begin
 Retrieves  connected edges
 
-The basic usage is to fetch all/ incomming/ outgoing edges
+The basic usage is to fetch all/ incoming/ outgoing edges
 
   Model-Instance.edges :in  :out | :both, :all
 
@@ -165,7 +204,7 @@ One can filter specific edges by providing parts of the edge-name
 
 
 
-The method returns an array of  expandes edges.
+The method returns an array of  expands edges.
 
 »in_edges« and »out_edges« are shortcuts to »edges :in« and »edges :out«
 
@@ -185,7 +224,7 @@ returns all edges. The parameter (:out) is not recognized, because out is alread
 
 this
   tg.out( :ohlc).first.out.edges( :out)
-is a walkaround, but using in_- and out_edges is more  elegant.
+is a workaround, but using in_- and out_edges is more  elegant.
 =end
   def in_edges
     edges :in
@@ -198,7 +237,7 @@ is a walkaround, but using in_- and out_edges is more  elegant.
  #   db.delete_vertex self
 #	end
 =begin
-Human readable represantation of Vertices
+Human readable representation of Vertices
 
 Format: < Classname: Edges, Attributes >
 =end
@@ -228,7 +267,11 @@ Format: < Classname: Edges, Attributes >
 		end.compact.sort.join(', ') + ">".gsub('"' , ' ')
 	end
 
-protected
+
+
+
+
+#protected
 #Present Classes (Hierarchy) 
 #---
 #- - E
@@ -252,7 +295,7 @@ protected
 #
 #  returns a OrientSupport::Array
 	def detect_edges kind = :in,  edge_name = nil, expand: true  #:nodoc:
-		## returns a list of inherented classes
+		## returns a list of inherent DD classes
 		get_superclass = ->(e) do
 			if [nil,"", "e", "E", E, :e, :E ].include?(e)
 				"E"
@@ -314,7 +357,7 @@ protected
 				end
 			end
 		end
-		# if expand = false , return the orientdb-databasename of the edges
+		# if expand = false , return the orientdb database name of the edges
 		#  this is used by  Vertex#nodes 
 		#  it avoids communications with the database prior to submitting the nodes-query
 		# if expand = true (default) load the edges instead

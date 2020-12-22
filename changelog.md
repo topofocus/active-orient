@@ -44,5 +44,17 @@ Changelog
 						 method: remove
 						 performs the database-operation and reloads the record
 
-						 deleted methods: store, delete_if 
+2020/12/21   file /lib/rest/create.rb
+             method: create_record 
+						 Included the option: »silence«.  If set, if a duplicate index-error is fired, the 
+						 original record is loaded instead of creating a new one.
+
+						 file /lib/model/vertex.rb
+						 method: create
+						 Vertex.create uses »create_record« with »silence:true« to create records. 
+
+						 file /lib/orientquery.rb
+						 class: OrientSupport::OrientQuery
+						 method: execute
+						 If the execution of a query was not successfull, nil is returned
 

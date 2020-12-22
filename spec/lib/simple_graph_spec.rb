@@ -38,30 +38,19 @@ after(:all){ @db.delete_database database: 'temp' }
 				CONNECTS.create from: b, to: new_node, attributes: {basic: true}
 			end
 		end
-		Given( :first_item ){ Base.where(item: 'b').first }
-														
-		Then{ expect( first_item.attributes ).to have_key :out_connects }
-		Then{ expect( first_item.out_connects).to have(10).items }
-
-		Then{ expect( Node.count).to eq 110 }
-		Then{ ExtraNode.count == 100 }
-		context "has valid edges" do
-				Then { expect(Base.where(item: 'b').first.out_connects).to have(10).items }
+		it "check structure" do
+		  expect( Base.count).to eq 1
+		  expect( Node.count).to eq 110
+  		expect( ExtraNode.count).to eq 100 
+		end
+		it  "has valid edges" do
+			expect(Base.where(item: 'b').first.out(/conn/)).to have(10).items 
 			(1..10).each do | n |
-				Given( :the_node){  Node.where( item: n ).first }
-				Then { the_node.in_connects.out  == Base.where(item: 'b') }
-				Then { expect( the_node.out_connects.in).to have(10).items }
+				the_node =   Node.where( item: n ).first 
+				expect( the_node.in(/connects/).out ).to eq Base.where(item: 'b')
+				expect( the_node.out(CONNECTS)).to have(10).items 
 			end
 		end
-		#it " has valid edges" do
-		#	(1..10).each do | n |
-		#		the_node =  Node.where( item: n ).first
-		#		expect( the_node.in_connects.out ).to eq Base.where(item: 'b')
-		#		expect(Base.where(item: 'b').first.out_connects).to have(10).items
-		#		expect( the_node.out_connects.in).to have(10).items
-
-		#	end
-		#end
 
 		context " One to many connection"  do
 			before(:all){ @c =  Base.create( item: 'c' ) }
