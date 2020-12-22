@@ -31,6 +31,7 @@ require 'active_model'
 require_relative "support/orientquery.rb"
 require_relative "support/conversions.rb"
 #require_relative "support/logging.rb"
+require_relative "support/errors.rb"
 require_relative "base.rb"
 require_relative "base_properties.rb"
 require_relative "support/orient.rb"

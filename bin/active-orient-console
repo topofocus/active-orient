@@ -39,9 +39,8 @@ begin
 	ActiveOrient::Base.logger.level = Logger::INFO
 #	module HH; end
 #	 ActiveOrient::Init.define_namespace { HH  }
-	ActiveOrient::Model.keep_models_without_file =  true
-	ActiveOrient::OrientDB.new  model_dir: '../lib/model'
-	 ActiveOrient::OrientDB.new preallocate: true
+	ActiveOrient::Model.keep_models_without_file =  true 
+	ActiveOrient::OrientDB.new  model_dir: '../lib/model' , preallocate: true
 rescue RestClient::Unauthorized
 	puts "Cannot connect to the server. Wrong credentials"
 	Kernel.exit
