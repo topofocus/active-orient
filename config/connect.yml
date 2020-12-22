@@ -1,13 +1,12 @@
 ---
 :orientdb:
- :server: 10.222.148.109 # 172.28.50.25 
-  #:server:  172.28.50.25 
-  #:server: localhost  # 172.28.50.109 #  #mailout.halfgarten-capital.de
+ :server: 10.222.148.109 
+ #:server: localhost  
  :port: 2480
  :logger: stdout           # 'file' or 'stdout'
  :database: 
-   :development: ml_data
-   :production: hcn_data
+   :development: devel 
+   :production: produc
    :test:  temp
  :admin:
    :user: ***w

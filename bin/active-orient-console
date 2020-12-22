@@ -10,6 +10,7 @@ require 'bundler/setup'
 require 'yaml'
 require 'logger'
 require 'active-orient'
+begin
 config_file =  File.expand_path('../../config/connect.yml', __FILE__) 
 connectyml = if File.exist?(config_file)
 							 YAML.load_file( config_file )[:orientdb]
@@ -22,7 +23,13 @@ connectyml = if File.exist?(config_file)
 															 test:  'temp'},
 								  admin:	{	user: 'root', pass: 'root' } } 
 						end
-
+rescue Psych::SyntaxError
+	puts "Please edit /config/connect.yml"
+	puts
+	puts "current settings:"
+	puts `cat ../config/connect.yml`
+	Kernel.exit
+end
 e=  ARGV.present? ? ARGV.last.downcase : 'development'
 env =  if e =~ /^p/
 				 :production
@@ -37,6 +44,7 @@ begin
 		password: connectyml[:admin][:pass].to_s,
 		server: connectyml[:server].to_s
 	ActiveOrient::Base.logger.level = Logger::INFO
+## example for namespace support, then set »keep_models_without_file« temporary to »false«
 #	module HH; end
 #	 ActiveOrient::Init.define_namespace { HH  }
 	ActiveOrient::Model.keep_models_without_file =  true
