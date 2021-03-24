@@ -189,7 +189,7 @@ The model instance fields are then set automatically from the opts Hash.
     end
 
 		def my_metadata key: nil, symbol: nil
-			if @metadata[:fieldTypes].present?  
+      if @metadata.present? && @metadata[:fieldTypes].present?  
 				meta= Hash[ @metadata[:fieldTypes].split(',').map{|x| x.split '='} ]
 				if key.present?
 					meta[key.to_s]
