@@ -23,7 +23,8 @@ connectyml = if File.exist?(config_file)
 															 test:  'temp'},
 								  admin:	{	user: 'root', pass: 'root' } } 
 						end
-rescue Psych::SyntaxError
+rescue Psych::SyntaxError => e
+	# puts e
 	puts "Please edit /config/connect.yml"
 	puts
 	puts "current settings:"
@@ -42,7 +43,8 @@ begin
 	ORD = ActiveOrient::Init.connect database: connectyml[:database][env].to_s,
 		user: connectyml[:admin][:user].to_s,
 		password: connectyml[:admin][:pass].to_s,
-		server: connectyml[:server].to_s
+		server: connectyml[:server].to_s,
+		port: connectyml[:port]
 	ActiveOrient::Base.logger.level = Logger::INFO
 ## example for namespace support, then set »keep_models_without_file« temporary to »false«
 #	module HH; end
